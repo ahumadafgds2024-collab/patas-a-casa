@@ -1,0 +1,25 @@
+name: Hosting Check
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Curl headers
+        run: |
+          echo '=== CURL HEADERS ==='
+          curl -sS -I --max-time 30 'https://patas-a-casa.vercel.app/?tag=PRUEBA1' || true
+      - name: Browser clean profile
+        run: |
+          echo '=== CHROME CLEAN PROFILE ==='
+          TMPDIR=$(mktemp -d)
+          google-chrome --headless=new --no-sandbox --disable-gpu --user-data-dir="$TMPDIR" --dump-dom 'https://patas-a-casa.vercel.app/?tag=PRUEBA1' > /tmp/dom.html 2>/tmp/chrome.err || true
+          echo '--- chrome stderr ---'
+          cat /tmp/chrome.err
+          echo '--- document start ---'
+          head -c 1200 /tmp/dom.html
+          echo
