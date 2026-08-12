@@ -1,0 +1,92 @@
+name: Agregar flyer al panel
+
+on:
+  push:
+    paths:
+      - '.github/workflows/add-owner-flyer.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Agregar generador de flyer
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('mi-cuenta/index.html')
+          s=p.read_text(encoding='utf-8')
+          old='let pets=[],deferredInstall=null,currentUser=null;'
+          new='let pets=[],deferredInstall=null,currentUser=null,flyerBlob=null,flyerObjectUrl=null,flyerFileName="";'
+          if old not in s: raise SystemExit('No encontré estado esperado')
+          s=s.replace(old,new,1)
+          old='function closeModal(){modal.classList.add("hidden");modal.innerHTML=""}'
+          new='function closeModal(){if(flyerObjectUrl){URL.revokeObjectURL(flyerObjectUrl);flyerObjectUrl=null}flyerBlob=null;flyerFileName="";modal.classList.add("hidden");modal.innerHTML=""}'
+          if old not in s: raise SystemExit('No encontré closeModal esperado')
+          s=s.replace(old,new,1)
+          old=''' <div class="actions"><button class="btn ${lost?"green":"red"}" onclick="toggleLost('${esc(p.public_code)}','${lost?"normal":"perdido"}')">${lost?"✅ Ya volvió a casa":"🚨 Marcar como perdido"}</button><button class="btn soft" onclick="editPet('${esc(p.public_code)}')">✏️ Editar perfil</button><button class="btn soft" onclick="showSightings('${esc(p.public_code)}')">📍 Avistamientos</button><a class="btn dark" href="/?tag=${encodeURIComponent(p.public_code)}" target="_blank">👁 Ver perfil público</a></div></article>`;'''
+          new=''' <div class="actions"><button class="btn ${lost?"green":"red"}" onclick="toggleLost('${esc(p.public_code)}','${lost?"normal":"perdido"}')">${lost?"✅ Ya volvió a casa":"🚨 Marcar como perdido"}</button><button class="btn primary" onclick="openFlyer('${esc(p.public_code)}')">🖼 Generar flyer</button><button class="btn soft" onclick="editPet('${esc(p.public_code)}')">✏️ Editar perfil</button><button class="btn soft" onclick="showSightings('${esc(p.public_code)}')">📍 Avistamientos</button><a class="btn dark" href="/?tag=${encodeURIComponent(p.public_code)}" target="_blank">👁 Ver perfil público</a></div></article>`;'''
+          if old not in s: raise SystemExit('No encontré acciones esperadas')
+          s=s.replace(old,new,1)
+          marker='function compressPhoto(file){'
+          if marker not in s: raise SystemExit('No encontré punto de inserción')
+          insert=r'''
+          function fitFlyerText(ctx,text,maxWidth,startSize,minSize=34){
+           let size=startSize;ctx.font=`900 ${size}px Arial, sans-serif`;while(size>minSize&&ctx.measureText(text).width>maxWidth){size-=2;ctx.font=`900 ${size}px Arial, sans-serif`}return size
+          }
+          function roundedFlyerRect(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath()}
+          async function loadFlyerPhoto(src){
+           const r=await fetch(src,{mode:"cors",cache:"no-store"});if(!r.ok)throw new Error("No pudimos cargar la foto de la mascota.");const blob=await r.blob(),url=URL.createObjectURL(blob);
+           try{return await new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=()=>reject(new Error("No pudimos preparar la foto para el flyer."));img.src=url})}finally{setTimeout(()=>URL.revokeObjectURL(url),0)}
+          }
+          function drawCover(ctx,img,x,y,w,h){const ir=img.naturalWidth/img.naturalHeight,br=w/h;let sx=0,sy=0,sw=img.naturalWidth,sh=img.naturalHeight;if(ir>br){sw=img.naturalHeight*br;sx=(img.naturalWidth-sw)/2}else{sh=img.naturalWidth/br;sy=(img.naturalHeight-sh)/2}ctx.drawImage(img,sx,sy,sw,sh,x,y,w,h)}
+          async function buildFlyer(p){
+           const phone=String(p.contact_whatsapp||p.contact_phone||"").trim();if(!p.photo_url)throw new Error("Primero cargá una foto de la mascota para generar el flyer.");if(!phone)throw new Error("Primero cargá un teléfono o WhatsApp de contacto.");
+           const img=await loadFlyerPhoto(p.photo_url),canvas=document.createElement("canvas"),ctx=canvas.getContext("2d");canvas.width=1080;canvas.height=1920;
+           ctx.fillStyle="#f4f4f1";ctx.fillRect(0,0,1080,1920);
+           ctx.fillStyle="#d83f50";ctx.fillRect(0,0,1080,270);
+           ctx.fillStyle="#fff";ctx.textAlign="center";ctx.textBaseline="middle";ctx.font="900 104px Arial, sans-serif";ctx.fillText("SE PERDIÓ",540,135);
+           const petName=String(p.name||"MASCOTA").toUpperCase();ctx.fillStyle="#171719";const nameSize=fitFlyerText(ctx,petName,920,92,54);ctx.font=`900 ${nameSize}px Arial, sans-serif`;ctx.fillText(petName,540,360);
+           const photoX=70,photoY=445,photoW=940,photoH=950;ctx.save();roundedFlyerRect(ctx,photoX,photoY,photoW,photoH,46);ctx.clip();drawCover(ctx,img,photoX,photoY,photoW,photoH);ctx.restore();
+           const details=[p.breed,p.color].filter(Boolean).map(v=>String(v).trim()).filter(Boolean).join(" · ");if(details){ctx.fillStyle="#66666b";ctx.font="700 34px Arial, sans-serif";fitFlyerText(ctx,details,900,34,26);ctx.fillText(details,540,1450)}
+           ctx.fillStyle="#fff";roundedFlyerRect(ctx,70,1515,940,300,42);ctx.fill();ctx.fillStyle="#171719";ctx.font="900 42px Arial, sans-serif";ctx.fillText("SI LA VES, POR FAVOR COMUNICATE",540,1590);
+           const phoneSize=fitFlyerText(ctx,phone,850,76,44);ctx.font=`900 ${phoneSize}px Arial, sans-serif`;ctx.fillStyle="#d83f50";ctx.fillText(phone,540,1690);ctx.fillStyle="#737373";ctx.font="700 30px Arial, sans-serif";ctx.fillText("WhatsApp / llamada",540,1760);
+           ctx.fillStyle="#171719";ctx.font="900 30px Arial, sans-serif";ctx.fillText("Patas a Casa",540,1870);
+           return canvas
+          }
+          async function openFlyer(c){
+           const p=pets.find(x=>x.public_code===c);if(!p)return;openModal(`<div class="sheethead"><div><div class="kicker">FLYER</div><h2>${esc(p.name)}</h2></div><button class="x" onclick="closeModal()">×</button></div><div class="loading" id="flyerLoading">Generando flyer 1080 × 1920…</div>`);
+           try{const canvas=await buildFlyer(p),blob=await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error("No pudimos crear la imagen.")),"image/png"));if(flyerObjectUrl)URL.revokeObjectURL(flyerObjectUrl);flyerBlob=blob;flyerObjectUrl=URL.createObjectURL(blob);flyerFileName=`${String(p.name||"mascota").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")||"mascota"}-se-perdio.png`;const box=document.querySelector("#modal .sheet");box.innerHTML=`<div class="sheethead"><div><div class="kicker">LISTO PARA COMPARTIR</div><h2>Flyer de ${esc(p.name)}</h2></div><button class="x" onclick="closeModal()">×</button></div><p class="small muted">Formato vertical 1080 × 1920 para historias de Instagram y estados de WhatsApp. Sin QR.</p><div style="background:#efefec;border-radius:20px;padding:10px;text-align:center"><img src="${flyerObjectUrl}" alt="Flyer de ${esc(p.name)}" style="display:block;width:min(100%,330px);height:auto;margin:auto;border-radius:15px;box-shadow:0 12px 35px rgba(0,0,0,.15)"></div><div class="actions" style="margin-top:14px"><button class="btn primary" onclick="shareFlyer()">↗️ Compartir</button><button class="btn dark" onclick="downloadFlyer()">⬇️ Guardar imagen</button></div>`}catch(err){const box=document.querySelector("#modal .sheet");if(box)box.innerHTML=`<div class="sheethead"><h2>No pudimos generar el flyer</h2><button class="x" onclick="closeModal()">×</button></div><div class="status err">${esc(err.message)}</div><p class="small muted">Podés corregir el dato desde “Editar perfil” y volver a intentarlo.</p>`}
+          }
+          async function shareFlyer(){
+           if(!flyerBlob)return;const file=new File([flyerBlob],flyerFileName||"flyer-patas-a-casa.png",{type:"image/png"});if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:"Mascota perdida",text:"Por favor ayudame a difundir."});return}catch(err){if(err?.name==="AbortError")return}}
+           downloadFlyer();toast("Tu celular no permite compartir la imagen directamente. La guardamos para que la envíes por WhatsApp o Instagram.")
+          }
+          function downloadFlyer(){if(!flyerBlob)return;const a=document.createElement("a"),url=URL.createObjectURL(flyerBlob);a.href=url;a.download=flyerFileName||"flyer-patas-a-casa.png";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500)}
+          '''
+          s=s.replace(marker,insert+marker,1)
+          p.write_text(s,encoding='utf-8')
+          PY
+      - name: Validar JavaScript
+        run: |
+          python - <<'PY'
+          import re
+          from pathlib import Path
+          html=Path('mi-cuenta/index.html').read_text(encoding='utf-8')
+          assert '🖼 Generar flyer' in html
+          assert 'buildFlyer' in html
+          assert '1080 × 1920' in html
+          scripts=re.findall(r'<script[^>]*>(.*?)</script>',html,re.S|re.I)
+          Path('/tmp/account.js').write_text('\n'.join(scripts),encoding='utf-8')
+          PY
+          node --check /tmp/account.js
+      - name: Publicar
+        run: |
+          git config user.name 'patas-a-casa-bot'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add mi-cuenta/index.html
+          git commit -m 'Agregar flyer de mascota perdida'
+          git push
