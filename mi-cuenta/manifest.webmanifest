@@ -1,0 +1,27 @@
+{
+  "id": "/mi-cuenta/",
+  "name": "Patas a Casa",
+  "short_name": "Patas a Casa",
+  "description": "Panel privado para administrar tus mascotas y sus chapitas.",
+  "lang": "es-AR",
+  "start_url": "/mi-cuenta/",
+  "scope": "/mi-cuenta/",
+  "display": "standalone",
+  "background_color": "#f4f4f1",
+  "theme_color": "#171719",
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "/mi-cuenta/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/mi-cuenta/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

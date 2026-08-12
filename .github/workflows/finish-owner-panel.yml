@@ -1,0 +1,89 @@
+name: Finalizar panel del responsable
+on:
+  push:
+    paths:
+      - '.github/workflows/finish-owner-panel.yml'
+permissions:
+  contents: write
+jobs:
+  finish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Crear iconos PWA y acceso Mi cuenta
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import struct, zlib, json, re
+
+          def chunk(t, data):
+              return struct.pack('>I', len(data)) + t + data + struct.pack('>I', zlib.crc32(t + data) & 0xffffffff)
+
+          def inside_circle(x,y,cx,cy,r):
+              return (x-cx)**2 + (y-cy)**2 <= r*r
+
+          def make_png(size, path):
+              rows=[]
+              orange=(255,106,54); black=(23,23,25); white=(255,255,255)
+              toes=[(.36,.37,.085),(.50,.31,.085),(.64,.37,.085),(.72,.50,.085)]
+              for y in range(size):
+                  row=bytearray([0])
+                  for x in range(size):
+                      nx=x/size; ny=y/size
+                      color=black
+                      if inside_circle(nx,ny,.5,.5,.38): color=orange
+                      paw=False
+                      for cx,cy,r in toes:
+                          if inside_circle(nx,ny,cx,cy,r): paw=True
+                      # central pad: ellipse
+                      if ((nx-.50)/.19)**2 + ((ny-.64)/.15)**2 <= 1: paw=True
+                      if paw: color=white
+                      row.extend(color)
+                  rows.append(bytes(row))
+              raw=b''.join(rows)
+              png=b'\x89PNG\r\n\x1a\n'+chunk(b'IHDR',struct.pack('>IIBBBBB',size,size,8,2,0,0,0))+chunk(b'IDAT',zlib.compress(raw,9))+chunk(b'IEND',b'')
+              Path(path).parent.mkdir(parents=True,exist_ok=True)
+              Path(path).write_bytes(png)
+
+          make_png(192,'mi-cuenta/icons/icon-192.png')
+          make_png(512,'mi-cuenta/icons/icon-512.png')
+
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          old='<header class="header"><div class="brand"><div class="logo">🐾</div><span>Patas a Casa</span></div><span class="demo">PRUEBA</span></header>'
+          new='<header class="header"><div class="brand"><div class="logo">🐾</div><span>Patas a Casa</span></div><div style="display:flex;align-items:center;gap:7px"><a class="demo" style="text-decoration:none;color:#333" href="/mi-cuenta/">Mi cuenta</a><span class="demo">PRUEBA</span></div></header>'
+          if old not in s:
+              raise SystemExit('No encontré el header esperado')
+          s=s.replace(old,new,1)
+          old_home='<a class="btn dark" style="margin-top:12px" href="?tag=K7M4XA">Abrir chapita demo</a>'
+          new_home=old_home+'<a class="btn soft" style="margin-top:9px" href="/mi-cuenta/">👤 Mi cuenta del responsable</a>'
+          if old_home not in s:
+              raise SystemExit('No encontré el botón demo esperado')
+          s=s.replace(old_home,new_home,1)
+          p.write_text(s,encoding='utf-8')
+
+          # Validaciones básicas
+          json.loads(Path('mi-cuenta/manifest.webmanifest').read_text(encoding='utf-8'))
+          assert Path('mi-cuenta/icons/icon-192.png').stat().st_size > 1000
+          assert Path('mi-cuenta/icons/icon-512.png').stat().st_size > 3000
+          PY
+      - name: Validar JavaScript
+        run: |
+          python - <<'PY'
+          import re
+          for src,out in [('index.html','/tmp/root.js'),('mi-cuenta/index.html','/tmp/account.js')]:
+              html=open(src,encoding='utf-8').read()
+              scripts=re.findall(r'<script[^>]*>(.*?)</script>',html,re.S|re.I)
+              open(out,'w',encoding='utf-8').write('\n'.join(scripts))
+          PY
+          node --check /tmp/root.js
+          node --check /tmp/account.js
+      - name: Commit
+        run: |
+          git config user.name 'patas-a-casa-bot'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html mi-cuenta/icons
+          git commit -m 'Completar panel PWA y acceso Mi cuenta'
+          git push
