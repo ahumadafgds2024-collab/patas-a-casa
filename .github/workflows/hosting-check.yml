@@ -13,13 +13,24 @@ jobs:
         run: |
           echo '=== CURL HEADERS ==='
           curl -sS -I --max-time 30 'https://patas-a-casa.vercel.app/?tag=PRUEBA1' || true
+      - name: JavaScript syntax
+        run: |
+          echo '=== JAVASCRIPT SYNTAX ==='
+          curl -sS --max-time 30 'https://patas-a-casa.vercel.app/?tag=PRUEBA1' -o /tmp/page.html
+          python - <<'PY'
+          import re
+          html=open('/tmp/page.html',encoding='utf-8').read()
+          scripts=re.findall(r'<script[^>]*>(.*?)</script>',html,re.S|re.I)
+          open('/tmp/app.js','w',encoding='utf-8').write('\n'.join(scripts))
+          print('scripts:',len(scripts),'bytes:',sum(map(len,scripts)))
+          PY
+          node --check /tmp/app.js
       - name: Browser clean profile
         run: |
           echo '=== CHROME CLEAN PROFILE ==='
           TMPDIR=$(mktemp -d)
-          google-chrome --headless=new --no-sandbox --disable-gpu --user-data-dir="$TMPDIR" --dump-dom 'https://patas-a-casa.vercel.app/?tag=PRUEBA1' > /tmp/dom.html 2>/tmp/chrome.err || true
-          echo '--- chrome stderr ---'
-          cat /tmp/chrome.err
-          echo '--- document start ---'
-          head -c 1200 /tmp/dom.html
-          echo
+          google-chrome --headless=new --no-sandbox --disable-gpu --enable-logging=stderr --user-data-dir="$TMPDIR" --virtual-time-budget=5000 --dump-dom 'https://patas-a-casa.vercel.app/?tag=PRUEBA1' > /tmp/dom.html 2>/tmp/chrome.err || true
+          echo '--- chrome stderr (relevant) ---'
+          grep -Ei 'uncaught|syntax|javascript|cors|fetch|error' /tmp/chrome.err | tail -80 || true
+          echo '--- rendered body hints ---'
+          grep -oE 'Cargando…|Leyendo chapita…|Activá tu chapita|No pudimos abrir esta chapita' /tmp/dom.html | head -20 || true
