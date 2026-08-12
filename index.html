@@ -181,7 +181,7 @@ function active(c,p){
  });
  document.getElementById("found").addEventListener("submit",async e=>{
    e.preventDefault();
-   const f=new FormData(e.currentTarget),geoWanted=geoInput.checked,b=document.getElementById("foundBtn");
+   const form=e.currentTarget,f=new FormData(form),geoWanted=geoInput.checked,b=document.getElementById("foundBtn");
    b.disabled=true;b.textContent="Enviando…";
    let g=cachedGeo;
    if(geoWanted&&!g){
@@ -199,7 +199,7 @@ function active(c,p){
      if(geoWanted&&g)parts.push("📍 Mi ubicación: https://maps.google.com/?q="+g.latitude+","+g.longitude);
      parts.push("Aviso enviado desde Patas a Casa.");
      const whatsappUrl=whats?"https://wa.me/"+whats+"?text="+encodeURIComponent(parts.join("\n\n")):null;
-     e.currentTarget.reset();cachedGeo=null;geoStatus.textContent="";
+     form.reset();cachedGeo=null;geoStatus.textContent="";
      if(whatsappUrl){toast("Aviso guardado. Abriendo WhatsApp…");setTimeout(()=>{window.location.href=whatsappUrl},350)}
      else{toast("Aviso enviado ✅")}
    }
