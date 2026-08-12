@@ -1,0 +1,1 @@
+Trigger Vercel redeploy after Git connection - 2026-08-12 17:18 ART
