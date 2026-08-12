@@ -1,0 +1,47 @@
+name: Fix Admin QR
+
+on:
+  push:
+    paths:
+      - '.github/workflows/fix-admin-qr.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Fix QR browser bundle
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('admin.html')
+          s=p.read_text(encoding='utf-8')
+          old='https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js'
+          new='https://cdnjs.cloudflare.com/ajax/libs/qrcode/1.5.1/qrcode.min.js'
+          if old not in s:
+              raise SystemExit('No encontré la URL vieja de qrcode')
+          s=s.replace(old,new)
+          s=s.replace("No cargó el generador de QR. Revisá tu conexión a internet.","No pudo cargar el módulo de QR. Recargá la página e intentá de nuevo.")
+          p.write_text(s,encoding='utf-8')
+          PY
+      - name: Check admin JavaScript syntax
+        run: |
+          python - <<'PY'
+          import re
+          html=open('admin.html',encoding='utf-8').read()
+          scripts=re.findall(r'<script[^>]*>(.*?)</script>',html,re.S|re.I)
+          open('/tmp/admin.js','w',encoding='utf-8').write('\n'.join(scripts))
+          PY
+          node --check /tmp/admin.js
+      - name: Commit fix
+        run: |
+          git config user.name 'patas-a-casa-bot'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add admin.html
+          git commit -m 'Corregir carga del generador QR admin'
+          git push
