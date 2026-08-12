@@ -63,6 +63,19 @@ function esc(v=""){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":
 function tel(v=""){return String(v??"").replace(/[^\d+]/g,"")}
 function wa(v=""){return String(v??"").replace(/\D/g,"")}
 function toast(m){const t=document.createElement("div");t.className="toast";t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),3000)}
+function getCurrentLocation(){
+ return new Promise(resolve=>{
+   if(!navigator.geolocation){resolve({ok:false,message:"Este navegador no permite compartir ubicación."});return}
+   navigator.geolocation.getCurrentPosition(
+     pos=>resolve({ok:true,latitude:pos.coords.latitude,longitude:pos.coords.longitude,accuracy:pos.coords.accuracy}),
+     err=>{
+       const messages={1:"No diste permiso para usar tu ubicación.",2:"El celular no pudo determinar tu ubicación.",3:"La ubicación tardó demasiado en responder."};
+       resolve({ok:false,message:messages[err.code]||"No pudimos obtener tu ubicación."});
+     },
+     {enableHighAccuracy:false,timeout:15000,maximumAge:60000}
+   );
+ });
+}
 async function getTag(c){const r=await fetch(API+"?action=tag&code="+encodeURIComponent(c));const j=await r.json();if(!r.ok)throw new Error(j.error||"No pudimos abrir esta chapita");return j}
 async function post(data){const r=await fetch(API,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});const j=await r.json();if(!r.ok)throw new Error(j.error||"Ocurrió un error");return j}
 
@@ -151,15 +164,45 @@ function active(c,p){
    <form id="found">
      <div class="field"><label>Mensaje</label><textarea name="message" maxlength="500" placeholder="Ej. Está conmigo en la plaza y parece estar bien."></textarea></div>
      <div class="field"><label>Zona aproximada</label><input name="area_text" maxlength="120" placeholder="Ej. Godoy Cruz, Mendoza"></div>
-     <label class="check"><input id="geo" type="checkbox"><div><b>Compartir mi ubicación actual</b><div class="small muted">Tu celular te pedirá permiso.</div></div></label>
+     <label class="check"><input id="geo" type="checkbox"><div><b>Compartir mi ubicación actual</b><div class="small muted">Tu celular te pedirá permiso. Si aceptás, se agrega un link de Google Maps al WhatsApp.</div></div></label>
+     <div id="geoStatus" class="small muted" style="margin:-2px 2px 12px"></div>
      <button id="foundBtn" class="btn primary" type="submit">Avisar que encontré a ${esc(p.name)}</button>
    </form>
  </section>
  <div class="owner"><button id="ownerBtn">Soy el responsable de ${esc(p.name)}</button></div>`;
+ let cachedGeo=null;
+ const geoInput=document.getElementById("geo"),geoStatus=document.getElementById("geoStatus");
+ geoInput.addEventListener("change",async()=>{
+   if(!geoInput.checked){cachedGeo=null;geoStatus.textContent="";return}
+   geoStatus.textContent="📍 Obteniendo tu ubicación…";
+   const result=await getCurrentLocation();
+   if(result.ok){cachedGeo=result;geoStatus.textContent="✅ Ubicación lista para compartir"}
+   else{cachedGeo=null;geoStatus.textContent="⚠️ "+result.message+" Podés volver a intentarlo o desmarcar esta opción."}
+ });
  document.getElementById("found").addEventListener("submit",async e=>{
-   e.preventDefault();const f=new FormData(e.currentTarget),geoWanted=document.getElementById("geo").checked,b=document.getElementById("foundBtn");let g=null;b.disabled=true;b.textContent="Enviando…";
-   if(geoWanted&&navigator.geolocation)g=await new Promise(res=>navigator.geolocation.getCurrentPosition(x=>res({latitude:x.coords.latitude,longitude:x.coords.longitude}),()=>res(null),{timeout:10000,enableHighAccuracy:true}));
-   try{await post({action:"sighting",public_code:c,message:f.get("message"),area_text:f.get("area_text"),location_consent:Boolean(g),latitude:g?.latitude??null,longitude:g?.longitude??null,contact_consent:false});e.currentTarget.reset();toast("Aviso enviado ✅")}
+   e.preventDefault();
+   const f=new FormData(e.currentTarget),geoWanted=geoInput.checked,b=document.getElementById("foundBtn");
+   b.disabled=true;b.textContent="Enviando…";
+   let g=cachedGeo;
+   if(geoWanted&&!g){
+     geoStatus.textContent="📍 Obteniendo tu ubicación…";
+     const result=await getCurrentLocation();
+     if(!result.ok){geoStatus.textContent="⚠️ "+result.message+" Podés volver a intentarlo o desmarcar esta opción.";toast(result.message);b.disabled=false;b.textContent="Avisar que encontré a "+p.name;return}
+     g=result;cachedGeo=result;geoStatus.textContent="✅ Ubicación lista para compartir";
+   }
+   try{
+     const finderMessage=String(f.get("message")||"").trim(),area=String(f.get("area_text")||"").trim();
+     await post({action:"sighting",public_code:c,message:finderMessage,area_text:area,location_consent:Boolean(geoWanted&&g),latitude:g?.latitude??null,longitude:g?.longitude??null,contact_consent:false});
+     const parts=["Hola, encontré a "+p.name+"."];
+     if(finderMessage)parts.push(finderMessage);
+     if(area)parts.push("Zona aproximada: "+area);
+     if(geoWanted&&g)parts.push("📍 Mi ubicación: https://maps.google.com/?q="+g.latitude+","+g.longitude);
+     parts.push("Aviso enviado desde Patas a Casa.");
+     const whatsappUrl=whats?"https://wa.me/"+whats+"?text="+encodeURIComponent(parts.join("\n\n")):null;
+     e.currentTarget.reset();cachedGeo=null;geoStatus.textContent="";
+     if(whatsappUrl){toast("Aviso guardado. Abriendo WhatsApp…");setTimeout(()=>{window.location.href=whatsappUrl},350)}
+     else{toast("Aviso enviado ✅")}
+   }
    catch(err){toast(err.message)}finally{b.disabled=false;b.textContent="Avisar que encontré a "+p.name}
  });
  document.getElementById("ownerBtn").addEventListener("click",()=>ownerEdit(c,p));
