@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#171719">
+<title>Patas a Casa</title>
+<style>
+:root{
+  --bg:#f4f4f1;--card:#fff;--ink:#171719;--muted:#737373;--line:#e8e7e2;
+  --orange:#ff6a36;--orange2:#ff8c65;--green:#1f9d61;--red:#db4051;
+  --shadow:0 20px 60px rgba(20,20,20,.08);--r:28px
+}
+*{box-sizing:border-box}html{background:var(--bg)}body{
+  margin:0;color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  background:radial-gradient(circle at 50% -10%,#fff 0,#f7f7f4 38%,#f2f2ef 100%);
+}
+button,input,textarea,select{font:inherit}.app{max-width:590px;margin:auto;padding:16px 15px 70px}
+.header{display:flex;align-items:center;justify-content:space-between;margin:3px 2px 18px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:950;letter-spacing:-.03em}
+.logo{width:42px;height:42px;display:grid;place-items:center;border-radius:15px;background:#171719;color:#fff}
+.demo{font-size:10px;font-weight:900;letter-spacing:.08em;color:#696969;background:#fff;border:1px solid var(--line);padding:8px 10px;border-radius:999px}
+.card{background:rgba(255,255,255,.97);border:1px solid var(--line);border-radius:var(--r);padding:21px;box-shadow:var(--shadow);margin-bottom:13px}
+.hero{padding:24px}.kicker{font-size:11px;letter-spacing:.08em;font-weight:950;color:#ce4d20}
+h1{font-size:37px;line-height:1;letter-spacing:-.055em;margin:10px 0 12px}h2{font-size:21px;letter-spacing:-.03em;margin:0 0 12px}
+p{line-height:1.5}.muted{color:var(--muted)}.small{font-size:12px}
+.btn{width:100%;appearance:none;border:0;border-radius:17px;padding:14px 15px;font-weight:900;cursor:pointer;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn:disabled{opacity:.55}.primary{background:linear-gradient(135deg,var(--orange),var(--orange2));color:#fff;box-shadow:0 12px 25px rgba(255,106,54,.22)}
+.dark{background:#171719;color:#fff}.soft{background:#f2f2f0;color:#2d2d30}.green{background:#eaf8ef;color:#176f45;border:1px solid #ccebd7}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}.stack{display:grid;gap:9px}
+.field{margin-bottom:13px}.field label{display:block;font-size:12px;font-weight:900;margin-bottom:7px;color:#47474c}
+.field input,.field textarea,.field select{width:100%;border:1px solid #deded9;background:#fff;border-radius:14px;padding:13px;color:var(--ink);outline:none}
+.field textarea{min-height:84px;resize:vertical}.field input:focus,.field textarea:focus,.field select:focus{border-color:#f2a081;box-shadow:0 0 0 3px rgba(255,106,54,.09)}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:10px}.pin{font-size:22px;letter-spacing:.12em;text-align:center;font-weight:900}
+.stepbar{display:flex;gap:6px;margin:15px 0 2px}.step{height:5px;flex:1;border-radius:99px;background:#e9e8e4}.step.on{background:var(--orange)}
+.note{padding:13px 14px;border-radius:16px;background:#fafaf8;border:1px solid var(--line);font-size:12px;color:#68686d;line-height:1.45}
+.optional{margin-top:13px;border-top:1px solid var(--line);padding-top:13px}.optional summary{cursor:pointer;font-weight:900;font-size:13px;padding:5px 0 12px}
+.check{display:flex;align-items:flex-start;gap:9px;border:1px solid var(--line);background:#fafaf8;border-radius:15px;padding:11px;margin:10px 0}.check input{margin-top:3px}
+.status{display:inline-flex;align-items:center;gap:7px;padding:8px 11px;border-radius:999px;font-size:11px;font-weight:950;letter-spacing:.03em;background:#edf8f2;color:#147145;border:1px solid #c9ead7}
+.status.lost{background:#fff0f2;color:#b02c3a;border-color:#ffd1d7}
+.petrow{display:flex;align-items:center;gap:15px;margin-top:16px}.avatar{width:100px;height:100px;flex:0 0 100px;border-radius:26px;background:linear-gradient(145deg,#fff1e9,#ffe1d2);display:grid;place-items:center;font-size:49px}
+.petname{font-size:32px;font-weight:950;letter-spacing:-.045em;line-height:1}.meta{font-size:14px;color:var(--muted);margin-top:7px;line-height:1.4}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}.chip{font-size:11px;font-weight:800;padding:7px 9px;border-radius:999px;background:#f2f2f0}
+.box{padding:14px 15px;border:1px solid var(--line);background:#fafaf8;border-radius:17px;margin-top:9px;line-height:1.45}.box strong{display:block;font-size:12px;margin-bottom:4px}
+.warn{background:#fff7f4;border-color:#ffdfd1}.owner{margin-top:8px;text-align:center}.owner button{border:0;background:none;color:#7b7b80;text-decoration:underline;font-size:12px;cursor:pointer}
+.hidden{display:none!important}.loading{text-align:center;color:var(--muted);padding:38px}.toast{position:fixed;z-index:20;left:50%;bottom:22px;transform:translateX(-50%);background:#171719;color:#fff;padding:12px 15px;border-radius:15px;box-shadow:0 14px 40px rgba(0,0,0,.22);font-size:13px;max-width:90%}
+@media(max-width:450px){h1{font-size:34px}.split,.actions{grid-template-columns:1fr}.avatar{width:86px;height:86px;flex-basis:86px;border-radius:22px}.petname{font-size:28px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="header"><div class="brand"><div class="logo">🐾</div><span>Patas a Casa</span></div><span class="demo">PRUEBA</span></header>
+  <main id="root"><div class="card loading">Cargando…</div></main>
+</div>
+<script>
+const API="https://cgciwutqwnssdphugupq.supabase.co/functions/v1/patas-api";
+const root=document.getElementById("root");
+const path=location.pathname;
+const params=new URLSearchParams(location.search);
+const code=(params.get('tag')||(path.match(/^\/t\/([A-Za-z0-9]+)/)||[])[1]||'').toUpperCase();
+
+function esc(v=""){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]))}
+function tel(v=""){return String(v??"").replace(/[^\d+]/g,"")}
+function wa(v=""){return String(v??"").replace(/\D/g,"")}
+function toast(m){const t=document.createElement("div");t.className="toast";t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),3000)}
+async function getTag(c){const r=await fetch(API+"?action=tag&code="+encodeURIComponent(c));const j=await r.json();if(!r.ok)throw new Error(j.error||"No pudimos abrir esta chapita");return j}
+async function post(data){const r=await fetch(API,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});const j=await r.json();if(!r.ok)throw new Error(j.error||"Ocurrió un error");return j}
+
+function home(){
+ root.innerHTML=`<section class="card hero"><div class="kicker">IDENTIFICACIÓN SIMPLE</div><h1>Un QR. Una chapita. Siempre la misma.</h1><p class="muted">El QR de la chapita decide automáticamente qué mostrar: activación si es nueva, o el perfil de la mascota si ya está configurada.</p><div class="note">Para probar esta versión, usá la chapita demo <b>K7M4XA</b>.</div><a class="btn dark" style="margin-top:12px" href="?tag=K7M4XA">Abrir chapita demo</a></section>`;
+}
+
+function unactivated(c){
+ root.innerHTML=`<section class="card hero">
+   <div class="kicker">CHAPITA NUEVA</div>
+   <h1>Activá tu chapita 🐾</h1>
+   <p class="muted">Te va a llevar menos de un minuto. El PIN viene con la chapita y se usa para comprobar que es tuya.</p>
+   <div class="stepbar"><div class="step on"></div><div class="step"></div></div>
+ </section>
+ <section class="card">
+   <form id="pinForm">
+     <div class="field"><label>PIN de activación</label><input class="pin" name="pin" inputmode="numeric" autocomplete="one-time-code" placeholder="••••••••" required></div>
+     <button class="btn primary" id="continue" type="submit">Continuar</button>
+   </form>
+   <p class="small muted" style="text-align:center;margin-bottom:0">Código de chapita: ${esc(c)}</p>
+ </section>`;
+ document.getElementById("pinForm").addEventListener("submit",async e=>{
+   e.preventDefault();const pin=new FormData(e.currentTarget).get("pin"),b=document.getElementById("continue");b.disabled=true;b.textContent="Verificando…";
+   try{await post({action:"verify_pin",public_code:c,activation_code:pin}); activationForm(c,String(pin));}
+   catch(err){toast(err.message);b.disabled=false;b.textContent="Continuar"}
+ });
+}
+
+function activationForm(c,pin){
+ root.innerHTML=`<section class="card hero">
+   <div class="kicker">ÚLTIMO PASO</div>
+   <h1>¿Quién lleva esta chapita?</h1>
+   <p class="muted">Cargá lo indispensable. La información médica la podés completar ahora o más adelante.</p>
+   <div class="stepbar"><div class="step on"></div><div class="step on"></div></div>
+ </section>
+ <section class="card">
+   <form id="activate">
+     <div class="split">
+       <div class="field"><label>Nombre de tu mascota</label><input name="name" placeholder="Rocco" maxlength="80" required></div>
+       <div class="field"><label>Especie</label><select name="species"><option>Perro</option><option>Gato</option><option>Otra</option></select></div>
+     </div>
+     <div class="split">
+       <div class="field"><label>Tu nombre</label><input name="contact_name" placeholder="Nombre del responsable" maxlength="80" required></div>
+       <div class="field"><label>WhatsApp / teléfono</label><input name="contact_whatsapp" inputmode="tel" placeholder="+54 9 261..." maxlength="40" required></div>
+     </div>
+     <div class="split">
+       <div class="field"><label>Raza</label><input name="breed" placeholder="Opcional" maxlength="80"></div>
+       <div class="field"><label>Edad</label><input name="age_text" placeholder="Ej. 4 años" maxlength="40"></div>
+     </div>
+     <div class="split">
+       <div class="field"><label>Sexo</label><select name="sex"><option value="">Sin informar</option><option>Macho</option><option>Hembra</option></select></div>
+       <div class="field"><label>Color</label><input name="color" placeholder="Ej. Dorado" maxlength="50"></div>
+     </div>
+     <details class="optional">
+       <summary>❤️ Agregar salud y cuidados (opcional)</summary>
+       <div class="field"><label>Enfermedades</label><textarea name="diseases" placeholder="Ej. Epilepsia"></textarea></div>
+       <div class="field"><label>Medicamentos</label><textarea name="medications" placeholder="Nombre y dosis"></textarea></div>
+       <div class="field"><label>Frecuencia</label><input name="medication_schedule" placeholder="Ej. Cada 12 horas"></div>
+       <div class="field"><label>Alergias</label><textarea name="allergies"></textarea></div>
+       <div class="field"><label>Cuidados especiales</label><textarea name="special_care"></textarea></div>
+     </details>
+     <label class="check"><input name="public_health" type="checkbox" checked><div><b>Mostrar datos importantes de salud</b><div class="small muted">Sirve para que quien lo encuentre pueda cuidarlo correctamente.</div></div></label>
+     <button class="btn primary" id="activateBtn" type="submit">Activar chapita</button>
+   </form>
+ </section>`;
+ document.getElementById("activate").addEventListener("submit",async e=>{
+   e.preventDefault();const f=new FormData(e.currentTarget),o=Object.fromEntries(f.entries()),b=document.getElementById("activateBtn");
+   o.action="activate";o.public_code=c;o.activation_code=pin;o.contact_phone=o.contact_whatsapp;o.public_health=f.get("public_health")==="on";o.public_contact=true;o.status="normal";
+   b.disabled=true;b.textContent="Activando…";
+   try{await post(o);toast("Chapita activada ✅");setTimeout(()=>location.href="?tag="+encodeURIComponent(c),500)}
+   catch(err){toast(err.message);b.disabled=false;b.textContent="Activar chapita"}
+ });
+}
+
+function active(c,p){
+ const lost=p.status==="perdido",phone=tel(p.contact_phone),whats=wa(p.contact_whatsapp||p.contact_phone);
+ const health=p.public_health&&(p.diseases||p.medications||p.allergies||p.special_care)?`<section class="card"><h2>❤️ Salud y cuidados</h2>${p.diseases?`<div class="box warn"><strong>Enfermedades</strong>${esc(p.diseases)}</div>`:""}${p.medications?`<div class="box"><strong>Medicación</strong>${esc(p.medications)}${p.medication_schedule?" · "+esc(p.medication_schedule):""}</div>`:""}${p.allergies?`<div class="box"><strong>Alergias</strong>${esc(p.allergies)}</div>`:""}${p.special_care?`<div class="box"><strong>Cuidados especiales</strong>${esc(p.special_care)}</div>`:""}</section>`:"";
+ root.innerHTML=`<section class="card hero">
+   <span class="status ${lost?"lost":""}">● ${lost?"MI FAMILIA ME ESTÁ BUSCANDO":"IDENTIFICADO"}</span>
+   <div class="petrow"><div class="avatar">${p.species==="Gato"?"🐱":"🐶"}</div><div><div class="petname">${esc(p.name)}</div><div class="meta">${esc(p.breed||p.species)}${p.sex?" · "+esc(p.sex):""}${p.age_text?" · "+esc(p.age_text):""}</div><div class="chips">${p.color?`<span class="chip">${esc(p.color)}</span>`:""}</div></div></div>
+   ${lost?`<div class="box warn"><strong>🚨 Está perdido</strong>Si lo encontraste, contactá a su familia o avisá dónde lo viste.</div>`:""}
+ </section>
+ ${health}
+ <section class="card"><h2>Contactá a su familia</h2><div class="actions">${phone?`<a class="btn dark" href="tel:${esc(phone)}">📞 Llamar</a>`:""}${whats?`<a class="btn green" target="_blank" rel="noopener" href="https://wa.me/${esc(whats)}?text=${encodeURIComponent("Hola, encontré a "+p.name+".")}">💬 WhatsApp</a>`:""}</div></section>
+ <section class="card"><h2>📍 ¿Encontraste a ${esc(p.name)}?</h2><p class="small muted">Avisá sin registrarte. Compartir ubicación es opcional.</p>
+   <form id="found">
+     <div class="field"><label>Mensaje</label><textarea name="message" maxlength="500" placeholder="Ej. Está conmigo en la plaza y parece estar bien."></textarea></div>
+     <div class="field"><label>Zona aproximada</label><input name="area_text" maxlength="120" placeholder="Ej. Godoy Cruz, Mendoza"></div>
+     <label class="check"><input id="geo" type="checkbox"><div><b>Compartir mi ubicación actual</b><div class="small muted">Tu celular te pedirá permiso.</div></div></label>
+     <button id="foundBtn" class="btn primary" type="submit">Avisar que encontré a ${esc(p.name)}</button>
+   </form>
+ </section>
+ <div class="owner"><button id="ownerBtn">Soy el responsable de ${esc(p.name)}</button></div>`;
+ document.getElementById("found").addEventListener("submit",async e=>{
+   e.preventDefault();const f=new FormData(e.currentTarget),geoWanted=document.getElementById("geo").checked,b=document.getElementById("foundBtn");let g=null;b.disabled=true;b.textContent="Enviando…";
+   if(geoWanted&&navigator.geolocation)g=await new Promise(res=>navigator.geolocation.getCurrentPosition(x=>res({latitude:x.coords.latitude,longitude:x.coords.longitude}),()=>res(null),{timeout:10000,enableHighAccuracy:true}));
+   try{await post({action:"sighting",public_code:c,message:f.get("message"),area_text:f.get("area_text"),location_consent:Boolean(g),latitude:g?.latitude??null,longitude:g?.longitude??null,contact_consent:false});e.currentTarget.reset();toast("Aviso enviado ✅")}
+   catch(err){toast(err.message)}finally{b.disabled=false;b.textContent="Avisar que encontré a "+p.name}
+ });
+ document.getElementById("ownerBtn").addEventListener("click",()=>ownerEdit(c,p));
+}
+
+function ownerEdit(c,p){
+ root.innerHTML=`<section class="card hero"><div class="kicker">RESPONSABLE</div><h1>Editá el perfil.</h1><p class="muted">Para proteger los datos, necesitás el PIN privado de la chapita.</p></section>
+ <section class="card"><form id="ownerForm">
+ <div class="field"><label>PIN privado</label><input class="pin" name="activation_code" type="password" required></div>
+ <div class="split"><div class="field"><label>Nombre</label><input name="name" value="${esc(p.name)}" required></div><div class="field"><label>Estado</label><select name="status"><option value="normal" ${p.status!=="perdido"?"selected":""}>Normal</option><option value="perdido" ${p.status==="perdido"?"selected":""}>Perdido</option></select></div></div>
+ <div class="field"><label>WhatsApp / teléfono</label><input name="contact_whatsapp" inputmode="tel" value="${esc(p.contact_whatsapp||p.contact_phone||"")}"></div>
+ <div class="field"><label>Enfermedades</label><textarea name="diseases">${esc(p.diseases||"")}</textarea></div>
+ <div class="field"><label>Medicamentos</label><textarea name="medications">${esc(p.medications||"")}</textarea></div>
+ <div class="field"><label>Alergias</label><textarea name="allergies">${esc(p.allergies||"")}</textarea></div>
+ <div class="field"><label>Cuidados especiales</label><textarea name="special_care">${esc(p.special_care||"")}</textarea></div>
+ <button id="saveOwner" class="btn primary" type="submit">Guardar cambios</button></form></section>`;
+ document.getElementById("ownerForm").addEventListener("submit",async e=>{
+   e.preventDefault();const f=new FormData(e.currentTarget),o=Object.fromEntries(f.entries()),b=document.getElementById("saveOwner");
+   Object.assign(o,{action:"update_pet",public_code:c,species:p.species,breed:p.breed,sex:p.sex,age_text:p.age_text,size:p.size,color:p.color,contact_name:p.contact_name,contact_phone:o.contact_whatsapp,public_health:true,public_contact:true});
+   b.disabled=true;b.textContent="Guardando…";
+   try{await post(o);toast("Cambios guardados ✅");setTimeout(()=>location.href="?tag="+encodeURIComponent(c),500)}
+   catch(err){toast(err.message);b.disabled=false;b.textContent="Guardar cambios"}
+ });
+}
+
+async function boot(){
+ if(!code){home();return}
+ root.innerHTML='<section class="card loading">Leyendo chapita…</section>';
+ try{const data=await getTag(code);if(data.state==="unactivated")unactivated(code);else active(code,data.pet)}
+ catch(err){root.innerHTML=`<section class="card"><h2>No pudimos abrir esta chapita</h2><p class="muted">${esc(err.message)}</p></section>`}
+}
+boot();
+</script>
+</body>
+</html>
