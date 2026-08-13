@@ -40,6 +40,7 @@ header{display:flex;align-items:center;justify-content:space-between;gap:10px;ma
 const SUPABASE_URL="https://cgciwutqwnssdphugupq.supabase.co";
 const PUBLISHABLE_KEY="sb_publishable_oozsLV8QMoy_ooLIqgh_qg_vvjV6IY5";
 const ACCOUNT_API=SUPABASE_URL+"/functions/v1/patas-account";
+const LOST_API=SUPABASE_URL+"/functions/v1/patas-lost";
 const AUTH=SUPABASE_URL+"/auth/v1";
 const SESSION_KEY="pac_owner_session_v1";
 const root=document.getElementById("root"),modal=document.getElementById("modal");
@@ -92,7 +93,7 @@ function showAuth(message=""){
 }
 function petCard(p){
  const lost=p.status==="perdido";return `<article class="pet" data-code="${esc(p.public_code)}"><div class="pethead"><div class="avatar">${p.photo_url?`<img src="${esc(p.photo_url)}" alt="Foto de ${esc(p.name)}">`:p.species==="Gato"?"🐱":"🐶"}</div><div><div class="petname">${esc(p.name)}</div><div class="meta">${esc([p.breed,p.sex,p.age_text].filter(Boolean).join(" · ")||p.species)}</div><span class="pill ${lost?"lost":""}">${lost?"🚨 PERDIDO":"● EN CASA"}</span><div class="small muted" style="margin-top:6px">Chapita ${esc(p.public_code)}</div></div></div>
- <div class="actions"><button class="btn ${lost?"green":"red"}" onclick="toggleLost('${esc(p.public_code)}','${lost?"normal":"perdido"}')">${lost?"✅ Ya volvió a casa":"🚨 Marcar como perdido"}</button><button class="btn primary" onclick="openFlyer('${esc(p.public_code)}')">🖼 Generar flyer</button><button class="btn soft" onclick="editPet('${esc(p.public_code)}')">✏️ Editar perfil</button><button class="btn soft" onclick="showSightings('${esc(p.public_code)}')">📍 Avistamientos</button><a class="btn dark" href="/?tag=${encodeURIComponent(p.public_code)}" target="_blank">👁 Ver perfil público</a></div></article>`;
+ <div class="actions"><button class="btn ${lost?"green":"red"}" onclick="toggleLost('${esc(p.public_code)}','${lost?"normal":"perdido"}')">${lost?"✅ Ya volvió a casa":"🚨 Marcar como perdido"}</button><button class="btn primary" onclick="openFlyer('${esc(p.public_code)}')">🖼 Generar flyer</button><button class="btn soft" onclick="editPet('${esc(p.public_code)}')">✏️ Editar perfil</button><a class="btn dark" href="/?tag=${encodeURIComponent(p.public_code)}" target="_blank">👁 Ver perfil público</a></div></article>`;
 }
 async function loadDashboard(){
  root.innerHTML='<section class="card loading">Cargando tus mascotas…</section>';
@@ -107,7 +108,39 @@ function openClaim(){
  openModal(`<div class="sheethead"><div><div class="kicker">NUEVA MASCOTA</div><h2>Agregar una chapita</h2></div><button class="x" onclick="closeModal()">×</button></div><p class="muted small">La chapita tiene que estar activada. Vas a usar su PIN una sola vez para demostrar que es tuya.</p><form id="claimForm"><div class="split"><div class="field"><label>Código</label><input name="code" maxlength="12" required></div><div class="field"><label>PIN privado</label><input name="pin" maxlength="50" required></div></div><button class="btn primary wide" type="submit">Agregar a mi cuenta</button></form>`);
  document.getElementById("claimForm").addEventListener("submit",async e=>{e.preventDefault();const b=e.submitter,bak=b.textContent,f=new FormData(e.currentTarget);b.disabled=true;b.textContent="Vinculando…";try{await accountPost({action:"claim_pet",public_code:f.get("code"),activation_code:f.get("pin")});closeModal();await loadDashboard();toast("Mascota agregada ✅")}catch(err){toast(err.message)}finally{b.disabled=false;b.textContent=bak}});
 }
-async function toggleLost(c,status){const p=pets.find(x=>x.public_code===c);if(!p)return;if(status==="perdido"&&!confirm(`¿Marcar a ${p.name} como perdido? El perfil público mostrará la alerta inmediatamente.`))return;try{await accountPost({action:"set_status",public_code:c,status});await loadDashboard();toast(status==="perdido"?"Alerta de perdido activada 🚨":"Marcado nuevamente en casa ✅")}catch(err){toast(err.message)}}
+async function lostPost(data){
+ let s=await validSession();if(!s)throw new Error("Sesión vencida.");
+ const h={"Content-Type":"application/json","apikey":PUBLISHABLE_KEY,"Authorization":"Bearer "+s.access_token};
+ const r=await fetch(LOST_API,{method:"POST",headers:h,body:JSON.stringify(data)});const j=await r.json().catch(()=>({}));
+ if(r.status===401){setSession(null);showAuth("Tu sesión venció. Volvé a ingresar.");throw new Error("Sesión vencida.")}
+ if(!r.ok)throw new Error(j.error||"No pudimos cambiar el estado.");return j
+}
+function localDateTimeValue(d=new Date()){
+ const pad=n=>String(n).padStart(2,"0");return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+async function toggleLost(c,status){
+ const p=pets.find(x=>x.public_code===c);if(!p)return;
+ if(status==="normal"){
+   if(!confirm(`¿${p.name} ya volvió a casa? Se quitará la alerta pública.`))return;
+   try{await lostPost({public_code:c,status:"normal"});await loadDashboard();toast("Marcado nuevamente en casa ✅")}catch(err){toast(err.message)}
+   return
+ }
+ openModal(`<div class="sheethead"><div><div class="kicker">MARCAR COMO PERDIDO</div><h2>${esc(p.name)}</h2></div><button class="x" onclick="closeModal()">×</button></div>
+ <p class="muted small">Estos datos aparecerán en el perfil público para que quien encuentre a ${esc(p.name)} sepa dónde y cuándo se perdió.</p>
+ <form id="lostForm">
+   <div class="field"><label>¿Dónde fue visto por última vez?</label><input name="lost_location" maxlength="160" placeholder="Ej. Parque General San Martín, cerca de los Portones" required></div>
+   <div class="field"><label>Fecha y hora aproximada</label><input name="lost_at" type="datetime-local" value="${localDateTimeValue()}" required></div>
+   <div class="field"><label>Detalles (opcional)</label><textarea name="lost_details" maxlength="700" placeholder="Ej. Se escapó con collar azul. Es amistoso pero puede estar asustado."></textarea></div>
+   <button class="btn red wide" type="submit">🚨 Activar alerta de perdido</button>
+ </form>`);
+ document.getElementById("lostForm").addEventListener("submit",async e=>{
+   e.preventDefault();const b=e.submitter,bak=b.textContent,f=new FormData(e.currentTarget),raw=String(f.get("lost_at")||""),when=new Date(raw);
+   if(Number.isNaN(when.getTime())){toast("Ingresá una fecha y hora válidas.");return}
+   b.disabled=true;b.textContent="Activando alerta…";
+   try{await lostPost({public_code:c,status:"perdido",lost_location:f.get("lost_location"),lost_at:when.toISOString(),lost_details:f.get("lost_details")});closeModal();await loadDashboard();toast("Alerta de perdido activada 🚨")}
+   catch(err){toast(err.message)}finally{b.disabled=false;b.textContent=bak}
+ });
+}
 async function showSightings(c){
  const p=pets.find(x=>x.public_code===c);openModal(`<div class="sheethead"><div><div class="kicker">AVISTAMIENTOS</div><h2>${esc(p?.name||"Mascota")}</h2></div><button class="x" onclick="closeModal()">×</button></div><div class="loading" id="sights">Cargando…</div>`);
  try{const d=await accountPost({action:"list_sightings",public_code:c});const box=document.getElementById("sights"),ss=d.sightings||[];box.className="";box.innerHTML=ss.length?ss.map(s=>{const dt=new Date(s.created_at).toLocaleString("es-AR");const map=s.location_consent&&s.latitude!=null&&s.longitude!=null?`<a class="maplink" target="_blank" href="https://maps.google.com/?q=${encodeURIComponent(s.latitude+","+s.longitude)}">📍 Ver ubicación</a>`:"";return `<div class="sight"><div class="sighttime">${esc(dt)}</div><b>${esc(s.area_text||"Sin zona informada")}</b>${s.message?`<div class="small" style="margin-top:5px">${esc(s.message)}</div>`:""}${s.finder_phone?`<div class="small muted">Contacto: ${esc(s.finder_phone)}</div>`:""}<div style="margin-top:6px">${map}</div></div>`}).join(""):`<div class="empty">Todavía no hay avistamientos registrados.</div>`}catch(err){document.getElementById("sights").innerHTML=`<div class="status err">${esc(err.message)}</div>`}

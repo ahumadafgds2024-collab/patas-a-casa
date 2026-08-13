@@ -61,6 +61,7 @@ p{line-height:1.5}.muted{color:var(--muted)}.small{font-size:12px}
 </div>
 <script>
 const API="https://cgciwutqwnssdphugupq.supabase.co/functions/v1/patas-api";
+const LOST_API="https://cgciwutqwnssdphugupq.supabase.co/functions/v1/patas-lost";
 const root=document.getElementById("root");
 const path=location.pathname;
 const params=new URLSearchParams(location.search);
@@ -69,6 +70,7 @@ const code=(params.get('tag')||(path.match(/^\/t\/([A-Za-z0-9]+)/)||[])[1]||'').
 function esc(v=""){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]))}
 function tel(v=""){return String(v??"").replace(/[^\d+]/g,"")}
 function wa(v=""){return String(v??"").replace(/\D/g,"")}
+function formatLostDateTime(v){const d=new Date(v);if(Number.isNaN(d.getTime()))return "";return new Intl.DateTimeFormat("es-AR",{dateStyle:"medium",timeStyle:"short"}).format(d)}
 function toast(m){const t=document.createElement("div");t.className="toast";t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),3000)}
 function openPhotoViewer(src,name=""){
  const old=document.getElementById("photoLightbox");if(old)old.remove();
@@ -126,6 +128,7 @@ function bindPhotoPreview(inputId,previewId){
 }
 
 async function getTag(c){const r=await fetch(API+"?action=tag&code="+encodeURIComponent(c));const j=await r.json();if(!r.ok)throw new Error(j.error||"No pudimos abrir esta chapita");return j}
+async function getLostInfo(c){const r=await fetch(LOST_API+"?code="+encodeURIComponent(c),{cache:"no-store"});const j=await r.json();if(!r.ok)throw new Error(j.error||"No pudimos cargar los datos de pérdida");return j}
 async function post(data){const r=await fetch(API,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});const j=await r.json();if(!r.ok)throw new Error(j.error||"Ocurrió un error");return j}
 
 function home(){
@@ -192,23 +195,16 @@ function activationForm(c,pin){
 
 function active(c,p){
  const lost=p.status==="perdido",phone=tel(p.contact_phone),whats=wa(p.contact_whatsapp||p.contact_phone);
+ const lostWhen=p.lost_at?formatLostDateTime(p.lost_at):"";
+ const lostCard=lost?`<div class="box warn"><strong>🚨 ${esc(p.name)} está perdido</strong>${p.lost_location?`<div style="margin-top:8px"><b>Última vez visto:</b> ${esc(p.lost_location)}</div>`:""}${lostWhen?`<div class="small muted" style="margin-top:4px">🕒 ${esc(lostWhen)}</div>`:""}${p.lost_details?`<div style="margin-top:9px">${esc(p.lost_details)}</div>`:""}<div class="small" style="margin-top:9px"><b>Si lo encontraste, contactá a su familia.</b></div></div>`:"";
  const health=p.public_health&&(p.diseases||p.medications||p.allergies||p.special_care||p.vet_info)?`<section class="card"><h2>❤️ Salud y cuidados</h2>${p.diseases?`<div class="box warn"><strong>Enfermedades</strong>${esc(p.diseases)}</div>`:""}${p.medications?`<div class="box"><strong>Medicación</strong>${esc(p.medications)}${p.medication_schedule?" · "+esc(p.medication_schedule):""}</div>`:""}${p.allergies?`<div class="box"><strong>Alergias</strong>${esc(p.allergies)}</div>`:""}${p.special_care?`<div class="box"><strong>Cuidados especiales</strong>${esc(p.special_care)}</div>`:""}${p.vet_info?`<div class="box"><strong>Veterinario / dato útil</strong>${esc(p.vet_info)}</div>`:""}</section>`:"";
  root.innerHTML=`<section class="card hero">
    <span class="status ${lost?"lost":""}">● ${lost?"MI FAMILIA ME ESTÁ BUSCANDO":"IDENTIFICADO"}</span>
    <div class="petrow"><div class="avatar ${p.photo_url?"has-photo":""}">${p.photo_url?`<img src="${esc(p.photo_url)}" alt="Foto de ${esc(p.name)}">`:p.species==="Gato"?"🐱":"🐶"}</div><div><div class="petname">${esc(p.name)}</div><div class="meta">${esc(p.breed||p.species)}${p.sex?" · "+esc(p.sex):""}${p.age_text?" · "+esc(p.age_text):""}</div><div class="chips">${p.size?`<span class="chip">${esc(p.size)}</span>`:""}${p.color?`<span class="chip">${esc(p.color)}</span>`:""}</div></div></div>
-   ${lost?`<div class="box warn"><strong>🚨 Está perdido</strong>Si lo encontraste, contactá a su familia o avisá dónde lo viste.</div>`:""}
+   ${lostCard}
  </section>
  ${health}
  <section class="card"><h2>Contactá a su familia</h2><div class="actions">${phone?`<a class="btn dark" href="tel:${esc(phone)}">📞 Llamar</a>`:""}${whats?`<a class="btn green" target="_blank" rel="noopener" href="https://wa.me/${esc(whats)}?text=${encodeURIComponent("Hola, encontré a "+p.name+".")}">💬 WhatsApp</a>`:""}</div></section>
- <section class="card"><h2>📍 ¿Encontraste a ${esc(p.name)}?</h2><p class="small muted">Avisá sin registrarte. Compartir ubicación es opcional.</p>
-   <form id="found">
-     <div class="field"><label>Mensaje</label><textarea name="message" maxlength="500" placeholder="Ej. Está conmigo en la plaza y parece estar bien."></textarea></div>
-     <div class="field"><label>Zona aproximada</label><input name="area_text" maxlength="120" placeholder="Ej. Godoy Cruz, Mendoza"></div>
-     <label class="check"><input id="geo" type="checkbox"><div><b>Compartir mi ubicación actual</b><div class="small muted">Tu celular te pedirá permiso. Si aceptás, se agrega un link de Google Maps al WhatsApp.</div></div></label>
-     <div id="geoStatus" class="small muted" style="margin:-2px 2px 12px"></div>
-     <button id="foundBtn" class="btn primary" type="submit">Avisar que encontré a ${esc(p.name)}</button>
-   </form>
- </section>
  <div class="owner"><button id="ownerBtn">Soy el responsable de ${esc(p.name)}</button></div>`;
  if(p.photo_url){
    const petPhoto=document.querySelector(".avatar.has-photo");
@@ -218,41 +214,6 @@ function active(c,p){
      petPhoto.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();openPhotoViewer(p.photo_url,p.name)}});
    }
  }
- let cachedGeo=null;
- const geoInput=document.getElementById("geo"),geoStatus=document.getElementById("geoStatus");
- geoInput.addEventListener("change",async()=>{
-   if(!geoInput.checked){cachedGeo=null;geoStatus.textContent="";return}
-   geoStatus.textContent="📍 Obteniendo tu ubicación…";
-   const result=await getCurrentLocation();
-   if(result.ok){cachedGeo=result;geoStatus.textContent="✅ Ubicación lista para compartir"}
-   else{cachedGeo=null;geoStatus.textContent="⚠️ "+result.message+" Podés volver a intentarlo o desmarcar esta opción."}
- });
- document.getElementById("found").addEventListener("submit",async e=>{
-   e.preventDefault();
-   const form=e.currentTarget,f=new FormData(form),geoWanted=geoInput.checked,b=document.getElementById("foundBtn");
-   b.disabled=true;b.textContent="Enviando…";
-   let g=cachedGeo;
-   if(geoWanted&&!g){
-     geoStatus.textContent="📍 Obteniendo tu ubicación…";
-     const result=await getCurrentLocation();
-     if(!result.ok){geoStatus.textContent="⚠️ "+result.message+" Podés volver a intentarlo o desmarcar esta opción.";toast(result.message);b.disabled=false;b.textContent="Avisar que encontré a "+p.name;return}
-     g=result;cachedGeo=result;geoStatus.textContent="✅ Ubicación lista para compartir";
-   }
-   try{
-     const finderMessage=String(f.get("message")||"").trim(),area=String(f.get("area_text")||"").trim();
-     await post({action:"sighting",public_code:c,message:finderMessage,area_text:area,location_consent:Boolean(geoWanted&&g),latitude:g?.latitude??null,longitude:g?.longitude??null,contact_consent:false});
-     const parts=["Hola, encontré a "+p.name+"."];
-     if(finderMessage)parts.push(finderMessage);
-     if(area)parts.push("Zona aproximada: "+area);
-     if(geoWanted&&g)parts.push("📍 Mi ubicación: https://maps.google.com/?q="+g.latitude+","+g.longitude);
-     parts.push("Aviso enviado desde Patas a Casa.");
-     const whatsappUrl=whats?"https://wa.me/"+whats+"?text="+encodeURIComponent(parts.join("\n\n")):null;
-     form.reset();cachedGeo=null;geoStatus.textContent="";
-     if(whatsappUrl){toast("Aviso guardado. Abriendo WhatsApp…");setTimeout(()=>{window.location.href=whatsappUrl},350)}
-     else{toast("Aviso enviado ✅")}
-   }
-   catch(err){toast(err.message)}finally{b.disabled=false;b.textContent="Avisar que encontré a "+p.name}
- });
  document.getElementById("ownerBtn").addEventListener("click",()=>ownerEdit(c,p));
 }
 
@@ -283,7 +244,7 @@ function ownerEdit(c,p){
 async function boot(){
  if(!code){home();return}
  root.innerHTML='<section class="card loading">Leyendo chapita…</section>';
- try{const data=await getTag(code);if(data.state==="unactivated")unactivated(code);else active(code,data.pet)}
+ try{const data=await getTag(code);if(data.state==="unactivated")unactivated(code);else{const lostInfo=await getLostInfo(code).catch(()=>null);active(code,{...data.pet,...(lostInfo||{})})}}
  catch(err){root.innerHTML=`<section class="card"><h2>No pudimos abrir esta chapita</h2><p class="muted">${esc(err.message)}</p></section>`}
 }
 boot();
