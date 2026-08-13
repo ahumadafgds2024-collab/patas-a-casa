@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#171719">
+<title>Recuperar contraseña · Patas a Casa</title>
+<style>
+:root{--bg:#f4f4f1;--card:#fff;--ink:#171719;--muted:#737373;--line:#e7e6e1;--orange:#ff6a36;--orange2:#ff8c65;--green:#177346;--red:#a92f3b;--shadow:0 18px 55px rgba(20,20,20,.08);--r:26px}
+*{box-sizing:border-box}html{background:var(--bg)}body{margin:0;color:var(--ink);font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;background:radial-gradient(circle at 50% -10%,#fff 0,#f7f7f4 38%,#f2f2ef 100%);min-height:100vh}.app{max-width:620px;margin:auto;padding:18px 15px 70px}header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:3px 2px 20px}.brand{display:flex;align-items:center;gap:10px;font-weight:950;letter-spacing:-.03em}.logo{width:43px;height:43px;border-radius:15px;background:#171719;display:grid;place-items:center;color:#fff}.small{font-size:12px}.muted{color:var(--muted)}.card{background:rgba(255,255,255,.98);border:1px solid var(--line);border-radius:var(--r);padding:24px;box-shadow:var(--shadow);margin-bottom:13px}.kicker{font-size:11px;letter-spacing:.08em;font-weight:950;color:#ce4d20}h1{font-size:36px;line-height:1.02;letter-spacing:-.055em;margin:10px 0 12px}p{line-height:1.5}.field{margin:18px 0 13px}.field label{display:block;font-size:12px;font-weight:900;margin-bottom:7px;color:#47474c}.field input{width:100%;border:1px solid #deded9;background:#fff;border-radius:14px;padding:13px;color:var(--ink);outline:none;font:inherit}.field input:focus{border-color:#f2a081;box-shadow:0 0 0 3px rgba(255,106,54,.09)}.btn{appearance:none;border:0;border-radius:15px;padding:12px 14px;font-weight:900;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:7px;font:inherit}.btn:disabled{opacity:.55;cursor:wait}.primary{background:linear-gradient(135deg,var(--orange),var(--orange2));color:#fff}.soft{background:#efefec;color:#29292b}.wide{width:100%}.status{padding:12px 14px;border-radius:15px;font-size:13px;margin-top:14px;line-height:1.45}.ok{background:#ebf8f0;color:var(--green)}.err{background:#fff0f1;color:var(--red)}.hidden{display:none!important}.back{margin-top:12px;text-align:center}.back a{color:#444;font-size:13px;font-weight:800;text-decoration:none}
+</style>
+</head>
+<body>
+<div class="app">
+<header><div class="brand"><div class="logo">🐾</div><div>Patas a Casa<div class="small muted">Seguridad de la cuenta</div></div></div></header>
+<main>
+<section class="card" id="requestCard">
+<div class="kicker">RECUPERAR ACCESO</div>
+<h1>¿Olvidaste tu contraseña?</h1>
+<p class="muted">Ingresá el email de tu cuenta. Te vamos a mandar un enlace seguro para elegir una contraseña nueva.</p>
+<form id="requestForm">
+<div class="field"><label>Email</label><input name="email" type="email" autocomplete="email" required></div>
+<button class="btn primary wide" type="submit">Enviar enlace de recuperación</button>
+</form>
+<div id="requestStatus"></div>
+<div class="back"><a href="/mi-cuenta/">← Volver a Mi cuenta</a></div>
+</section>
+<section class="card hidden" id="changeCard">
+<div class="kicker">NUEVA CONTRASEÑA</div>
+<h1>Creá una contraseña nueva.</h1>
+<p class="muted">Elegí una contraseña de al menos 8 caracteres. Cuando la guardes, vas a poder entrar normalmente a Mi cuenta.</p>
+<form id="changeForm">
+<div class="field"><label>Nueva contraseña</label><input name="password" type="password" autocomplete="new-password" minlength="8" required></div>
+<div class="field"><label>Repetir contraseña</label><input name="confirm" type="password" autocomplete="new-password" minlength="8" required></div>
+<button class="btn primary wide" type="submit">Guardar nueva contraseña</button>
+</form>
+<div id="changeStatus"></div>
+</section>
+<section class="card hidden" id="invalidCard">
+<div class="kicker">ENLACE NO VÁLIDO</div>
+<h1>Este enlace ya no sirve.</h1>
+<p class="muted">Puede haber vencido o ya haber sido utilizado. Pedí uno nuevo y volvé a intentarlo.</p>
+<a class="btn primary wide" href="/mi-cuenta/recuperar/">Pedir otro enlace</a>
+</section>
+</main>
+</div>
+<script>
+const SUPABASE_URL="https://cgciwutqwnssdphugupq.supabase.co";
+const PUBLISHABLE_KEY="sb_publishable_oozsLV8QMoy_ooLIqgh_qg_vvjV6IY5";
+const AUTH=SUPABASE_URL+"/auth/v1";
+const REDIRECT_URL="https://patas-a-casa.vercel.app/mi-cuenta/recuperar/";
+const requestCard=document.getElementById("requestCard"),changeCard=document.getElementById("changeCard"),invalidCard=document.getElementById("invalidCard");
+const hash=new URLSearchParams(location.hash.replace(/^#/,""));
+const accessToken=hash.get("access_token")||"";
+const recoveryType=hash.get("type")==="recovery";
+const hashError=hash.get("error")||hash.get("error_code")||"";
+function status(el,message,type){el.innerHTML=`<div class="status ${type}">${message}</div>`}
+if(hashError){requestCard.classList.add("hidden");invalidCard.classList.remove("hidden")}
+else if(accessToken&&recoveryType){requestCard.classList.add("hidden");changeCard.classList.remove("hidden")}
+document.getElementById("requestForm").addEventListener("submit",async e=>{
+ e.preventDefault();const form=e.currentTarget,b=e.submitter,old=b.textContent,email=String(new FormData(form).get("email")||"").trim(),box=document.getElementById("requestStatus");b.disabled=true;b.textContent="Enviando…";
+ try{
+   const r=await fetch(AUTH+"/recover?redirect_to="+encodeURIComponent(REDIRECT_URL),{method:"POST",headers:{"Content-Type":"application/json","apikey":PUBLISHABLE_KEY},body:JSON.stringify({email})});
+   if(!r.ok){const j=await r.json().catch(()=>({}));throw new Error(j.msg||j.message||j.error_description||"No pudimos enviar el correo.")}
+   form.reset();status(box,"Si existe una cuenta con ese email, vas a recibir un enlace para crear una contraseña nueva. Revisá también Spam.","ok")
+ }catch(err){status(box,"No pudimos enviar el correo en este momento. Probá nuevamente en unos minutos.","err")}finally{b.disabled=false;b.textContent=old}
+});
+document.getElementById("changeForm").addEventListener("submit",async e=>{
+ e.preventDefault();const form=e.currentTarget,b=e.submitter,old=b.textContent,f=new FormData(form),password=String(f.get("password")||""),confirm=String(f.get("confirm")||""),box=document.getElementById("changeStatus");
+ if(password.length<8){status(box,"La contraseña tiene que tener al menos 8 caracteres.","err");return}
+ if(password!==confirm){status(box,"Las contraseñas no coinciden.","err");return}
+ b.disabled=true;b.textContent="Guardando…";
+ try{
+   const r=await fetch(AUTH+"/user",{method:"PUT",headers:{"Content-Type":"application/json","apikey":PUBLISHABLE_KEY,"Authorization":"Bearer "+accessToken},body:JSON.stringify({password})});
+   if(!r.ok){const j=await r.json().catch(()=>({}));throw new Error(j.msg||j.message||j.error_description||"No pudimos cambiar la contraseña.")}
+   history.replaceState({},document.title,location.pathname);form.classList.add("hidden");status(box,"Contraseña actualizada correctamente ✅","ok");const a=document.createElement("a");a.className="btn soft wide";a.style.marginTop="12px";a.href="/mi-cuenta/";a.textContent="Ir a Mi cuenta";box.appendChild(a)
+ }catch(err){status(box,"El enlace puede haber vencido o ya haber sido utilizado. Pedí uno nuevo y volvé a intentarlo.","err")}finally{b.disabled=false;b.textContent=old}
+});
+</script>
+</body>
+</html>
