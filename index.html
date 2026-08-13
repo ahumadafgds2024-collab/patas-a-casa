@@ -205,6 +205,15 @@ function active(c,p){
  </section>
  ${health}
  <section class="card"><h2>Contactá a su familia</h2><div class="actions">${phone?`<a class="btn dark" href="tel:${esc(phone)}">📞 Llamar</a>`:""}${whats?`<a class="btn green" target="_blank" rel="noopener" href="https://wa.me/${esc(whats)}?text=${encodeURIComponent("Hola, encontré a "+p.name+".")}">💬 WhatsApp</a>`:""}</div></section>
+ <section class="card"><h2>📍 ¿Encontraste a ${esc(p.name)}?</h2><p class="small muted">Podés enviarle tu ubicación actual a su familia por WhatsApp. Compartirla es opcional.</p>
+   <form id="found">
+     <div class="field"><label>Mensaje</label><textarea name="message" maxlength="500" placeholder="Ej. Está conmigo en la plaza y parece estar bien."></textarea></div>
+     <div class="field"><label>Zona aproximada</label><input name="area_text" maxlength="120" placeholder="Ej. Godoy Cruz, Mendoza"></div>
+     <label class="check"><input id="geo" type="checkbox"><div><b>Compartir mi ubicación actual</b><div class="small muted">Tu celular te pedirá permiso. Si aceptás, se agrega un link de Google Maps al mensaje de WhatsApp.</div></div></label>
+     <div id="geoStatus" class="small muted" style="margin:-2px 2px 12px"></div>
+     <button id="foundBtn" class="btn primary" type="submit">Enviar aviso por WhatsApp</button>
+   </form>
+ </section>
  <div class="owner"><button id="ownerBtn">Soy el responsable de ${esc(p.name)}</button></div>`;
  if(p.photo_url){
    const petPhoto=document.querySelector(".avatar.has-photo");
@@ -214,6 +223,39 @@ function active(c,p){
      petPhoto.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();openPhotoViewer(p.photo_url,p.name)}});
    }
  }
+ let cachedGeo=null;
+ const geoInput=document.getElementById("geo"),geoStatus=document.getElementById("geoStatus");
+ geoInput.addEventListener("change",async()=>{
+   if(!geoInput.checked){cachedGeo=null;geoStatus.textContent="";return}
+   geoStatus.textContent="📍 Obteniendo tu ubicación…";
+   const result=await getCurrentLocation();
+   if(result.ok){cachedGeo=result;geoStatus.textContent="✅ Ubicación lista para compartir"}
+   else{cachedGeo=null;geoStatus.textContent="⚠️ "+result.message+" Podés volver a intentarlo o desmarcar esta opción."}
+ });
+ document.getElementById("found").addEventListener("submit",async e=>{
+   e.preventDefault();
+   const form=e.currentTarget,f=new FormData(form),geoWanted=geoInput.checked,b=document.getElementById("foundBtn");
+   b.disabled=true;b.textContent="Preparando WhatsApp…";
+   let g=cachedGeo;
+   if(geoWanted&&!g){
+     geoStatus.textContent="📍 Obteniendo tu ubicación…";
+     const result=await getCurrentLocation();
+     if(!result.ok){geoStatus.textContent="⚠️ "+result.message+" Podés volver a intentarlo o desmarcar esta opción.";toast(result.message);b.disabled=false;b.textContent="Enviar aviso por WhatsApp";return}
+     g=result;cachedGeo=result;geoStatus.textContent="✅ Ubicación lista para compartir";
+   }
+   try{
+     if(!whats)throw new Error("La familia no tiene un WhatsApp cargado.");
+     const finderMessage=String(f.get("message")||"").trim(),area=String(f.get("area_text")||"").trim();
+     const parts=["Hola, encontré a "+p.name+"."];
+     if(finderMessage)parts.push(finderMessage);
+     if(area)parts.push("Zona aproximada: "+area);
+     if(geoWanted&&g)parts.push("📍 Mi ubicación: https://maps.google.com/?q="+g.latitude+","+g.longitude);
+     parts.push("Mensaje enviado desde Patas a Casa.");
+     const whatsappUrl="https://wa.me/"+whats+"?text="+encodeURIComponent(parts.join("\n\n"));
+     toast("Abriendo WhatsApp…");setTimeout(()=>{window.location.href=whatsappUrl},250);
+   }
+   catch(err){toast(err.message)}finally{b.disabled=false;b.textContent="Enviar aviso por WhatsApp"}
+ });
  document.getElementById("ownerBtn").addEventListener("click",()=>ownerEdit(c,p));
 }
 
