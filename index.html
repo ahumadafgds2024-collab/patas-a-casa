@@ -218,11 +218,12 @@ function active(c,p){
 }
 
 function ownerEdit(c,p){
- root.innerHTML=`<section class="card hero"><div class="kicker">RESPONSABLE</div><h1>Editá el perfil.</h1><p class="muted">Usá el PIN privado para cambiar la foto, los datos o marcar a tu mascota como perdida.</p></section>
+ root.innerHTML=`<section class="card hero"><div class="kicker">RESPONSABLE</div><h1>Editá el perfil.</h1><p class="muted">Usá el PIN privado para cambiar la foto y los datos de tu mascota.</p></section>
  <section class="card"><form id="ownerForm">
  <div class="field"><label>PIN privado</label><input class="pin" name="activation_code" type="password" required></div>
  <div class="photo-pick"><div class="photo-preview" id="ownerPhotoPreview">${p.photo_url?`<img src="${esc(p.photo_url)}" alt="Foto actual">`:p.species==="Gato"?"🐱":"🐶"}</div><div class="photo-actions"><b>Foto de ${esc(p.name)}</b><span class="small muted">Podés reemplazarla cuando quieras.</span><label class="file-btn">📷 Cambiar foto<input id="ownerPhoto" type="file" accept="image/jpeg,image/png,image/webp,image/*"></label>${p.photo_url?`<label class="small"><input id="removePhoto" type="checkbox"> Quitar foto actual</label>`:""}</div></div>
- <div class="split"><div class="field"><label>Nombre</label><input name="name" value="${esc(p.name)}" required></div><div class="field"><label>Estado</label><select name="status"><option value="normal" ${p.status!=="perdido"?"selected":""}>Normal</option><option value="perdido" ${p.status==="perdido"?"selected":""}>🚨 Perdido</option></select></div></div>
+ <div class="field"><label>Nombre</label><input name="name" value="${esc(p.name)}" required></div>
+ <div class="note" style="margin-bottom:14px">Para marcar a ${esc(p.name)} como perdido y cargar dónde y cuándo se perdió, usá <a href="/mi-cuenta/" style="font-weight:900;color:#171719">Mi cuenta</a>.</div>
  <div class="split"><div class="field"><label>Especie</label><select name="species"><option ${p.species==="Perro"?"selected":""}>Perro</option><option ${p.species==="Gato"?"selected":""}>Gato</option><option ${p.species!=="Perro"&&p.species!=="Gato"?"selected":""}>Otra</option></select></div><div class="field"><label>Raza</label><input name="breed" value="${esc(p.breed||"")}"></div></div>
  <div class="split"><div class="field"><label>Sexo</label><select name="sex"><option value="" ${!p.sex?"selected":""}>Sin informar</option><option ${p.sex==="Macho"?"selected":""}>Macho</option><option ${p.sex==="Hembra"?"selected":""}>Hembra</option></select></div><div class="field"><label>Edad</label><input name="age_text" value="${esc(p.age_text||"")}" placeholder="Ej. 4 años"></div></div>
  <div class="split"><div class="field"><label>Tamaño</label><select name="size"><option value="" ${!p.size?"selected":""}>Sin informar</option><option ${p.size==="Pequeño"?"selected":""}>Pequeño</option><option ${p.size==="Mediano"?"selected":""}>Mediano</option><option ${p.size==="Grande"?"selected":""}>Grande</option></select></div><div class="field"><label>Color / señas</label><input name="color" value="${esc(p.color||"")}"></div></div>
@@ -234,7 +235,7 @@ function ownerEdit(c,p){
  bindPhotoPreview("ownerPhoto","ownerPhotoPreview");
  document.getElementById("ownerForm").addEventListener("submit",async e=>{
    e.preventDefault();const f=new FormData(e.currentTarget),o=Object.fromEntries(f.entries()),b=document.getElementById("saveOwner"),photo=document.getElementById("ownerPhoto").files?.[0];
-   Object.assign(o,{action:"update_pet",public_code:c,contact_phone:o.contact_whatsapp,public_health:f.get("public_health")==="on",public_contact:true,remove_photo:Boolean(document.getElementById("removePhoto")?.checked)});
+   Object.assign(o,{action:"update_pet",public_code:c,status:p.status,contact_phone:o.contact_whatsapp,public_health:f.get("public_health")==="on",public_contact:true,remove_photo:Boolean(document.getElementById("removePhoto")?.checked)});
    b.disabled=true;
    try{if(photo){b.textContent="Preparando foto…";o.photo_data=await compressPhoto(photo);o.remove_photo=false}b.textContent="Guardando…";await post(o);toast("Cambios guardados ✅");setTimeout(()=>location.href="?tag="+encodeURIComponent(c),500)}
    catch(err){toast(err.message);b.disabled=false;b.textContent="Guardar cambios"}
