@@ -32,12 +32,13 @@ const SUPABASE_URL="https://cgciwutqwnssdphugupq.supabase.co";
 const PUBLISHABLE_KEY="sb_publishable_oozsLV8QMoy_ooLIqgh_qg_vvjV6IY5";
 const REGISTER_API=SUPABASE_URL+"/functions/v1/patas-register-v2-test";
 const PENDING_KEY="pac_pending_claim_v2_test";
+const CONFIRM_URL="https://patas-a-casa.vercel.app/mi-cuenta/confirmar/";
 const statusBox=document.getElementById("status");
 function show(msg,ok=false){statusBox.innerHTML=`<div class="status ${ok?"ok":"err"}">${msg}</div>`}
 const pre=new URLSearchParams(location.search).get("vincular");if(pre)document.querySelector('[name="code"]').value=pre;
 document.getElementById("form").addEventListener("submit",async e=>{
  e.preventDefault();const btn=e.submitter,bak=btn.textContent,f=new FormData(e.currentTarget);
- const payload={public_code:String(f.get("code")||"").trim().toUpperCase(),activation_code:String(f.get("pin")||"").trim(),email:String(f.get("email")||"").trim().toLowerCase(),password:String(f.get("password")||""),redirect_to:location.origin+"/mi-cuenta/confirmar/"};
+ const payload={public_code:String(f.get("code")||"").trim().toUpperCase(),activation_code:String(f.get("pin")||"").trim(),email:String(f.get("email")||"").trim().toLowerCase(),password:String(f.get("password")||""),redirect_to:CONFIRM_URL};
  btn.disabled=true;btn.textContent="Enviando…";statusBox.innerHTML="";
  try{
   const r=await fetch(REGISTER_API,{method:"POST",headers:{"Content-Type":"application/json","apikey":PUBLISHABLE_KEY},body:JSON.stringify(payload)});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||"No pudimos iniciar la verificación.");
