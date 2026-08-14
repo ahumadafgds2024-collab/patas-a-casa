@@ -40,6 +40,7 @@ header{display:flex;align-items:center;justify-content:space-between;gap:10px;ma
 const SUPABASE_URL="https://cgciwutqwnssdphugupq.supabase.co";
 const PUBLISHABLE_KEY="sb_publishable_oozsLV8QMoy_ooLIqgh_qg_vvjV6IY5";
 const ACCOUNT_API=SUPABASE_URL+"/functions/v1/patas-account";
+const REGISTER_API=SUPABASE_URL+"/functions/v1/patas-register-v2";
 const LOST_API=SUPABASE_URL+"/functions/v1/patas-lost";
 const AUTH=SUPABASE_URL+"/auth/v1";
 const SESSION_KEY="pac_owner_session_v1";
@@ -55,6 +56,7 @@ async function login(email,password){const s=await authPost("/token?grant_type=p
 async function refreshSession(){let s=getSession();if(!s?.refresh_token)return null;try{const n=await authPost("/token?grant_type=refresh_token",{refresh_token:s.refresh_token});setSession(n);return n}catch{setSession(null);return null}}
 async function validSession(){let s=getSession();if(!s)return null;const now=Math.floor(Date.now()/1000);if(!s.expires_at||s.expires_at-now<90)s=await refreshSession();return s}
 async function accountPost(data,requiresAuth=true){let s=requiresAuth?await validSession():null;const h={"Content-Type":"application/json","apikey":PUBLISHABLE_KEY};if(s?.access_token)h.Authorization="Bearer "+s.access_token;const r=await fetch(ACCOUNT_API,{method:"POST",headers:h,body:JSON.stringify(data)});const j=await r.json().catch(()=>({}));if(r.status===401&&requiresAuth){setSession(null);showAuth("Tu sesión venció. Volvé a ingresar.");throw new Error("Sesión vencida.")}if(!r.ok)throw new Error(j.error||"Ocurrió un error.");return j}
+async function registerPost(data,requiresAuth=false){let s=requiresAuth?await validSession():null;const h={"Content-Type":"application/json","apikey":PUBLISHABLE_KEY};if(s?.access_token)h.Authorization="Bearer "+s.access_token;const r=await fetch(REGISTER_API,{method:"POST",headers:h,body:JSON.stringify(data)});const j=await r.json().catch(()=>({}));if(r.status===401&&requiresAuth){setSession(null);showAuth("Tu sesión venció. Volvé a ingresar.");throw new Error("Sesión vencida.")}if(!r.ok)throw new Error(j.error||"Ocurrió un error.");return j}
 async function logout(){const s=getSession();try{if(s?.access_token)await authPost("/logout",{},s.access_token)}catch{}setSession(null);pets=[];currentUser=null;showAuth()}
 function openModal(content){modal.innerHTML=`<div class="sheet">${content}</div>`;modal.classList.remove("hidden");modal.addEventListener("click",e=>{if(e.target===modal)closeModal()},{once:true})}
 function closeModal(){if(flyerObjectUrl){URL.revokeObjectURL(flyerObjectUrl);flyerObjectUrl=null}flyerBlob=null;flyerFileName="";modal.classList.add("hidden");modal.innerHTML=""}
@@ -77,19 +79,20 @@ function showAuth(message=""){
   <div class="field"><label>Email</label><input name="email" type="email" autocomplete="email" required></div>
   <div class="field"><label>Contraseña</label><input name="password" type="password" autocomplete="current-password" minlength="8" required></div>
   <button class="btn primary wide" type="submit">Entrar a mi cuenta</button>
+  <a href="/mi-cuenta/recuperar/" style="display:block;text-align:center;margin-top:12px;color:#555;font-size:13px;font-weight:800;text-decoration:none">¿Olvidaste tu contraseña?</a>
  </form>
  <form id="signupForm" class="hidden">
-  <div class="note" style="margin-bottom:14px">Para crear tu cuenta necesitás una <b>chapita ya activada</b> y su PIN privado. Esto evita que otra persona se apropie del perfil.</div>
+  <div class="note" style="margin-bottom:14px">Para crear tu cuenta necesitás una <b>chapita ya activada</b> y su PIN privado. Después te vamos a enviar un correo para verificar que el email realmente sea tuyo.</div>
   <div class="split"><div class="field"><label>Código de chapita</label><input name="code" value="${esc(pre)}" maxlength="12" placeholder="7B958A9D" required></div><div class="field"><label>PIN privado</label><input name="pin" maxlength="50" placeholder="0000-0000" required></div></div>
   <div class="field"><label>Email</label><input name="email" type="email" autocomplete="email" required></div>
   <div class="field"><label>Elegí una contraseña</label><input name="password" type="password" autocomplete="new-password" minlength="8" required></div>
-  <button class="btn primary wide" type="submit">Crear mi cuenta y vincular mascota</button>
+  <button class="btn primary wide" type="submit">Crear cuenta y verificar email</button>
  </form></section>`;
  const loginTab=document.getElementById("loginTab"),signupTab=document.getElementById("signupTab"),lf=document.getElementById("loginForm"),sf=document.getElementById("signupForm");
  function tab(which){const sign=which==="signup";loginTab.classList.toggle("on",!sign);signupTab.classList.toggle("on",sign);lf.classList.toggle("hidden",sign);sf.classList.toggle("hidden",!sign)}
  loginTab.onclick=()=>tab("login");signupTab.onclick=()=>tab("signup");if(pre)tab("signup");
- lf.addEventListener("submit",async e=>{e.preventDefault();const b=e.submitter,bak=b.textContent,f=new FormData(e.currentTarget);b.disabled=true;b.textContent="Ingresando…";try{await login(f.get("email"),f.get("password"));await loadDashboard()}catch(err){toast(err.message)}finally{b.disabled=false;b.textContent=bak}});
- sf.addEventListener("submit",async e=>{e.preventDefault();const b=e.submitter,bak=b.textContent,f=new FormData(e.currentTarget),mail=String(f.get("email")),pass=String(f.get("password"));b.disabled=true;b.textContent="Creando cuenta…";try{await accountPost({action:"register_owner",public_code:f.get("code"),activation_code:f.get("pin"),email:mail,password:pass},false);await login(mail,pass);history.replaceState({},document.title,"/mi-cuenta/");await loadDashboard();toast("Cuenta creada. Tu mascota ya está vinculada ✅")}catch(err){toast(err.message)}finally{b.disabled=false;b.textContent=bak}});
+ lf.addEventListener("submit",async e=>{e.preventDefault();const b=e.submitter,bak=b.textContent,f=new FormData(e.currentTarget);b.disabled=true;b.textContent="Ingresando…";try{await login(f.get("email"),f.get("password"));let fin=null;try{fin=await registerPost({action:"finalize_registration"},true)}catch(err){console.warn("finalize_registration",err)}history.replaceState({},document.title,"/mi-cuenta/");await loadDashboard();if(fin?.linked&&!fin?.already)toast("Correo verificado. Tu mascota ya está vinculada ✅")}catch(err){const m=/email not confirmed/i.test(String(err?.message||""))?"Primero confirmá tu correo desde el enlace que te enviamos.":err.message;toast(m)}finally{b.disabled=false;b.textContent=bak}});
+ sf.addEventListener("submit",async e=>{e.preventDefault();const form=e.currentTarget,b=e.submitter,bak=b.textContent,f=new FormData(form),mail=String(f.get("email")).trim().toLowerCase(),pass=String(f.get("password"));b.disabled=true;b.textContent="Enviando verificación…";try{await registerPost({action:"start_registration",public_code:f.get("code"),activation_code:f.get("pin"),email:mail,password:pass},false);form.innerHTML=`<div class="status ok"><b>Revisá tu correo ✅</b><br>Te enviamos un enlace de verificación a ${esc(mail)}.</div><p class="muted small">Abrí el correo y tocá el enlace. Después volvé a Mi cuenta e ingresá con tu email y contraseña. La mascota se vincula recién después de verificar el correo.</p><button class="btn dark wide" type="button" id="goLogin">Ir a ingresar</button>`;document.getElementById("goLogin").onclick=()=>tab("login")}catch(err){toast(err.message)}finally{if(document.body.contains(b)){b.disabled=false;b.textContent=bak}}});
 }
 function petCard(p){
  const lost=p.status==="perdido";return `<article class="pet" data-code="${esc(p.public_code)}"><div class="pethead"><div class="avatar">${p.photo_url?`<img src="${esc(p.photo_url)}" alt="Foto de ${esc(p.name)}">`:p.species==="Gato"?"🐱":"🐶"}</div><div><div class="petname">${esc(p.name)}</div><div class="meta">${esc([p.breed,p.sex,p.age_text].filter(Boolean).join(" · ")||p.species)}</div><span class="pill ${lost?"lost":""}">${lost?"🚨 PERDIDO":"● EN CASA"}</span><div class="small muted" style="margin-top:6px">Chapita ${esc(p.public_code)}</div></div></div>
@@ -196,7 +199,7 @@ function editPet(c){
 }
 async function boot(){
  if("serviceWorker" in navigator)navigator.serviceWorker.register("/mi-cuenta/sw.js",{scope:"/mi-cuenta/"}).catch(()=>{});
- const s=await validSession();if(s)await loadDashboard();else showAuth();
+ const s=await validSession();if(s){try{await registerPost({action:"finalize_registration"},true)}catch(err){console.warn("finalize_registration",err)}await loadDashboard()}else showAuth();
 }
 boot();
 </script>
