@@ -1,4 +1,5 @@
 from pathlib import Path
+import runpy
 
 p = Path("index.html")
 s = p.read_text(encoding="utf-8")
@@ -21,3 +22,7 @@ if old_assign in s:
 
 p.write_text(s, encoding="utf-8")
 print("OK: el estado perdido se administra solamente desde Mi cuenta.")
+
+# Apply the separate guarded auth patch. It aborts if the current account UI
+# does not exactly match the source we inspected, so unrelated UI is not touched.
+runpy.run_path("scripts/apply_verified_email_signup.py", run_name="__main__")
