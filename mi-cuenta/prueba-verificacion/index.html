@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Prueba de verificación · Patas a Casa</title>
+<style>
+:root{--bg:#f4f4f1;--ink:#171719;--muted:#737373;--line:#e7e6e1;--orange:#ff6a36;--orange2:#ff8c65;--green:#177346}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 50% -10%,#fff 0,#f7f7f4 38%,#f2f2ef 100%);color:var(--ink);font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;min-height:100vh}.wrap{max-width:640px;margin:auto;padding:24px 16px 70px}.brand{display:flex;gap:10px;align-items:center;font-weight:950;margin-bottom:18px}.logo{width:44px;height:44px;border-radius:15px;background:#171719;color:#fff;display:grid;place-items:center}.card{background:#fff;border:1px solid var(--line);border-radius:26px;padding:24px;box-shadow:0 18px 55px rgba(20,20,20,.08)}.kicker{font-size:11px;letter-spacing:.08em;font-weight:950;color:#ce4d20}h1{font-size:36px;line-height:1.02;letter-spacing:-.05em;margin:10px 0 12px}.muted{color:var(--muted);line-height:1.5}.field{margin:14px 0}.field label{display:block;font-size:12px;font-weight:900;margin-bottom:7px}.field input{width:100%;border:1px solid #deded9;border-radius:14px;padding:13px;font:inherit;outline:none}.split{display:grid;grid-template-columns:1fr 1fr;gap:10px}.btn{width:100%;border:0;border-radius:15px;padding:13px 15px;font-weight:900;cursor:pointer;background:linear-gradient(135deg,var(--orange),var(--orange2));color:#fff}.btn:disabled{opacity:.55}.status{margin-top:14px;padding:13px 14px;border-radius:15px;font-size:13px;line-height:1.45}.ok{background:#ebf8f0;color:#176f45}.err{background:#fff0f1;color:#a92f3b}.note{background:#fafaf8;border:1px solid var(--line);padding:12px 13px;border-radius:15px;font-size:12px;color:#666;line-height:1.45}.hidden{display:none}.back{display:inline-block;margin-top:14px;color:#555;font-size:13px;font-weight:800;text-decoration:none}@media(max-width:560px){.split{grid-template-columns:1fr}h1{font-size:32px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="brand"><div class="logo">🐾</div><div>Patas a Casa<div style="font-size:12px;color:#777">Prueba aislada</div></div></div>
+<section class="card">
+<div class="kicker">VERIFICACIÓN DE EMAIL</div>
+<h1>Crear cuenta de prueba.</h1>
+<p class="muted">Esta pantalla prueba el nuevo flujo sin reemplazar el registro actual. La mascota no se vincula hasta que confirmes el correo.</p>
+<div class="note">Usá una chapita activada que todavía no esté vinculada a otra cuenta. No uses tu usuario actual para esta prueba.</div>
+<form id="form">
+<div class="split"><div class="field"><label>Código de chapita</label><input name="code" maxlength="12" required></div><div class="field"><label>PIN privado</label><input name="pin" maxlength="50" required></div></div>
+<div class="field"><label>Email de prueba</label><input name="email" type="email" autocomplete="email" required></div>
+<div class="field"><label>Contraseña</label><input name="password" type="password" minlength="8" autocomplete="new-password" required></div>
+<button class="btn" type="submit">Enviar correo de verificación</button>
+</form>
+<div id="status"></div>
+<a class="back" href="/mi-cuenta/">← Volver a Mi cuenta</a>
+</section>
+</div>
+<script>
+const SUPABASE_URL="https://cgciwutqwnssdphugupq.supabase.co";
+const PUBLISHABLE_KEY="sb_publishable_oozsLV8QMoy_ooLIqgh_qg_vvjV6IY5";
+const REGISTER_API=SUPABASE_URL+"/functions/v1/patas-register-v2-test";
+const PENDING_KEY="pac_pending_claim_v2_test";
+const statusBox=document.getElementById("status");
+function show(msg,ok=false){statusBox.innerHTML=`<div class="status ${ok?"ok":"err"}">${msg}</div>`}
+const pre=new URLSearchParams(location.search).get("vincular");if(pre)document.querySelector('[name="code"]').value=pre;
+document.getElementById("form").addEventListener("submit",async e=>{
+ e.preventDefault();const btn=e.submitter,bak=btn.textContent,f=new FormData(e.currentTarget);
+ const payload={public_code:String(f.get("code")||"").trim().toUpperCase(),activation_code:String(f.get("pin")||"").trim(),email:String(f.get("email")||"").trim().toLowerCase(),password:String(f.get("password")||""),redirect_to:location.origin+"/mi-cuenta/confirmar/"};
+ btn.disabled=true;btn.textContent="Enviando…";statusBox.innerHTML="";
+ try{
+  const r=await fetch(REGISTER_API,{method:"POST",headers:{"Content-Type":"application/json","apikey":PUBLISHABLE_KEY},body:JSON.stringify(payload)});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||"No pudimos iniciar la verificación.");
+  localStorage.setItem(PENDING_KEY,JSON.stringify({code:payload.public_code,pin:payload.activation_code,email:payload.email,created_at:Date.now()}));
+  e.currentTarget.classList.add("hidden");show(`Te enviamos un correo a <b>${payload.email}</b>. Abrilo y tocá el enlace de confirmación. La mascota todavía no fue vinculada.`,true);
+ }catch(err){show(err.message||"Ocurrió un error.")}
+ finally{btn.disabled=false;btn.textContent=bak}
+});
+</script>
+</body>
+</html>
