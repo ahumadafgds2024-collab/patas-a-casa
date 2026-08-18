@@ -1,6 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "alias": "pa.vercel.app",
   "redirects": [
     {
       "source": "/S/:code",
