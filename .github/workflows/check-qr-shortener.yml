@@ -1,0 +1,27 @@
+name: Check QR Shortener
+on:
+  push:
+    branches: [qr-shortener-tool]
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validar JSON y JavaScript
+        run: |
+          python -m json.tool vercel.json >/dev/null
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          for source,out in [('qr/index.html','/tmp/qr.js'),('S/index.html','/tmp/resolve.js')]:
+              s=Path(source).read_text(encoding='utf-8')
+              blocks=re.findall(r'<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)</script>',s,re.I)
+              Path(out).write_text('\n'.join(blocks),encoding='utf-8')
+          PY
+          node --check /tmp/qr.js
+          node --check /tmp/resolve.js
+          grep -q 'Acortar y generar QR' qr/index.html
+          grep -q 'patas-short' qr/index.html
+          grep -q 'patas-short' S/index.html
