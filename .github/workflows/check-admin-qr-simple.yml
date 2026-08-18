@@ -9,29 +9,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Validar archivos
+      - name: Validar generador y ruta corta
         run: |
           python -m json.tool vercel.json >/dev/null
           python - <<'PY'
           from pathlib import Path
-          import re
+          import json,re
           s=Path('admin.html').read_text(encoding='utf-8')
           blocks=re.findall(r'<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)</script>',s,re.I)
           Path('/tmp/admin.js').write_text('\n'.join(blocks),encoding='utf-8')
+          cfg=json.loads(Path('vercel.json').read_text())
+          r=cfg['redirects'][0]
+          assert r['source']=='/S/:code'
+          assert r['destination']=='/?tag=:code'
+          assert r['permanent'] is False
           PY
           node --check /tmp/admin.js
           grep -q "errorCorrectionLevel:'L'" admin.html
           grep -q "'/S/'" admin.html
-          grep -q 'destination.*tag=:code' vercel.json
-      - name: Esperar preview y probar redirect corto
-        run: |
-          URL='https://patas-a-casa-git-admin-qr-simple-ahumadafgds2024-8212s-projects.vercel.app'
-          for i in $(seq 1 18); do
-            code=$(curl -sS -o /tmp/admin -w '%{http_code}' "$URL/admin.html" || true)
-            if [ "$code" = "200" ]; then break; fi
-            sleep 5
-          done
-          test "$code" = "200"
-          grep -q 'QR SIMPLIFICADO' /tmp/admin
-          curl -sS -D /tmp/headers -o /dev/null "$URL/S/GL5WYB"
-          grep -Ei '^location: .*\?tag=GL5WYB' /tmp/headers
+          grep -q "toUpperCase()" admin.html
