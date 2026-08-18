@@ -1,0 +1,30 @@
+name: Check Admin QR Simple
+on:
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validar generador y ruta corta
+        run: |
+          python -m json.tool vercel.json >/dev/null
+          python - <<'PY'
+          from pathlib import Path
+          import json,re
+          s=Path('admin.html').read_text(encoding='utf-8')
+          blocks=re.findall(r'<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)</script>',s,re.I)
+          Path('/tmp/admin.js').write_text('\n'.join(blocks),encoding='utf-8')
+          cfg=json.loads(Path('vercel.json').read_text())
+          r=cfg['redirects'][0]
+          assert r['source']=='/S/:code'
+          assert r['destination']=='/?tag=:code'
+          assert r['permanent'] is False
+          PY
+          node --check /tmp/admin.js
+          grep -q "errorCorrectionLevel:'L'" admin.html
+          grep -q "'/S/'" admin.html
+          grep -q "toUpperCase()" admin.html
