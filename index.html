@@ -42,13 +42,23 @@
 const $=id=>document.getElementById(id);let state=null;
 function status(t,type='err'){const e=$('status');e.textContent=t;e.className='status '+type}
 function clearStatus(){$('status').className='status';$('status').textContent=''}
-function randomCode(){const a='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let s='';for(let i=0;i<5;i++)s+=a[Math.floor(Math.random()*a.length)];return s}
-function jsonp(params){return new Promise((resolve,reject)=>{const cb='__vgd_'+Date.now()+'_'+Math.random().toString(36).slice(2);const sc=document.createElement('script');let done=false;window[cb]=data=>{done=true;cleanup();resolve(data)};function cleanup(){delete window[cb];sc.remove()}sc.onerror=()=>{if(!done){cleanup();reject(new Error('No se pudo conectar con el acortador.'))}};params.set('callback',cb);params.set('format','json');sc.src='https://v.gd/create.php?'+params.toString();document.head.appendChild(sc);setTimeout(()=>{if(!done){cleanup();reject(new Error('El acortador tardó demasiado. Probá de nuevo.'))}},12000)})}
-async function shorten(url){for(let i=0;i<8;i++){const code=randomCode();const p=new URLSearchParams({url,shorturl:code});const data=await jsonp(p);if(data?.shorturl)return data.shorturl;if(Number(data?.errorcode)===2)continue;throw new Error(data?.errormessage||'No se pudo acortar la URL.')}throw new Error('No pude conseguir un código libre. Probá otra vez.')}
+async function shorten(url){
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),14000);
+  try{
+    const r=await fetch('/api/shorten',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url}),signal:controller.signal});
+    const data=await r.json().catch(()=>({}));
+    if(!r.ok||!data?.shorturl)throw new Error(data?.error||'No se pudo acortar la URL.');
+    return {short:data.shorturl,payload:data.payload||String(data.shorturl).toUpperCase()};
+  }catch(e){
+    if(e?.name==='AbortError')throw new Error('El acortador tardó demasiado. Probá otra vez.');
+    throw e;
+  }finally{clearTimeout(timer)}
+}
 function makeQR(text){if(typeof qrcode!=='function')throw new Error('No se cargó el generador QR. Recargá la página.');const q=qrcode(0,'L');const alpha=/^[0-9A-Z $%*+\-./:]+$/.test(text);q.addData(text,alpha?'Alphanumeric':'Byte');q.make();return q}
 function info(q){const n=q.getModuleCount();return{n,version:(n-17)/4}}
 function svg(q){const n=q.getModuleCount(),z=4,t=n+z*2;let d='';for(let y=0;y<n;y++)for(let x=0;x<n;x++)if(q.isDark(y,x))d+=`M${x+z} ${y+z}h1v1h-1z`;return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${t} ${t}" shape-rendering="crispEdges"><rect width="100%" height="100%" fill="white"/><path fill="black" d="${d}"/></svg>`}
-async function go(){clearStatus();const raw=$('url').value.trim();let u;try{u=new URL(raw);if(!/^https?:$/.test(u.protocol))throw 0}catch{status('Pegá una URL completa que empiece con http:// o https://');return}const b=$('go');b.disabled=true;b.textContent='Acortando…';try{const short=await shorten(u.href);const payload=short.toUpperCase();const old=makeQR(u.href),q=makeQR(payload),a=info(old),c=info(q);state={short,payload,q};$('short').textContent=short;$('before').textContent=a.n+'×'+a.n;$('after').textContent=c.n+'×'+c.n;$('qr').innerHTML=svg(q);$('result').classList.add('on');$('detail').textContent=c.version===1?'Llegaste al QR mínimo estándar: Versión 1, 21×21 módulos. Ideal para probar con láser.':`QR Versión ${c.version}, ${c.n}×${c.n} módulos.`;status('Listo.','ok');$('result').scrollIntoView({behavior:'smooth',block:'start'})}catch(e){status(e.message||'No se pudo generar el QR.')}finally{b.disabled=false;b.textContent='Acortar + generar QR'}}
+async function go(){clearStatus();const raw=$('url').value.trim();let u;try{u=new URL(raw);if(!/^https?:$/.test(u.protocol))throw 0}catch{status('Pegá una URL completa que empiece con http:// o https://');return}const b=$('go');b.disabled=true;b.textContent='Acortando…';try{const shortened=await shorten(u.href);const short=shortened.short,payload=shortened.payload;const old=makeQR(u.href),q=makeQR(payload),a=info(old),c=info(q);state={short,payload,q};$('short').textContent=short;$('before').textContent=a.n+'×'+a.n;$('after').textContent=c.n+'×'+c.n;$('qr').innerHTML=svg(q);$('result').classList.add('on');$('detail').textContent=c.version===1?'Llegaste al QR mínimo estándar: Versión 1, 21×21 módulos. Ideal para probar con láser.':`QR Versión ${c.version}, ${c.n}×${c.n} módulos.`;status('Listo.','ok');$('result').scrollIntoView({behavior:'smooth',block:'start'})}catch(e){status(e.message||'No se pudo generar el QR.')}finally{b.disabled=false;b.textContent='Acortar + generar QR'}}
 function dl(name,blob){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
 function saveSvg(){if(!state)return;dl('qr-simple.svg',new Blob([svg(state.q)],{type:'image/svg+xml'}))}
 function savePng(){if(!state)return;const q=state.q,n=q.getModuleCount(),quiet=4,scale=36,size=(n+quiet*2)*scale,c=document.createElement('canvas');c.width=c.height=size;const x=c.getContext('2d');x.imageSmoothingEnabled=false;x.fillStyle='#fff';x.fillRect(0,0,size,size);x.fillStyle='#000';for(let y=0;y<n;y++)for(let col=0;col<n;col++)if(q.isDark(y,col))x.fillRect((col+quiet)*scale,(y+quiet)*scale,scale,scale);c.toBlob(b=>dl('qr-simple.png',b),'image/png')}
