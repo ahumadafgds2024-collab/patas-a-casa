@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "alias": "p7.vercel.app",
+  "alias": "p7",
   "redirects": [
     {
       "source": "/S/:code",
