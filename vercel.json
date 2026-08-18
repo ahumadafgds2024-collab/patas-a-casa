@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "alias": "p.vercel.app",
+  "alias": "pa.vercel.app",
   "redirects": [
     {
       "source": "/S/:code",
@@ -10,7 +10,7 @@
   ],
   "rewrites": [
     {
-      "source": "/:code([A-Za-z0-9]{4})",
+      "source": "/:code([A-Za-z0-9]{3,4})",
       "destination": "/s.html"
     }
   ]
