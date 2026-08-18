@@ -6,11 +6,5 @@
       "destination": "/?tag=:code",
       "permanent": false
     }
-  ],
-  "rewrites": [
-    {
-      "source": "/:code([A-Za-z0-9]{3,4})",
-      "destination": "/s.html"
-    }
   ]
 }
