@@ -1,9 +1,17 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "alias": "p.vercel.app",
   "redirects": [
     {
       "source": "/S/:code",
       "destination": "/?tag=:code",
       "permanent": false
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/:code([A-Za-z0-9]{4})",
+      "destination": "/s.html"
     }
   ]
 }
