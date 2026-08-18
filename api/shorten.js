@@ -1,42 +1,57 @@
-const SERVICES = [
-  'https://is.gd/create.php',
-  'https://v.gd/create.php'
-];
-
-function code5(){
-  const chars='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+function code4(){
+  const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let out='';
-  for(let i=0;i<5;i++) out+=chars[Math.floor(Math.random()*chars.length)];
+  for(let i=0;i<4;i++) out+=chars[Math.floor(Math.random()*chars.length)];
   return out;
 }
 
-async function tryService(base, target){
-  for(let attempt=0; attempt<7; attempt++){
-    const shorturl=code5();
-    const u=new URL(base);
-    u.searchParams.set('format','json');
-    u.searchParams.set('url',target);
-    u.searchParams.set('shorturl',shorturl);
+async function trySpoo(target){
+  for(let attempt=0; attempt<6; attempt++){
+    const alias=code4();
     const controller=new AbortController();
-    const timer=setTimeout(()=>controller.abort(),4500);
+    const timer=setTimeout(()=>controller.abort(),7000);
     try{
-      const r=await fetch(u,{headers:{'User-Agent':'QR-Simple/1.0'},signal:controller.signal});
-      const text=await r.text();
-      let data={};
-      try{ data=JSON.parse(text); }catch{}
-      if(r.ok && data.shorturl){
-        return { shorturl:data.shorturl, payload:String(data.shorturl).toUpperCase(), service:new URL(base).hostname };
+      const r=await fetch('https://spoo.me/api/v1/shorten',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Accept':'application/json'},
+        body:JSON.stringify({long_url:target,alias}),
+        signal:controller.signal
+      });
+      const data=await r.json().catch(()=>({}));
+      if(r.ok && data?.short_url){
+        const short=String(data.short_url);
+        return {shorturl:short,payload:short.toUpperCase(),service:'spoo.me'};
       }
-      // errorcode 2 = custom alias already used; retry a new 5-char code
-      if(Number(data.errorcode)===2) continue;
-      if(Number(data.errorcode)===3) break; // rate limit, move to fallback service
-      if(Number(data.errorcode)===1) throw new Error(data.errormessage||'La URL no es válida.');
+      if(r.status===409 || r.status===422) continue;
+      if(r.status===429) break;
+      if(r.status>=400 && r.status<500) throw new Error(data?.detail||data?.error||'La URL no es válida.');
+      break;
     }catch(e){
       if(e?.name==='AbortError') break;
       if(String(e?.message||'').includes('URL no es válida')) throw e;
       break;
-    }finally{ clearTimeout(timer); }
+    }finally{clearTimeout(timer)}
   }
+  return null;
+}
+
+async function tryCleanUri(target){
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),7000);
+  try{
+    const body=new URLSearchParams({url:target});
+    const r=await fetch('https://cleanuri.com/api/v1/shorten',{
+      method:'POST',
+      headers:{'Content-Type':'application/x-www-form-urlencoded','Accept':'application/json'},
+      body,
+      signal:controller.signal
+    });
+    const data=await r.json().catch(()=>({}));
+    if(r.ok && data?.result_url){
+      const short=String(data.result_url);
+      return {shorturl:short,payload:short,service:'cleanuri.com'};
+    }
+  }catch(e){}finally{clearTimeout(timer)}
   return null;
 }
 
@@ -45,16 +60,18 @@ export default async function handler(req,res){
   if(req.method!=='POST') return res.status(405).json({error:'Método no permitido'});
   const target=String(req.body?.url||'').trim();
   let parsed;
-  try{ parsed=new URL(target); }catch{ return res.status(400).json({error:'Pegá una URL completa que empiece con http:// o https://'}); }
+  try{parsed=new URL(target)}catch{return res.status(400).json({error:'Pegá una URL completa que empiece con http:// o https://'})}
   if(!['http:','https:'].includes(parsed.protocol)) return res.status(400).json({error:'La URL debe empezar con http:// o https://'});
   if(target.length>4000) return res.status(400).json({error:'La URL es demasiado larga'});
 
   try{
-    for(const service of SERVICES){
-      const result=await tryService(service,target);
-      if(result) return res.status(200).json(result);
-    }
-    return res.status(503).json({error:'Los acortadores están ocupados. Probá de nuevo en unos segundos.'});
+    const spoo=await trySpoo(target);
+    if(spoo) return res.status(200).json(spoo);
+
+    const clean=await tryCleanUri(target);
+    if(clean) return res.status(200).json(clean);
+
+    return res.status(503).json({error:'No pude acortar el enlace ahora. Probá otra vez en unos segundos.'});
   }catch(e){
     return res.status(400).json({error:e?.message||'No se pudo acortar la URL'});
   }
