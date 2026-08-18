@@ -28,3 +28,11 @@ jobs:
           grep -q "errorCorrectionLevel:'L'" admin.html
           grep -q "'/S/'" admin.html
           grep -q "toUpperCase()" admin.html
+      - name: Probar producción real
+        run: |
+          curl -sS -D /tmp/headers -o /dev/null 'https://patas-a-casa.vercel.app/S/GL5WYB'
+          cat /tmp/headers
+          grep -Ei '^HTTP/.* 307' /tmp/headers
+          grep -Ei '^location: /?\?tag=GL5WYB|^location: https://patas-a-casa\.vercel\.app/\?tag=GL5WYB' /tmp/headers
+          curl -sSL 'https://patas-a-casa.vercel.app/S/GL5WYB' -o /tmp/final.html
+          grep -q 'Patas a Casa' /tmp/final.html
