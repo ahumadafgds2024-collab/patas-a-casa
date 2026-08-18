@@ -1,0 +1,9 @@
+{
+  "redirects": [
+    {
+      "source": "/S/:code",
+      "destination": "/?tag=:code",
+      "permanent": false
+    }
+  ]
+}
