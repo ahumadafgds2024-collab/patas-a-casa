@@ -1,7 +1,7 @@
 name: Check Admin QR Simple
 on:
-  push:
-    branches: [admin-qr-simple]
+  pull_request:
+    branches: [main]
 permissions:
   contents: read
 jobs:
@@ -26,7 +26,7 @@ jobs:
       - name: Esperar preview y probar redirect corto
         run: |
           URL='https://patas-a-casa-git-admin-qr-simple-ahumadafgds2024-8212s-projects.vercel.app'
-          for i in $(seq 1 12); do
+          for i in $(seq 1 18); do
             code=$(curl -sS -o /tmp/admin -w '%{http_code}' "$URL/admin.html" || true)
             if [ "$code" = "200" ]; then break; fi
             sleep 5
