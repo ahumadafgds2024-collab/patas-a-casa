@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f6f1e9">
+<meta name="description" content="Herramienta privada de Patas a Casa para acortar URLs y generar QR optimizados para grabado láser.">
+<link rel="icon" type="image/png" href="/mi-cuenta/icons/icon-192.png">
+<title>QR Láser · Patas a Casa</title>
+<style>
+:root{--bg:#f6f1e9;--card:#fffdfa;--ink:#181817;--muted:#746d64;--line:rgba(49,39,31,.10);--orange:#ff6a36;--orange2:#ff8557;--green:#23734f;--red:#b53c49;--soft:#f1ebe4;--shadow:0 14px 38px rgba(53,38,25,.08);--ease:cubic-bezier(.22,.72,.28,1)}
+*{box-sizing:border-box}html{-webkit-tap-highlight-color:transparent;background:var(--bg)}body{margin:0;color:var(--ink);font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;background:radial-gradient(circle at 12% -8%,rgba(255,164,112,.17),transparent 27%),radial-gradient(circle at 90% 16%,rgba(68,145,103,.08),transparent 22%),linear-gradient(180deg,#faf7f2 0,var(--bg) 55%,#f4eee6 100%);min-height:100dvh}.app{max-width:560px;margin:auto;padding:calc(16px + env(safe-area-inset-top)) 13px calc(70px + env(safe-area-inset-bottom))}.top{display:flex;align-items:center;gap:11px;margin:2px 2px 18px}.logo{position:relative;width:45px;height:45px;border-radius:50%;background:linear-gradient(145deg,#27231f,#141312);color:#fff;display:grid;place-items:center;font-size:21px;box-shadow:0 9px 22px rgba(24,20,17,.17)}.logo:before{content:"";position:absolute;top:-5px;left:50%;width:9px;height:9px;border-radius:50%;transform:translateX(-50%);background:#f8f4ee;border:2px solid #1a1917}.brand{font-weight:950;letter-spacing:-.025em}.brand small{display:block;font-size:11px;font-weight:750;color:var(--muted);letter-spacing:0;margin-top:2px}.card{background:rgba(255,253,250,.96);border:1px solid var(--line);border-radius:24px;padding:19px;box-shadow:var(--shadow);margin-bottom:12px}.kicker{font-size:10px;font-weight:950;letter-spacing:.11em;color:#bd4d26}h1{font-size:31px;line-height:1.02;letter-spacing:-.05em;margin:8px 0 10px}h2{font-size:19px;letter-spacing:-.025em;margin:0 0 12px}p{line-height:1.48}.muted{color:var(--muted)}.small{font-size:12px}.field{margin-bottom:13px}.field label{display:block;font-size:11px;font-weight:900;color:#514b45;margin-bottom:7px}.field input,.field textarea,.field select{width:100%;min-height:50px;border:1px solid rgba(60,48,38,.14);background:#fff;border-radius:15px;padding:13px;color:var(--ink);outline:none;font:inherit;font-size:16px;transition:border-color .16s ease,box-shadow .16s ease}.field textarea{min-height:92px;resize:vertical;word-break:break-all}.field input:focus,.field textarea:focus,.field select:focus{border-color:rgba(255,106,54,.58);box-shadow:0 0 0 4px rgba(255,106,54,.085)}.btn{width:100%;min-height:51px;border:0;border-radius:16px;padding:13px 15px;font:inherit;font-weight:950;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:transform .11s var(--ease),box-shadow .16s ease,filter .16s ease;text-decoration:none}.btn:active{transform:translateY(1px) scale(.974);filter:brightness(.985)}.btn:disabled{opacity:.55;cursor:wait}.primary{background:linear-gradient(135deg,var(--orange),var(--orange2));color:#fff;box-shadow:0 10px 23px rgba(255,106,54,.20)}.dark{background:linear-gradient(145deg,#27231f,#151412);color:#fff}.soft{background:var(--soft);color:#302b27}.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}.note{background:#fbf6ef;border:1px solid var(--line);border-radius:16px;padding:13px;font-size:12px;line-height:1.45;color:#686159}.result{display:none}.result.on{display:block;animation:in .28s var(--ease) both}.shortbox{display:flex;gap:8px;align-items:stretch}.shorturl{flex:1;min-width:0;background:#f6f0e8;border:1px solid var(--line);border-radius:15px;padding:12px 13px;font-size:12px;font-weight:850;word-break:break-all;display:flex;align-items:center}.copy{width:52px;flex:0 0 52px;border:0;border-radius:15px;background:#181817;color:#fff;font-size:18px;cursor:pointer}.copy:active{transform:scale(.95)}.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}.stat{background:#fbf6ef;border:1px solid var(--line);border-radius:16px;padding:12px}.stat b{display:block;font-size:21px;letter-spacing:-.035em}.stat span{display:block;color:var(--muted);font-size:11px;margin-top:3px}.better{color:var(--green)}.qrwrap{background:#fff;border:1px solid var(--line);border-radius:22px;padding:16px;display:grid;place-items:center;margin:12px 0}.qrwrap svg{width:min(100%,360px);height:auto;display:block}.control{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#fbf6ef;border:1px solid var(--line);border-radius:16px;padding:12px 13px;margin-top:8px}.control label{font-size:12px;font-weight:900}.control select{border:0;background:#fff;border-radius:11px;padding:9px 10px;font-weight:850;color:var(--ink)}.tip{margin-top:10px;font-size:11px;color:var(--muted);line-height:1.45}.status{margin-top:10px;padding:12px 13px;border-radius:15px;font-size:12px;display:none}.status.err{display:block;background:#fff0f2;color:#9d2d3a}.status.ok{display:block;background:#eaf6ef;color:#1d6846}@keyframes in{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}@media(max-width:430px){h1{font-size:28px}.row{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}.card{border-radius:22px;padding:17px}}@media(prefers-reduced-motion:reduce){*{animation-duration:.001ms!important;transition-duration:.001ms!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top"><div class="logo">🐾</div><div class="brand">Patas a Casa<small>Acortador + QR para grabado láser</small></div></header>
+
+  <section class="card">
+    <div class="kicker">HERRAMIENTA PRIVADA</div>
+    <h1>QR más simple, sin cambiar el destino.</h1>
+    <p class="muted small">Pegá la URL original. La herramienta crea un enlace corto de Patas a Casa y genera automáticamente el QR de menor versión posible.</p>
+    <div class="field"><label>URL original</label><textarea id="url" placeholder="https://..."></textarea></div>
+    <div class="field"><label>Clave de administrador</label><input id="key" type="password" autocomplete="current-password" placeholder="Clave del generador de Patas a Casa"></div>
+    <button id="go" class="btn primary">Acortar y generar QR</button>
+    <div id="status" class="status"></div>
+    <div class="note" style="margin-top:12px"><b>Para láser:</b> el modo <b>L · Máxima simpleza</b> usa menos redundancia. El margen reglamentario del QR se mantiene para no perjudicar la lectura.</div>
+  </section>
+
+  <section id="result" class="card result">
+    <h2>Enlace corto</h2>
+    <div class="shortbox"><div id="short" class="shorturl"></div><button class="copy" id="copy" aria-label="Copiar enlace">⧉</button></div>
+
+    <div class="control"><label>Corrección de error</label><select id="ecc"><option value="L">L · Máxima simpleza</option><option value="M">M · Equilibrado</option><option value="Q">Q · Más resistencia</option><option value="H">H · Máxima resistencia</option></select></div>
+
+    <div class="stats">
+      <div class="stat"><span>QR original</span><b id="oldModules">—</b><span id="oldVersion">—</span></div>
+      <div class="stat"><span>QR corto</span><b id="newModules" class="better">—</b><span id="newVersion">—</span></div>
+    </div>
+
+    <div class="qrwrap" id="qr"></div>
+    <div class="row"><button id="png" class="btn dark">Descargar PNG</button><button id="svg" class="btn soft">Descargar SVG</button></div>
+    <div id="saving" class="tip"></div>
+    <div class="tip">El QR corto se codifica en mayúsculas para aprovechar el modo alfanumérico del estándar QR. El enlace sigue abriendo exactamente el mismo destino.</div>
+  </section>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script>
+const API='https://cgciwutqwnssdphugupq.supabase.co/functions/v1/patas-short';
+const $=id=>document.getElementById(id); let current=null;
+function msg(text,type='err'){const s=$('status');s.textContent=text;s.className='status '+type}
+function clearMsg(){$('status').className='status';$('status').textContent=''}
+function qrFor(text,level){
+  if(typeof qrcode!=='function')throw new Error('No se pudo cargar el generador QR. Recargá la página.');
+  const qr=qrcode(0,level);
+  const alpha=/^[0-9A-Z $%*+\-./:]+$/.test(text);
+  qr.addData(text,alpha?'Alphanumeric':'Byte'); qr.make(); return qr;
+}
+function info(qr){const n=qr.getModuleCount();return{n,version:(n-17)/4}}
+function svgFor(qr){
+  const n=qr.getModuleCount(),q=4,total=n+q*2;let p=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${total} ${total}" shape-rendering="crispEdges"><rect width="100%" height="100%" fill="white"/><path fill="black" d="`;
+  let d='';for(let y=0;y<n;y++){for(let x=0;x<n;x++){if(qr.isDark(y,x))d+=`M${x+q} ${y+q}h1v1h-1z`;}}return p+d+'"/></svg>';
+}
+function render(){
+  if(!current)return; const level=$('ecc').value;
+  const originalQr=qrFor(current.original,level), shortQr=qrFor(current.payload,level);
+  const a=info(originalQr),b=info(shortQr);
+  $('oldModules').textContent=a.n+'×'+a.n;$('oldVersion').textContent='Versión '+a.version;
+  $('newModules').textContent=b.n+'×'+b.n;$('newVersion').textContent='Versión '+b.version;
+  $('qr').innerHTML=svgFor(shortQr); current.qr=shortQr; current.level=level;
+  const reduced=Math.round((1-(b.n*b.n)/(a.n*a.n))*100);
+  $('saving').textContent=b.n<a.n?`Reducción aproximada de superficie de módulos: ${reduced}%.`:'Con esta URL y este nivel, ambos QR caen en la misma versión. El enlace corto igual queda preparado para usar un dominio más breve en el futuro.';
+}
+async function create(){
+  clearMsg();const original=$('url').value.trim(),key=$('key').value.trim();
+  if(!/^https?:\/\/\S+$/i.test(original)){msg('Pegá una URL completa que empiece con http:// o https://');return}
+  if(!key){msg('Ingresá la clave de administrador.');return}
+  const btn=$('go');btn.disabled=true;btn.textContent='Creando…';
+  try{
+    const r=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'create',admin_key:key,target_url:original})});
+    const j=await r.json();if(!r.ok)throw new Error(j.error||'No se pudo acortar el enlace');
+    current={original,short:j.short_url,payload:j.qr_payload||String(j.short_url).toUpperCase()};
+    $('short').textContent=current.short;$('result').classList.add('on');render();msg('Listo. El enlace corto ya quedó activo.','ok');
+    $('result').scrollIntoView({behavior:'smooth',block:'start'});
+  }catch(e){msg(e.message||'Ocurrió un error')}
+  finally{btn.disabled=false;btn.textContent='Acortar y generar QR'}
+}
+function download(name,blob){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1500)}
+function downloadSvg(){if(!current?.qr)return;download(`QR-${current.short.split('/').pop()}-${current.level}.svg`,new Blob([svgFor(current.qr)],{type:'image/svg+xml'}))}
+function downloadPng(){
+  if(!current?.qr)return;const qr=current.qr,n=qr.getModuleCount(),quiet=4,modules=n+quiet*2,scale=Math.max(8,Math.floor(1200/modules)),size=modules*scale;
+  const c=document.createElement('canvas');c.width=c.height=size;const x=c.getContext('2d');x.imageSmoothingEnabled=false;x.fillStyle='#fff';x.fillRect(0,0,size,size);x.fillStyle='#000';
+  for(let r=0;r<n;r++)for(let col=0;col<n;col++)if(qr.isDark(r,col))x.fillRect((col+quiet)*scale,(r+quiet)*scale,scale,scale);
+  c.toBlob(b=>download(`QR-${current.short.split('/').pop()}-${current.level}.png`,b),'image/png');
+}
+$('go').addEventListener('click',create);$('ecc').addEventListener('change',render);$('copy').addEventListener('click',async()=>{if(!current)return;await navigator.clipboard.writeText(current.short);$('copy').textContent='✓';setTimeout(()=>$('copy').textContent='⧉',900)});$('svg').addEventListener('click',downloadSvg);$('png').addEventListener('click',downloadPng);
+</script>
+</body>
+</html>
