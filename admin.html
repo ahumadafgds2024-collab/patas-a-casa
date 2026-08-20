@@ -16,12 +16,12 @@
     <div class="small" style="font-weight:950;color:#ce4d20">GENERADOR PRIVADO</div>
     <h1>Generá nuevas chapitas.</h1>
     <p class="muted">Cada chapita recibe su código público y PIN privado. El enlace físico se crea en <b>Short.io</b> usando tu subdominio gratuito <b>*.s.gy</b> y se verifica antes de entregarte el QR.</p>
-    <div class="note"><b>QR láser 21×21 garantizado:</b> el generador calcula automáticamente cuántos caracteres puede tener el alias para que el enlace completo entre en <b>QR Versión 1 · corrección L</b>. No configura vencimiento del enlace.<br><br><b>Antes del primer lote:</b><ol class="setupsteps"><li>Creá una cuenta gratis en Short.io.</li><li>Agregá y activá por teléfono un subdominio gratis, idealmente <b>patas.s.gy</b> o <b>pac.s.gy</b>.</li><li>Creá una <b>Secret API Key</b> con permiso para ese dominio.</li></ol>Las chapitas TinyURL que ya existen no se modifican.</div>
+    <div class="note"><b>QR láser 21×21 garantizado:</b> el generador calcula automáticamente cuántos caracteres puede tener el alias para que el enlace completo entre en <b>QR Versión 1 · corrección L</b>. No configura vencimiento del enlace.<br><br><b>Antes del primer lote:</b><ol class="setupsteps"><li>Creá una cuenta gratis en Short.io.</li><li>Agregá y activá por teléfono un subdominio gratis, idealmente <b>pac.s.gy</b>.</li><li>Creá una <b>Secret API Key</b> con permiso para ese dominio.</li></ol>Las chapitas TinyURL que ya existen no se modifican.</div>
     <form id="generator" class="formgrid" style="margin-top:16px">
       <div class="field"><label>Clave de administrador</label><input id="adminKey" type="password" autocomplete="off" placeholder="PAC-...." required></div>
       <div class="field"><label>Cantidad</label><input id="count" type="number" min="1" max="100" value="10" required></div>
       <div class="field"><label>Nombre del lote</label><input id="batchName" maxlength="40" placeholder="Ej. Stock agosto"></div>
-      <div class="field"><label>Dominio corto de Short.io</label><input id="shortDomain" type="text" autocomplete="off" value="patas.s.gy" placeholder="patas.s.gy" required><div class="help">Tiene que terminar en <b>.s.gy</b>. Cuanto más corto, más margen tiene el QR.</div></div>
+      <div class="field"><label>Dominio corto de Short.io</label><input id="shortDomain" type="text" autocomplete="off" value="pac.s.gy" placeholder="pac.s.gy" required><div class="help">Tiene que terminar en <b>.s.gy</b>. Cuanto más corto, más margen tiene el QR.</div></div>
       <div class="field" style="grid-column:span 2"><label>Secret API Key de Short.io · se recuerda sólo en esta sesión</label><input id="shortKey" type="password" autocomplete="off" placeholder="Pegá tu API key de Short.io" required><div class="help"><a href="https://app.short.io/settings/integrations/api-key" target="_blank" rel="noopener">Short.io → Integrations & API → API</a></div></div>
       <button id="generateBtn" class="btn primary" type="submit" style="grid-column:1/-1">＋ Generar lote 21×21</button>
     </form>
@@ -40,7 +40,7 @@
 <script>
 const ADMIN_API='https://cgciwutqwnssdphugupq.supabase.co/functions/v1/patas-admin-shortio';
 let currentItems=[],currentBatch='lote';const $=id=>document.getElementById(id);
-try{const k=sessionStorage.getItem('pac_shortio_key'),d=sessionStorage.getItem('pac_shortio_domain');if(k)$('shortKey').value=k;if(d)$('shortDomain').value=d}catch{}
+try{const k=sessionStorage.getItem('pac_shortio_key'),d=sessionStorage.getItem('pac_shortio_domain');if(k)$('shortKey').value=k;if(d&&d!=='patas.s.gy')$('shortDomain').value=d;else $('shortDomain').value='pac.s.gy'}catch{}
 function safeName(v){return String(v||'lote').trim().replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ_-]+/g,'_').replace(/^_+|_+$/g,'').slice(0,50)||'lote'}
 function normalizeDomain(v){return String(v||'').trim().toLowerCase().replace(/^https?:\/\//,'').replace(/\/+$/,'')}
 function payload(item){return String(item.qr_payload||item.short_url||'').toUpperCase()}
