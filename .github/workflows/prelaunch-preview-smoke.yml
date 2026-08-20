@@ -20,8 +20,13 @@ jobs:
         run: |
           set -euo pipefail
           ok=0
-          for i in {1..18}; do
-            if curl -fsS --max-time 20 "$PREVIEW/?tag=GL5WYB" -o /tmp/active.html; then ok=1; break; fi
+          for i in {1..24}; do
+            if curl -fsS --max-time 20 "$PREVIEW/?tag=GL5WYB" -o /tmp/active.html \
+              && grep -q 'action:"sighting"' /tmp/active.html \
+              && grep -q 'AbortController' /tmp/active.html \
+              && ! grep -q 'Soy el responsable de' /tmp/active.html; then
+              ok=1; break
+            fi
             sleep 5
           done
           test "$ok" = "1"
@@ -30,9 +35,6 @@ jobs:
           curl -fsS --max-time 20 "$PREVIEW/mi-cuenta/recuperar/" -o /tmp/recover.html
           curl -fsS --max-time 20 "$PREVIEW/mi-cuenta/confirmar/" -o /tmp/confirm.html
           curl -fsS --max-time 20 "$PREVIEW/admin.html" -o /tmp/admin.html
-          grep -q 'action:"sighting"' /tmp/active.html
-          ! grep -q 'Soy el responsable de' /tmp/active.html
-          grep -q 'AbortController' /tmp/active.html
           grep -q 'retryTag' /tmp/active.html
           grep -q 'Mi cuenta' /tmp/account.html
           grep -qi 'recuper' /tmp/recover.html
