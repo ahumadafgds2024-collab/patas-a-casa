@@ -1,0 +1,89 @@
+name: Apply prelaunch public fixes
+
+on:
+  push:
+    branches: ["prelaunch-public-fixes"]
+    paths: [".github/workflows/apply-prelaunch-public-fixes.yml"]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: prelaunch-public-fixes
+      - name: Apply safe public-profile fixes
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+
+          def one(old,new,label):
+              global s
+              n=s.count(old)
+              if n!=1:
+                  raise SystemExit(f'{label}: expected 1 match, got {n}')
+              s=s.replace(old,new,1)
+
+          old='''async function getTag(c){const r=await fetch(API+"?action=tag&code="+encodeURIComponent(c));const j=await r.json();if(!r.ok)throw new Error(j.error||"No pudimos abrir esta chapita");return j}\nasync function getLostInfo(c){const r=await fetch(LOST_API+"?code="+encodeURIComponent(c),{cache:"no-store"});const j=await r.json();if(!r.ok)throw new Error(j.error||"No pudimos cargar los datos de pérdida");return j}\nasync function post(data){const r=await fetch(API,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});const j=await r.json();if(!r.ok)throw new Error(j.error||"Ocurrió un error");return j}'''
+          new='''async function fetchJson(url,options={},timeoutMs=12000){\n const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),timeoutMs);\n try{\n   const r=await fetch(url,{...options,signal:controller.signal});\n   const text=await r.text();let j={};try{j=text?JSON.parse(text):{}}catch{}\n   if(!r.ok)throw new Error(j.error||`El servidor respondió con error ${r.status}.`);\n   return j;\n }catch(err){\n   if(err?.name==="AbortError")throw new Error("La conexión tardó demasiado. Probá de nuevo.");\n   if(err instanceof TypeError)throw new Error("No pudimos conectarnos. Revisá tu internet y probá de nuevo.");\n   throw err;\n }finally{clearTimeout(timer)}\n}\nasync function getTag(c){return await fetchJson(API+"?action=tag&code="+encodeURIComponent(c),{cache:"no-store"})}\nasync function getLostInfo(c){return await fetchJson(LOST_API+"?code="+encodeURIComponent(c),{cache:"no-store"})}\nasync function post(data){return await fetchJson(API,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)},15000)}'''
+          one(old,new,'network helpers')
+
+          one('''<section class="card"><h2>📍 ¿Encontraste a ${esc(p.name)}?</h2><p class="small muted">Podés enviarle tu ubicación actual a su familia por WhatsApp. Compartirla es opcional.</p>''','''<section class="card"><h2>📍 ¿Encontraste a ${esc(p.name)}?</h2><p class="small muted">${whats?"Podés avisarle a su familia por WhatsApp y, si querés, compartir tu ubicación actual.":"Podés dejar un aviso para su responsable y, si querés, compartir tu ubicación actual."}</p>''','finder intro')
+          one('''<button id="foundBtn" class="btn primary" type="submit">Enviar aviso por WhatsApp</button>''','''<button id="foundBtn" class="btn primary" type="submit">${whats?"Enviar aviso por WhatsApp":"Enviar aviso"}</button>''','finder button')
+          one(''' </section>\n <div class="owner"><button id="ownerBtn">Soy el responsable de ${esc(p.name)}</button></div>`;''',''' </section>`;''','public owner button')
+
+          start=''' document.getElementById("found").addEventListener("submit",async e=>{'''
+          end=''' document.getElementById("ownerBtn").addEventListener("click",()=>ownerEdit(c,p));'''
+          a=s.find(start); b=s.find(end,a)
+          if a<0 or b<0:
+              raise SystemExit('finder submit block markers not found')
+          new_submit=''' document.getElementById("found").addEventListener("submit",async e=>{\n   e.preventDefault();\n   const form=e.currentTarget,f=new FormData(form),geoWanted=geoInput.checked,b=document.getElementById("foundBtn");\n   b.disabled=true;b.textContent=whats?"Preparando WhatsApp…":"Guardando aviso…";\n   let g=cachedGeo;\n   if(geoWanted&&!g){\n     geoStatus.textContent="📍 Obteniendo tu ubicación…";\n     const result=await getCurrentLocation();\n     if(!result.ok){geoStatus.textContent="⚠️ "+result.message+" Podés volver a intentarlo o desmarcar esta opción.";toast(result.message);b.disabled=false;b.textContent=whats?"Enviar aviso por WhatsApp":"Enviar aviso";return}\n     g=result;cachedGeo=result;geoStatus.textContent="✅ Ubicación lista para compartir";\n   }\n   try{\n     const finderMessage=String(f.get("message")||"").trim(),area=String(f.get("area_text")||"").trim();\n     let saved=false,saveError=null;\n     try{\n       await post({action:"sighting",public_code:c,message:finderMessage,area_text:area,location_consent:Boolean(geoWanted&&g),latitude:geoWanted&&g?g.latitude:null,longitude:geoWanted&&g?g.longitude:null,contact_consent:false});\n       saved=true;\n     }catch(err){saveError=err;console.warn("sighting_save",err)}\n\n     if(!whats){\n       if(!saved)throw saveError||new Error("No pudimos registrar el aviso.");\n       form.reset();cachedGeo=null;geoStatus.textContent="";toast("Aviso registrado ✅");\n       return;\n     }\n\n     const parts=["Hola, encontré a "+p.name+"."];\n     if(finderMessage)parts.push(finderMessage);\n     if(area)parts.push("Zona aproximada: "+area);\n     if(geoWanted&&g)parts.push("📍 Mi ubicación: https://maps.google.com/?q="+g.latitude+","+g.longitude);\n     parts.push("Mensaje enviado desde Patas a Casa.");\n     const whatsappUrl="https://wa.me/"+whats+"?text="+encodeURIComponent(parts.join("\\n\\n"));\n     toast(saved?"Aviso registrado. Abriendo WhatsApp…":"Abriendo WhatsApp…");\n     setTimeout(()=>{window.location.href=whatsappUrl},250);\n   }\n   catch(err){toast(err.message)}finally{b.disabled=false;b.textContent=whats?"Enviar aviso por WhatsApp":"Enviar aviso"}\n });\n'''
+          s=s[:a]+new_submit+s[b+len(end):]
+
+          old_boot=re.search(r'''async function boot\(\)\{[\s\S]*?\n\}\nboot\(\);''',s)
+          if not old_boot:
+              raise SystemExit('boot block not found')
+          new_boot='''async function boot(){\n if(!code){home();return}\n root.innerHTML='<section class="card loading">Leyendo chapita…</section>';\n try{const data=await getTag(code);if(data.state==="unactivated")unactivated(code);else{const lostInfo=await getLostInfo(code).catch(()=>null);active(code,{...data.pet,...(lostInfo||{})})}}\n catch(err){\n   root.innerHTML=`<section class="card"><h2>No pudimos abrir esta chapita</h2><p class="muted">${esc(err.message)}</p><button id="retryTag" class="btn dark" type="button">Reintentar</button></section>`;\n   document.getElementById("retryTag")?.addEventListener("click",()=>boot());\n }\n}\nboot();'''
+          s=s[:old_boot.start()]+new_boot+s[old_boot.end():]
+
+          if 'Soy el responsable de ${esc(p.name)}' in s:
+              raise SystemExit('owner prompt still present')
+          if 'action:"sighting"' not in s:
+              raise SystemExit('sighting persistence missing')
+          if 'AbortController' not in s or 'retryTag' not in s:
+              raise SystemExit('network reliability patch missing')
+
+          p.write_text(s,encoding='utf-8')
+          print('index.html patched:',len(s),'bytes')
+          PY
+
+      - name: Validate inline JavaScript
+        run: |
+          python - <<'PY'
+          import re
+          html=open('index.html',encoding='utf-8').read()
+          scripts=re.findall(r'<script[^>]*>(.*?)</script>',html,re.S|re.I)
+          open('/tmp/public.js','w',encoding='utf-8').write('\n'.join(scripts))
+          print('scripts',len(scripts),'bytes',sum(map(len,scripts)))
+          PY
+          node --check /tmp/public.js
+          grep -q 'action:"sighting"' index.html
+          ! grep -q 'Soy el responsable de' index.html
+          grep -q 'La conexión tardó demasiado' index.html
+
+      - name: Commit patched public profile
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git diff --cached --check
+          git commit -m "Endurecer perfil público antes del lanzamiento"
+          git push origin HEAD:prelaunch-public-fixes
