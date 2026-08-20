@@ -141,9 +141,22 @@ function bindPhotoPreview(inputId,previewId){
  });
 }
 
-async function getTag(c){const r=await fetch(API+"?action=tag&code="+encodeURIComponent(c));const j=await r.json();if(!r.ok)throw new Error(j.error||"No pudimos abrir esta chapita");return j}
-async function getLostInfo(c){const r=await fetch(LOST_API+"?code="+encodeURIComponent(c),{cache:"no-store"});const j=await r.json();if(!r.ok)throw new Error(j.error||"No pudimos cargar los datos de pérdida");return j}
-async function post(data){const r=await fetch(API,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});const j=await r.json();if(!r.ok)throw new Error(j.error||"Ocurrió un error");return j}
+async function fetchJson(url,options={},timeoutMs=12000){
+ const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),timeoutMs);
+ try{
+   const r=await fetch(url,{...options,signal:controller.signal});
+   const text=await r.text();let j={};try{j=text?JSON.parse(text):{}}catch{}
+   if(!r.ok)throw new Error(j.error||`El servidor respondió con error ${r.status}.`);
+   return j;
+ }catch(err){
+   if(err?.name==="AbortError")throw new Error("La conexión tardó demasiado. Probá de nuevo.");
+   if(err instanceof TypeError)throw new Error("No pudimos conectarnos. Revisá tu internet y probá de nuevo.");
+   throw err;
+ }finally{clearTimeout(timer)}
+}
+async function getTag(c){return await fetchJson(API+"?action=tag&code="+encodeURIComponent(c),{cache:"no-store"})}
+async function getLostInfo(c){return await fetchJson(LOST_API+"?code="+encodeURIComponent(c),{cache:"no-store"})}
+async function post(data){return await fetchJson(API,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)},15000)}
 
 function home(){
  document.title="Patas a Casa";
@@ -222,16 +235,15 @@ function active(c,p){
  </section>
  <section class="card"><h2>Contactá a su familia</h2><div class="actions">${phone?`<a class="btn dark" href="tel:${esc(phone)}">📞 Llamar</a>`:""}${whats?`<a class="btn green" target="_blank" rel="noopener" href="https://wa.me/${esc(whats)}?text=${encodeURIComponent("Hola, encontré a "+p.name+".")}">💬 WhatsApp</a>`:""}</div>${allowContact&&p.alt_contact?`<div class="box" style="margin-top:10px"><strong>Segundo contacto de emergencia</strong>${esc(p.alt_contact)}</div>`:""}${!phone&&!whats&&!(allowContact&&p.alt_contact)?`<div class="note" style="margin-top:10px">Los datos de contacto no están publicados. Podés enviar un aviso desde el formulario de abajo.</div>`:""}</section>
  ${health}
- <section class="card"><h2>📍 ¿Encontraste a ${esc(p.name)}?</h2><p class="small muted">Podés enviarle tu ubicación actual a su familia por WhatsApp. Compartirla es opcional.</p>
+ <section class="card"><h2>📍 ¿Encontraste a ${esc(p.name)}?</h2><p class="small muted">${whats?"Podés avisarle a su familia por WhatsApp y, si querés, compartir tu ubicación actual.":"Podés dejar un aviso para su responsable y, si querés, compartir tu ubicación actual."}</p>
    <form id="found">
      <div class="field"><label>Mensaje</label><textarea name="message" maxlength="500" placeholder="Ej. Está conmigo en la plaza y parece estar bien."></textarea></div>
      <div class="field"><label>Zona aproximada</label><input name="area_text" maxlength="120" placeholder="Ej. Godoy Cruz, Mendoza"></div>
      <label class="check"><input id="geo" type="checkbox"><div><b>Compartir mi ubicación actual</b><div class="small muted">Tu celular te pedirá permiso. Si aceptás, se agrega un link de Google Maps al mensaje de WhatsApp.</div></div></label>
      <div id="geoStatus" class="small muted" style="margin:-2px 2px 12px"></div>
-     <button id="foundBtn" class="btn primary" type="submit">Enviar aviso por WhatsApp</button>
+     <button id="foundBtn" class="btn primary" type="submit">${whats?"Enviar aviso por WhatsApp":"Enviar aviso"}</button>
    </form>
- </section>
- <div class="owner"><button id="ownerBtn">Soy el responsable de ${esc(p.name)}</button></div>`;
+ </section>`;
  if(p.photo_url){
    const petPhoto=document.querySelector(".avatar.has-photo");
    if(petPhoto){
@@ -252,28 +264,40 @@ function active(c,p){
  document.getElementById("found").addEventListener("submit",async e=>{
    e.preventDefault();
    const form=e.currentTarget,f=new FormData(form),geoWanted=geoInput.checked,b=document.getElementById("foundBtn");
-   b.disabled=true;b.textContent="Preparando WhatsApp…";
+   b.disabled=true;b.textContent=whats?"Preparando WhatsApp…":"Guardando aviso…";
    let g=cachedGeo;
    if(geoWanted&&!g){
      geoStatus.textContent="📍 Obteniendo tu ubicación…";
      const result=await getCurrentLocation();
-     if(!result.ok){geoStatus.textContent="⚠️ "+result.message+" Podés volver a intentarlo o desmarcar esta opción.";toast(result.message);b.disabled=false;b.textContent="Enviar aviso por WhatsApp";return}
+     if(!result.ok){geoStatus.textContent="⚠️ "+result.message+" Podés volver a intentarlo o desmarcar esta opción.";toast(result.message);b.disabled=false;b.textContent=whats?"Enviar aviso por WhatsApp":"Enviar aviso";return}
      g=result;cachedGeo=result;geoStatus.textContent="✅ Ubicación lista para compartir";
    }
    try{
-     if(!whats)throw new Error("La familia no tiene un WhatsApp cargado.");
      const finderMessage=String(f.get("message")||"").trim(),area=String(f.get("area_text")||"").trim();
+     let saved=false,saveError=null;
+     try{
+       await post({action:"sighting",public_code:c,message:finderMessage,area_text:area,location_consent:Boolean(geoWanted&&g),latitude:geoWanted&&g?g.latitude:null,longitude:geoWanted&&g?g.longitude:null,contact_consent:false});
+       saved=true;
+     }catch(err){saveError=err;console.warn("sighting_save",err)}
+
+     if(!whats){
+       if(!saved)throw saveError||new Error("No pudimos registrar el aviso.");
+       form.reset();cachedGeo=null;geoStatus.textContent="";toast("Aviso registrado ✅");
+       return;
+     }
+
      const parts=["Hola, encontré a "+p.name+"."];
      if(finderMessage)parts.push(finderMessage);
      if(area)parts.push("Zona aproximada: "+area);
      if(geoWanted&&g)parts.push("📍 Mi ubicación: https://maps.google.com/?q="+g.latitude+","+g.longitude);
      parts.push("Mensaje enviado desde Patas a Casa.");
      const whatsappUrl="https://wa.me/"+whats+"?text="+encodeURIComponent(parts.join("\n\n"));
-     toast("Abriendo WhatsApp…");setTimeout(()=>{window.location.href=whatsappUrl},250);
+     toast(saved?"Aviso registrado. Abriendo WhatsApp…":"Abriendo WhatsApp…");
+     setTimeout(()=>{window.location.href=whatsappUrl},250);
    }
-   catch(err){toast(err.message)}finally{b.disabled=false;b.textContent="Enviar aviso por WhatsApp"}
+   catch(err){toast(err.message)}finally{b.disabled=false;b.textContent=whats?"Enviar aviso por WhatsApp":"Enviar aviso"}
  });
- document.getElementById("ownerBtn").addEventListener("click",()=>ownerEdit(c,p));
+
 }
 
 function ownerEdit(c,p){
@@ -305,7 +329,10 @@ async function boot(){
  if(!code){home();return}
  root.innerHTML='<section class="card loading">Leyendo chapita…</section>';
  try{const data=await getTag(code);if(data.state==="unactivated")unactivated(code);else{const lostInfo=await getLostInfo(code).catch(()=>null);active(code,{...data.pet,...(lostInfo||{})})}}
- catch(err){root.innerHTML=`<section class="card"><h2>No pudimos abrir esta chapita</h2><p class="muted">${esc(err.message)}</p></section>`}
+ catch(err){
+   root.innerHTML=`<section class="card"><h2>No pudimos abrir esta chapita</h2><p class="muted">${esc(err.message)}</p><button id="retryTag" class="btn dark" type="button">Reintentar</button></section>`;
+   document.getElementById("retryTag")?.addEventListener("click",()=>boot());
+ }
 }
 boot();
 </script>

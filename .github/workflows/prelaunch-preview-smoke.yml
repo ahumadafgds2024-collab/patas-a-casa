@@ -1,0 +1,86 @@
+name: Prelaunch Preview Smoke
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    env:
+      PREVIEW: https://patas-a-casa-git-prelaunc-ea233e-ahumadafgds2024-8212s-projects.vercel.app
+      API: https://cgciwutqwnssdphugupq.supabase.co/functions/v1/patas-api
+      LOST: https://cgciwutqwnssdphugupq.supabase.co/functions/v1/patas-lost
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify preview pages
+        run: |
+          set -euo pipefail
+          ok=0
+          for i in {1..24}; do
+            if curl -fsS --max-time 20 "$PREVIEW/?tag=GL5WYB" -o /tmp/active.html \
+              && grep -q 'action:"sighting"' /tmp/active.html \
+              && grep -q 'AbortController' /tmp/active.html \
+              && ! grep -q 'Soy el responsable de' /tmp/active.html; then
+              ok=1; break
+            fi
+            sleep 5
+          done
+          test "$ok" = "1"
+          curl -fsS --max-time 20 "$PREVIEW/?tag=73E039DC" -o /tmp/new.html
+          curl -fsS --max-time 20 "$PREVIEW/mi-cuenta/" -o /tmp/account.html
+          curl -fsS --max-time 20 "$PREVIEW/mi-cuenta/recuperar/" -o /tmp/recover.html
+          curl -fsS --max-time 20 "$PREVIEW/mi-cuenta/confirmar/" -o /tmp/confirm.html
+          curl -fsS --max-time 20 "$PREVIEW/admin.html" -o /tmp/admin.html
+          grep -q 'retryTag' /tmp/active.html
+          grep -q 'Mi cuenta' /tmp/account.html
+          grep -qi 'recuper' /tmp/recover.html
+          grep -q 'TinyURL' /tmp/admin.html
+
+      - name: Verify production APIs
+        run: |
+          set -euo pipefail
+          curl -fsS --max-time 20 "$API?action=tag&code=GL5WYB" -o /tmp/api-active.json
+          curl -fsS --max-time 20 "$API?action=tag&code=73E039DC" -o /tmp/api-new.json
+          curl -fsS --max-time 20 "$LOST?code=GL5WYB" -o /tmp/lost.json
+          python - <<'PY'
+          import json
+          a=json.load(open('/tmp/api-active.json'))
+          n=json.load(open('/tmp/api-new.json'))
+          l=json.load(open('/tmp/lost.json'))
+          assert a.get('state')=='active', a
+          assert a.get('pet',{}).get('name')=='Balu', a
+          assert n.get('state')=='unactivated', n
+          assert l.get('ok') is True, l
+          print('API active/unactivated/lost: OK')
+          PY
+          code=$(curl -sS --max-time 20 -o /tmp/invalid.json -w '%{http_code}' "$API?action=tag&code=NOEXISTE99")
+          test "$code" = "404"
+
+      - name: Verify known physical QR redirects
+        run: |
+          set -euo pipefail
+          u1=$(curl -sS -L --max-time 25 -o /tmp/tiny1.html -w '%{url_effective}' 'https://tinyurl.com/Q6MRZ')
+          u2=$(curl -sS -L --max-time 25 -o /tmp/tiny2.html -w '%{url_effective}' 'https://tinyurl.com/RXUSV')
+          echo "Q6MRZ -> $u1"
+          echo "RXUSV -> $u2"
+          [[ "$u1" == *'patas-a-casa.vercel.app/'*'tag=73E039DC'* ]]
+          [[ "$u2" == *'patas-a-casa.vercel.app/'*'tag=5E2CAFE8'* ]]
+
+      - name: JavaScript syntax for critical pages
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import re
+          for name in ('active','account','admin'):
+              html=open('/tmp/'+name+'.html',encoding='utf-8').read()
+              scripts=re.findall(r'<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)</script>',html,re.I)
+              open('/tmp/'+name+'.js','w',encoding='utf-8').write('\n'.join(scripts))
+              print(name,'scripts',len(scripts))
+          PY
+          node --check /tmp/active.js
+          node --check /tmp/account.js
+          node --check /tmp/admin.js
