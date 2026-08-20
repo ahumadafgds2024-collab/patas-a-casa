@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Validar generador TinyURL y QR V1-L
+      - name: Validar generador Short.io y QR V1-L
         run: |
           set -euo pipefail
           python -m json.tool vercel.json >/dev/null
@@ -19,11 +19,16 @@ jobs:
           s=Path('admin.html').read_text(encoding='utf-8')
           blocks=re.findall(r'<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)</script>',s,re.I)
           Path('/tmp/admin.js').write_text('\n'.join(blocks),encoding='utf-8')
-          assert 'tinyurl_token' in s
+          assert 'shortio_api_key' in s
+          assert 'shortio_domain' in s
+          assert '.s.gy' in s
+          assert 'qr_payload' in s
           assert "version:1" in s
           assert "errorCorrectionLevel:'L'" in s
           assert 'created.modules.size!==21' in s
+          assert 'text.length>25' in s
           assert 'QR 21×21 · V1-L' in s
           assert 'sessionStorage' in s
+          assert 'TinyURL consume' not in s
           PY
           node --check /tmp/admin.js
