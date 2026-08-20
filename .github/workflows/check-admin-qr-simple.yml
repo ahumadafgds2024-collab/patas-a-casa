@@ -1,4 +1,4 @@
-name: Check Admin QR Simple
+name: Check Admin QR 21x21
 on:
   pull_request:
     branches: [main]
@@ -9,22 +9,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Validar generador y ruta corta
+      - name: Validar generador TinyURL y QR V1-L
         run: |
+          set -euo pipefail
           python -m json.tool vercel.json >/dev/null
           python - <<'PY'
           from pathlib import Path
-          import json,re
+          import re
           s=Path('admin.html').read_text(encoding='utf-8')
           blocks=re.findall(r'<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)</script>',s,re.I)
           Path('/tmp/admin.js').write_text('\n'.join(blocks),encoding='utf-8')
-          cfg=json.loads(Path('vercel.json').read_text())
-          r=cfg['redirects'][0]
-          assert r['source']=='/S/:code'
-          assert r['destination']=='/?tag=:code'
-          assert r['permanent'] is False
+          assert 'tinyurl_token' in s
+          assert "version:1" in s
+          assert "errorCorrectionLevel:'L'" in s
+          assert 'created.modules.size!==21' in s
+          assert 'QR 21×21 · V1-L' in s
+          assert 'sessionStorage' in s
           PY
           node --check /tmp/admin.js
-          grep -q "errorCorrectionLevel:'L'" admin.html
-          grep -q "'/S/'" admin.html
-          grep -q "toUpperCase()" admin.html
