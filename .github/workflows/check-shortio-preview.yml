@@ -1,0 +1,29 @@
+name: Check Short.io Admin Preview
+on:
+  push:
+    branches: [admin-shortio-21x21]
+permissions:
+  contents: read
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate admin source
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          s=Path('admin.html').read_text(encoding='utf-8')
+          assert 'patas-admin-shortio' in s
+          assert 'shortio_api_key' in s
+          assert 'shortio_domain' in s
+          assert 'text.length>25' in s
+          assert "version:1" in s
+          assert "errorCorrectionLevel:'L'" in s
+          assert 'created.modules.size!==21' in s
+          blocks=re.findall(r'<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)</script>',s,re.I)
+          Path('/tmp/admin.js').write_text('\n'.join(blocks),encoding='utf-8')
+          PY
+          node --check /tmp/admin.js
