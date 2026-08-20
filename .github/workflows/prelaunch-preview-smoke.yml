@@ -1,12 +1,11 @@
 name: Prelaunch Preview Smoke
 
 on:
-  push:
-    branches: ["prelaunch-public-fixes"]
-    paths: [".github/workflows/prelaunch-preview-smoke.yml"]
+  pull_request:
+    branches: [main]
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   smoke:
@@ -17,9 +16,7 @@ jobs:
       LOST: https://cgciwutqwnssdphugupq.supabase.co/functions/v1/patas-lost
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: prelaunch-public-fixes
-      - name: Wait for preview and verify pages
+      - name: Verify preview pages
         run: |
           set -euo pipefail
           ok=0
@@ -85,12 +82,3 @@ jobs:
           node --check /tmp/active.js
           node --check /tmp/account.js
           node --check /tmp/admin.js
-
-      - name: Record successful smoke test
-        run: |
-          printf 'PRELAUNCH_SMOKE_PASS\nactive=GL5WYB\nunactivated=73E039DC\ntinyurl=Q6MRZ,RXUSV\n' > PRELAUNCH_SMOKE_PASS.txt
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add PRELAUNCH_SMOKE_PASS.txt
-          git commit -m "Registrar smoke test pre-lanzamiento exitoso"
-          git push origin HEAD:prelaunch-public-fixes
