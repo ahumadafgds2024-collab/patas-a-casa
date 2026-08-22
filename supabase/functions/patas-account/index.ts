@@ -29,6 +29,10 @@ function json(data: unknown, status = 200) {
 function code(v: unknown) {
   return String(v ?? "").trim().toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 12);
 }
+function activationPin(v: unknown) {
+  const raw = String(v ?? "").trim().slice(0, 50);
+  return /^\d{8}$/.test(raw) ? `${raw.slice(0, 4)}-${raw.slice(4)}` : raw;
+}
 function txt(v: unknown, max = 500) {
   const s = String(v ?? "").trim().slice(0, max);
   return s || null;
@@ -45,7 +49,7 @@ async function verifyPin(c: string, pin: string) {
   const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/verify_tag_activation`, {
     method: "POST",
     headers: serviceHeaders,
-    body: JSON.stringify({ p_public_code: c, p_activation_code: pin }),
+    body: JSON.stringify({ p_public_code: c, p_activation_code: activationPin(pin) }),
   });
   return r.ok && Boolean(await r.json());
 }
