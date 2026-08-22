@@ -171,7 +171,7 @@ function unactivated(c){
  </section>
  <section class="card">
    <form id="pinForm">
-     <div class="field"><label>PIN de activación</label><input class="pin" name="pin" inputmode="numeric" autocomplete="one-time-code" placeholder="••••••••" required></div>
+     <div class="field"><label>PIN de activación</label><input class="pin" name="pin" inputmode="numeric" autocomplete="one-time-code" maxlength="9" placeholder="00000000" required><div class="small muted" style="margin-top:6px">Poné los 8 números del PIN.</div></div>
      <button class="btn primary" id="continue" type="submit">Continuar</button>
    </form>
    <p class="small muted" style="text-align:center;margin-bottom:0">Código de chapita: ${esc(c)}</p>
@@ -210,7 +210,7 @@ function accountSetupForm(c,pin){
 
 function activationComplete(mail){
  document.title="Revisá tu correo · Patas a Casa";
- root.innerHTML=`<section class="card hero"><div class="kicker">VERIFICAR CORREO</div><h1>Revisá tu correo ✅</h1><p class="muted">Te enviamos un enlace de verificación a <b>${esc(mail)}</b>.</p><div class="stepbar"><div class="step on"></div><div class="step on"></div><div class="step on"></div><div class="step"></div></div></section><section class="card"><div class="note"><b>¿Qué sigue?</b><br>Abrí el enlace del correo. Al confirmarlo, vas a cargar los datos de tu mascota y después vas a entrar a Mi cuenta con la mascota ya creada.</div></section>`;
+ root.innerHTML=`<section class="card hero"><div class="kicker">VERIFICAR CORREO</div><h1>Revisá tu correo ✅</h1><p class="muted">Te enviamos un enlace de verificación a <b>${esc(mail)}</b>.</p><div class="stepbar"><div class="step on"></div><div class="step on"></div><div class="step on"></div><div class="step"></div></div></section><section class="card"><div class="note"><b>¿Qué sigue?</b><br>Abrí el enlace del correo. Si no lo encontrás en la bandeja de entrada, revisá Spam. Al confirmarlo, vas a cargar los datos de tu mascota y después vas a entrar a Mi cuenta con la mascota ya creada.</div></section>`;
 }
 
 function active(c,p){
@@ -283,7 +283,7 @@ function active(c,p){
 function ownerEdit(c,p){
  root.innerHTML=`<section class="card hero"><div class="kicker">RESPONSABLE</div><h1>Editá el perfil.</h1><p class="muted">Usá el PIN privado para cambiar la foto y los datos de tu mascota.</p></section>
  <section class="card"><form id="ownerForm">
- <div class="field"><label>PIN privado</label><input class="pin" name="activation_code" type="password" required></div>
+ <div class="field"><label>PIN privado</label><input class="pin" name="activation_code" type="password" inputmode="numeric" autocomplete="one-time-code" maxlength="9" placeholder="00000000" required><div class="small muted" style="margin-top:6px">Poné los 8 números del PIN.</div></div>
  <div class="photo-pick"><div class="photo-preview" id="ownerPhotoPreview">${p.photo_url?`<img src="${esc(p.photo_url)}" alt="Foto actual">`:p.species==="Gato"?"🐱":"🐶"}</div><div class="photo-actions"><b>Foto de ${esc(p.name)}</b><span class="small muted">Podés reemplazarla cuando quieras.</span><label class="file-btn">📷 Cambiar foto<input id="ownerPhoto" type="file" accept="image/jpeg,image/png,image/webp,image/*"></label>${p.photo_url?`<label class="small"><input id="removePhoto" type="checkbox"> Quitar foto actual</label>`:""}</div></div>
  <div class="field"><label>Nombre</label><input name="name" value="${esc(p.name)}" required></div>
  <div class="note" style="margin-bottom:14px">Para marcar a ${esc(p.name)} como perdido y cargar dónde y cuándo se perdió, usá <a href="/mi-cuenta/" style="font-weight:900;color:#171719">Mi cuenta</a>.</div>
