@@ -16,16 +16,43 @@
 <h1 id="title">Correo confirmado ✅</h1>
 <p class="muted" id="text">Tu dirección de correo quedó verificada.</p>
 <div id="status" class="status">Ahora podés iniciar sesión con el email y la contraseña que elegiste.</div>
-<a class="btn" href="/mi-cuenta/">Ir a Mi cuenta</a>
+<a class="btn" id="continueLink" href="/mi-cuenta/">Continuar</a>
 </section>
 </div>
 <script>
+const SUPABASE_URL="https://cgciwutqwnssdphugupq.supabase.co";
+const PUBLISHABLE_KEY="sb_publishable_oozsLV8QMoy_ooLIqgh_qg_vvjV6IY5";
+const REGISTER_API=SUPABASE_URL+"/functions/v1/patas-register-v2";
+const SESSION_KEY="pac_owner_session_v1";
 const params=new URLSearchParams(location.hash.replace(/^#/,""));
-if(params.get("error")||params.get("error_code")){
- document.getElementById("title").textContent="No pudimos confirmar el correo";
- document.getElementById("text").textContent="El enlace puede haber vencido, ya haber sido usado o ser inválido.";
- const s=document.getElementById("status");s.className="status err";s.textContent=params.get("error_description")||"Pedí un nuevo correo de verificación.";
+const title=document.getElementById("title"),copy=document.getElementById("text"),status=document.getElementById("status"),continueLink=document.getElementById("continueLink");
+
+async function finishConfirmation(){
+ const error=params.get("error")||params.get("error_code");
+ if(error){
+  title.textContent="No pudimos confirmar el correo";
+  copy.textContent="El enlace puede haber vencido, ya haber sido usado o ser inválido.";
+  status.className="status err";status.textContent=params.get("error_description")||"Pedí un nuevo correo de verificación.";
+  continueLink.textContent="Ir a Mi cuenta";return
+ }
+ const accessToken=params.get("access_token"),refreshToken=params.get("refresh_token");
+ if(!accessToken){status.textContent="El correo quedó confirmado. Ingresá a Mi cuenta para continuar.";continueLink.textContent="Ir a Mi cuenta";return}
+ const expiresIn=Number(params.get("expires_in")||3600);
+ localStorage.setItem(SESSION_KEY,JSON.stringify({access_token:accessToken,refresh_token:refreshToken||"",expires_in:expiresIn,expires_at:Math.floor(Date.now()/1000)+expiresIn,token_type:params.get("token_type")||"bearer"}));
+ history.replaceState({},document.title,location.pathname+location.search);
+ title.textContent="Correo confirmado ✅";copy.textContent="Tu cuenta ya está verificada.";status.textContent="Preparando el perfil de tu mascota…";
+ try{
+  const response=await fetch(REGISTER_API,{method:"POST",headers:{"Content-Type":"application/json","apikey":PUBLISHABLE_KEY,"Authorization":"Bearer "+accessToken},body:JSON.stringify({action:"finalize_registration"})});
+  const result=await response.json().catch(()=>({}));if(!response.ok)throw new Error(result.error||"No pudimos continuar automáticamente.");
+  if(result.profile_required&&result.public_code){
+   const next="/mi-cuenta/?completar="+encodeURIComponent(result.public_code);continueLink.href=next;continueLink.textContent="Cargar datos de mi mascota";status.textContent="Ahora vas a cargar los datos de tu mascota. No te pediremos nuevamente el código ni el PIN.";setTimeout(()=>location.replace(next),700);return
+  }
+  continueLink.href="/mi-cuenta/";continueLink.textContent="Entrar a Mi cuenta";status.textContent="Listo. Entrando a Mi cuenta…";setTimeout(()=>location.replace("/mi-cuenta/"),700);
+ }catch(err){
+  status.className="status err";status.textContent=err.message+" Tu sesión quedó guardada: tocá Continuar para reintentarlo desde Mi cuenta.";continueLink.href="/mi-cuenta/";continueLink.textContent="Continuar en Mi cuenta";
+ }
 }
+finishConfirmation();
 </script>
 </body>
 </html>

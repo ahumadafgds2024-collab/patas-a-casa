@@ -34,6 +34,7 @@ button:focus-visible,a:focus-visible{outline:3px solid rgba(255,106,54,.38);outl
 .field{margin-bottom:13px}.field label{display:block;font-size:12px;font-weight:900;margin-bottom:7px;color:#47474c}
 .field input,.field textarea,.field select{width:100%;border:1px solid #deded9;background:#fff;border-radius:14px;padding:13px;color:var(--ink);outline:none}
 .field textarea{min-height:84px;resize:vertical}.field input:focus,.field textarea:focus,.field select:focus{border-color:#f2a081;box-shadow:0 0 0 3px rgba(255,106,54,.09)}
+.password-wrap{position:relative}.password-wrap input{padding-right:54px}.password-toggle{position:absolute;right:5px;top:50%;transform:translateY(-50%);width:42px;height:42px;border:0;border-radius:12px;background:transparent;color:#5f5a55;display:grid;place-items:center;font-size:19px;cursor:pointer}.password-toggle:active{background:#f2eee8}.password-toggle:focus-visible{outline:3px solid rgba(255,106,54,.25);outline-offset:1px}
 .split{display:grid;grid-template-columns:1fr 1fr;gap:10px}.pin{font-size:22px;letter-spacing:.12em;text-align:center;font-weight:900}
 .stepbar{display:flex;gap:6px;margin:15px 0 2px}.step{height:5px;flex:1;border-radius:99px;background:#e9e8e4}.step.on{background:var(--orange)}
 .note{padding:13px 14px;border-radius:16px;background:#fafaf8;border:1px solid var(--line);font-size:12px;color:#68686d;line-height:1.45}
@@ -74,7 +75,10 @@ html{-webkit-tap-highlight-color:transparent;background:var(--pac-bg);scroll-beh
   <main id="root"><div class="card loading">Cargando…</div></main>
 </div>
 <script>
+const SUPABASE_URL="https://cgciwutqwnssdphugupq.supabase.co";
+const PUBLISHABLE_KEY="sb_publishable_oozsLV8QMoy_ooLIqgh_qg_vvjV6IY5";
 const API="https://cgciwutqwnssdphugupq.supabase.co/functions/v1/patas-api";
+const REGISTER_API=SUPABASE_URL+"/functions/v1/patas-register-v2";
 const LOST_API="https://cgciwutqwnssdphugupq.supabase.co/functions/v1/patas-lost";
 const root=document.getElementById("root");
 const path=location.pathname;
@@ -86,6 +90,12 @@ function tel(v=""){return String(v??"").replace(/[^\d+]/g,"")}
 function wa(v=""){return String(v??"").replace(/\D/g,"")}
 function formatLostDateTime(v){const d=new Date(v);if(Number.isNaN(d.getTime()))return "";return new Intl.DateTimeFormat("es-AR",{dateStyle:"medium",timeStyle:"short"}).format(d)}
 function toast(m){const t=document.createElement("div");t.className="toast";t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),3000)}
+function bindPasswordToggles(scope=document){
+ scope.querySelectorAll("[data-password-toggle]").forEach(button=>button.addEventListener("click",()=>{
+   const input=document.getElementById(button.dataset.passwordToggle);if(!input)return;
+   const showing=input.type==="text";input.type=showing?"password":"text";button.textContent=showing?"👁":"🙈";button.setAttribute("aria-label",showing?"Mostrar contraseña":"Ocultar contraseña");button.setAttribute("aria-pressed",String(!showing));
+ }));
+}
 function openPhotoViewer(src,name=""){
  const old=document.getElementById("photoLightbox");if(old)old.remove();
  const overlay=document.createElement("div");overlay.id="photoLightbox";overlay.className="photo-lightbox";
@@ -144,6 +154,7 @@ function bindPhotoPreview(inputId,previewId){
 async function getTag(c){const r=await fetch(API+"?action=tag&code="+encodeURIComponent(c));const j=await r.json();if(!r.ok)throw new Error(j.error||"No pudimos abrir esta chapita");return j}
 async function getLostInfo(c){const r=await fetch(LOST_API+"?code="+encodeURIComponent(c),{cache:"no-store"});const j=await r.json();if(!r.ok)throw new Error(j.error||"No pudimos cargar los datos de pérdida");return j}
 async function post(data){const r=await fetch(API,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});const j=await r.json();if(!r.ok)throw new Error(j.error||"Ocurrió un error");return j}
+async function registerPost(data){const r=await fetch(REGISTER_API,{method:"POST",headers:{"Content-Type":"application/json","apikey":PUBLISHABLE_KEY},body:JSON.stringify(data)});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||"No pudimos configurar el correo");return j}
 
 function home(){
  document.title="Patas a Casa";
@@ -156,7 +167,7 @@ function unactivated(c){
    <div class="kicker">CHAPITA NUEVA</div>
    <h1>Activá tu chapita 🐾</h1>
    <p class="muted">Te va a llevar menos de un minuto. El PIN viene con la chapita y se usa para comprobar que es tuya.</p>
-   <div class="stepbar"><div class="step on"></div><div class="step"></div></div>
+   <div class="stepbar"><div class="step on"></div><div class="step"></div><div class="step"></div><div class="step"></div></div>
  </section>
  <section class="card">
    <form id="pinForm">
@@ -167,46 +178,39 @@ function unactivated(c){
  </section>`;
  document.getElementById("pinForm").addEventListener("submit",async e=>{
    e.preventDefault();const pin=new FormData(e.currentTarget).get("pin"),b=document.getElementById("continue");b.disabled=true;b.textContent="Verificando…";
-   try{await post({action:"verify_pin",public_code:c,activation_code:pin}); activationForm(c,String(pin));}
+   try{await post({action:"verify_pin",public_code:c,activation_code:pin});accountSetupForm(c,String(pin));}
    catch(err){toast(err.message);b.disabled=false;b.textContent="Continuar"}
  });
 }
 
-function activationForm(c,pin){
+function accountSetupForm(c,pin){
  root.innerHTML=`<section class="card hero">
-   <div class="kicker">ÚLTIMO PASO</div>
-   <h1>¿Quién lleva esta chapita?</h1>
-   <p class="muted">Cargá lo indispensable. La foto y los datos se pueden cambiar más adelante.</p>
-   <div class="stepbar"><div class="step on"></div><div class="step on"></div></div>
+   <div class="kicker">SEGURIDAD DE LA CUENTA</div>
+   <h1>Configurá tu acceso.</h1>
+   <p class="muted">Antes de crear el perfil, elegí el correo y la contraseña con los que vas a administrarlo.</p>
+   <div class="stepbar"><div class="step on"></div><div class="step on"></div><div class="step"></div><div class="step"></div></div>
  </section>
  <section class="card">
-   <form id="activate">
-     <div class="photo-pick"><div class="photo-preview" id="activationPhotoPreview">🐾</div><div class="photo-actions"><b>Foto de tu mascota</b><span class="small muted">Ayuda muchísimo a reconocerla rápido.</span><label class="file-btn">📷 Elegir foto<input id="activationPhoto" type="file" accept="image/jpeg,image/png,image/webp,image/*"></label></div></div>
-     <div class="split"><div class="field"><label>Nombre de tu mascota</label><input name="name" placeholder="Rocco" maxlength="80" required></div><div class="field"><label>Especie</label><select name="species"><option>Perro</option><option>Gato</option><option>Otra</option></select></div></div>
-     <div class="split"><div class="field"><label>Tu nombre</label><input name="contact_name" placeholder="Nombre del responsable" maxlength="80" required></div><div class="field"><label>WhatsApp / teléfono</label><input name="contact_whatsapp" inputmode="tel" placeholder="+54 9 261..." maxlength="40" required></div></div>
-     <div class="split"><div class="field"><label>Raza</label><input name="breed" placeholder="Opcional" maxlength="80"></div><div class="field"><label>Edad</label><input name="age_text" placeholder="Ej. 4 años" maxlength="40"></div></div>
-     <div class="split"><div class="field"><label>Sexo</label><select name="sex"><option value="">Sin informar</option><option>Macho</option><option>Hembra</option></select></div><div class="field"><label>Tamaño</label><select name="size"><option value="">Sin informar</option><option>Pequeño</option><option>Mediano</option><option>Grande</option></select></div></div>
-     <div class="field"><label>Color / señas</label><input name="color" placeholder="Ej. Dorado, mancha blanca en el pecho" maxlength="80"></div>
-     <details class="optional"><summary>❤️ Agregar salud y cuidados (opcional)</summary>
-       <div class="field"><label>Enfermedades</label><textarea name="diseases" placeholder="Ej. Epilepsia"></textarea></div>
-       <div class="field"><label>Medicamentos</label><textarea name="medications" placeholder="Nombre y dosis"></textarea></div>
-       <div class="field"><label>Frecuencia</label><input name="medication_schedule" placeholder="Ej. Cada 12 horas"></div>
-       <div class="field"><label>Alergias</label><textarea name="allergies"></textarea></div>
-       <div class="field"><label>Cuidados especiales</label><textarea name="special_care"></textarea></div>
-       <div class="field"><label>Veterinario / dato útil</label><textarea name="vet_info" placeholder="Opcional"></textarea></div>
-     </details>
-     <label class="check"><input name="public_health" type="checkbox" checked><div><b>Mostrar datos importantes de salud</b><div class="small muted">Sirve para que quien lo encuentre pueda cuidarlo correctamente.</div></div></label>
-     <button class="btn primary" id="activateBtn" type="submit">Activar chapita</button>
+   <div class="note" style="margin-bottom:14px"><b>Chapita ${esc(c)} verificada ✅</b><br>No tenés que ingresar el código ni el PIN otra vez.</div>
+   <form id="accountSetup">
+     <div class="field"><label>Email</label><input name="email" type="email" autocomplete="email" placeholder="tu@email.com" maxlength="254" required></div>
+     <div class="field"><label>Elegí una contraseña</label><div class="password-wrap"><input id="activationPassword" name="password" type="password" autocomplete="new-password" minlength="8" required><button class="password-toggle" type="button" data-password-toggle="activationPassword" aria-label="Mostrar contraseña" aria-pressed="false">👁</button></div><div class="small muted" style="margin-top:6px">Mínimo 8 caracteres.</div></div>
+     <button class="btn primary" id="accountContinue" type="submit">Crear cuenta y verificar correo</button>
    </form>
  </section>`;
- bindPhotoPreview("activationPhoto","activationPhotoPreview");
- document.getElementById("activate").addEventListener("submit",async e=>{
-   e.preventDefault();const f=new FormData(e.currentTarget),o=Object.fromEntries(f.entries()),b=document.getElementById("activateBtn"),photo=document.getElementById("activationPhoto").files?.[0];
-   o.action="activate";o.public_code=c;o.activation_code=pin;o.contact_phone=o.contact_whatsapp;o.public_health=f.get("public_health")==="on";o.public_contact=true;o.status="normal";
-   b.disabled=true;
-   try{if(photo){b.textContent="Preparando foto…";o.photo_data=await compressPhoto(photo)}b.textContent="Activando…";await post(o);toast("Chapita activada ✅");setTimeout(()=>location.href="?tag="+encodeURIComponent(c),500)}
-   catch(err){toast(err.message);b.disabled=false;b.textContent="Activar chapita"}
+ bindPasswordToggles(root);
+ document.getElementById("accountSetup").addEventListener("submit",async e=>{
+   e.preventDefault();const f=new FormData(e.currentTarget),mail=String(f.get("email")||"").trim().toLowerCase(),password=String(f.get("password")||""),button=document.getElementById("accountContinue");
+   if(password.length<8){toast("La contraseña tiene que tener al menos 8 caracteres.");return}
+   button.disabled=true;button.textContent="Enviando verificación…";
+   try{await registerPost({action:"start_registration",public_code:c,activation_code:pin,email:mail,password});activationComplete(mail)}
+   catch(err){toast(err.message);button.disabled=false;button.textContent="Crear cuenta y verificar correo"}
  });
+}
+
+function activationComplete(mail){
+ document.title="Revisá tu correo · Patas a Casa";
+ root.innerHTML=`<section class="card hero"><div class="kicker">VERIFICAR CORREO</div><h1>Revisá tu correo ✅</h1><p class="muted">Te enviamos un enlace de verificación a <b>${esc(mail)}</b>.</p><div class="stepbar"><div class="step on"></div><div class="step on"></div><div class="step on"></div><div class="step"></div></div></section><section class="card"><div class="note"><b>¿Qué sigue?</b><br>Abrí el enlace del correo. Al confirmarlo, vas a cargar los datos de tu mascota y después vas a entrar a Mi cuenta con la mascota ya creada.</div></section>`;
 }
 
 function active(c,p){
@@ -231,7 +235,7 @@ function active(c,p){
      <button id="foundBtn" class="btn primary" type="submit">Enviar aviso por WhatsApp</button>
    </form>
  </section>
- <div class="owner"><button id="ownerBtn">Soy el responsable de ${esc(p.name)}</button></div>`;
+ <div class="owner"><button id="ownerBtn">Administrar el perfil de ${esc(p.name)}</button></div>`;
  if(p.photo_url){
    const petPhoto=document.querySelector(".avatar.has-photo");
    if(petPhoto){
@@ -273,7 +277,7 @@ function active(c,p){
    }
    catch(err){toast(err.message)}finally{b.disabled=false;b.textContent="Enviar aviso por WhatsApp"}
  });
- document.getElementById("ownerBtn").addEventListener("click",()=>ownerEdit(c,p));
+ document.getElementById("ownerBtn").addEventListener("click",()=>{location.href="/mi-cuenta/?vincular="+encodeURIComponent(c)});
 }
 
 function ownerEdit(c,p){
