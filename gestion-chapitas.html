@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#171719">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<title>Patas a Casa · Gestión de chapitas</title>
+<style>
+:root{--bg:#f4f4f1;--card:#fff;--ink:#171719;--muted:#737373;--line:#e7e6e1;--orange:#ff6a36;--green:#147145;--red:#a92f3b;--amber:#a76612;--r:24px}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif}.app{max-width:1180px;margin:auto;padding:20px 16px 60px}.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}.brand{font-weight:950;font-size:20px}.topright{display:flex;gap:8px;align-items:center}.badge{font-size:11px;font-weight:900;padding:8px 10px;border-radius:999px;background:#171719;color:#fff}.linkbtn{font-size:12px;font-weight:900;padding:9px 11px;border-radius:12px;background:#fff;color:#28282a;border:1px solid var(--line);text-decoration:none}.card{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:22px;box-shadow:0 15px 45px rgba(20,20,20,.06);margin-bottom:14px}h1{font-size:38px;letter-spacing:-.05em;line-height:1;margin:4px 0 12px}h2{margin:0 0 12px;font-size:20px}.muted{color:var(--muted);line-height:1.5}.small{font-size:12px}.loginrow{display:grid;grid-template-columns:minmax(220px,1fr) auto;gap:10px;align-items:end;max-width:650px}.field label{display:block;font-size:12px;font-weight:900;margin:0 0 7px}.field input,.field select{width:100%;border:1px solid #dcdcd7;border-radius:14px;padding:13px;background:#fff;font:inherit}.btn{border:0;border-radius:14px;padding:12px 14px;font-weight:900;cursor:pointer;background:#171719;color:#fff;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:7px;white-space:nowrap}.btn.primary{background:linear-gradient(135deg,#ff6a36,#ff8c65)}.btn.soft{background:#efefec;color:#252527}.btn.green{background:#e9f7ef;color:#176f45;border:1px solid #ccebd7}.btn.red{background:#fff0f1;color:#a92f3b;border:1px solid #f3cbd0}.btn.amber{background:#fff7e8;color:#9a5f12;border:1px solid #f2dfba}.btn.tiny{padding:8px 10px;font-size:11px;border-radius:11px}.btn:disabled{opacity:.55;cursor:wait}.statusmsg{padding:13px 15px;border-radius:15px;margin-top:12px;font-size:13px}.statusmsg.ok{background:#ebf8f0;color:#176f45}.statusmsg.err{background:#fff0f1;color:#a92f3b}.note{background:#fff7f2;border:1px solid #ffd9ca;border-radius:16px;padding:13px 15px;font-size:13px;line-height:1.5}.hidden{display:none!important}.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:14px}.stat{background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px;text-align:left;cursor:pointer}.stat:hover{border-color:#cac9c4}.stat .n{font-size:28px;font-weight:950;letter-spacing:-.04em}.stat .l{font-size:11px;color:var(--muted);font-weight:900;text-transform:uppercase;letter-spacing:.04em}.toolbar{display:grid;grid-template-columns:minmax(220px,1fr) 190px auto auto;gap:9px;align-items:end;margin-bottom:16px}.tablewrap{overflow:auto;border:1px solid var(--line);border-radius:18px}table{width:100%;border-collapse:collapse;min-width:980px;background:#fff}th,td{padding:13px 12px;text-align:left;border-bottom:1px solid #efeee9;vertical-align:middle}th{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:#777;font-weight:950;background:#fafaf8;position:sticky;top:0;z-index:1}td{font-size:12px}.code{font-weight:950;font-size:14px;letter-spacing:.05em}.secondary{display:block;color:var(--muted);font-size:10px;margin-top:3px}.chip{display:inline-flex;align-items:center;padding:6px 8px;border-radius:999px;font-size:10px;font-weight:950}.chip.active{background:#e9f7ef;color:#176f45}.chip.available{background:#efefec;color:#555}.chip.pending{background:#fff7e8;color:#956018}.chip.blocked{background:#fff0f1;color:#a92f3b}.actions{display:flex;gap:6px;flex-wrap:wrap}.empty{text-align:center;padding:32px;color:var(--muted)}.footerline{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-top:12px}.kbd{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#f1f1ee;border:1px solid #e2e1dc;border-radius:7px;padding:2px 6px;font-size:10px}@media(max-width:900px){.stats{grid-template-columns:repeat(2,1fr)}.toolbar{grid-template-columns:1fr 1fr}.toolbar .wide{grid-column:1/-1}}@media(max-width:620px){h1{font-size:31px}.loginrow{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}.toolbar{grid-template-columns:1fr}.toolbar .wide{grid-column:auto}.top{align-items:flex-start}.topright{flex-wrap:wrap;justify-content:flex-end}.card{padding:17px}}@media(max-width:390px){.stats{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <div class="brand">🐾 Patas a Casa</div>
+    <div class="topright"><a class="linkbtn" href="/admin.html">Generador</a><div class="badge">ADMIN</div></div>
+  </div>
+
+  <section id="loginCard" class="card">
+    <div class="small" style="font-weight:950;color:#ce4d20">GESTIÓN PRIVADA</div>
+    <h1>Control de chapitas.</h1>
+    <p class="muted">Revisá qué chapitas están activadas, buscá una en segundos y resolvé problemas sin cambiar el QR físico.</p>
+    <div class="loginrow">
+      <div class="field"><label>Clave de administrador</label><input id="adminKey" type="password" autocomplete="off" placeholder="PAC-...."></div>
+      <button id="loginBtn" class="btn primary">Entrar al panel</button>
+    </div>
+    <div id="loginStatus" class="hidden"></div>
+    <p class="muted small">La clave se guarda únicamente durante esta pestaña del navegador.</p>
+  </section>
+
+  <main id="panel" class="hidden">
+    <section class="stats" aria-label="Resumen de chapitas">
+      <button class="stat" data-filter="all"><div id="stTotal" class="n">—</div><div class="l">Total</div></button>
+      <button class="stat" data-filter="active"><div id="stActive" class="n">—</div><div class="l">Activadas</div></button>
+      <button class="stat" data-filter="available"><div id="stAvailable" class="n">—</div><div class="l">Disponibles</div></button>
+      <button class="stat" data-filter="pending"><div id="stPending" class="n">—</div><div class="l">Pendientes</div></button>
+      <button class="stat" data-filter="blocked"><div id="stBlocked" class="n">—</div><div class="l">Bloqueadas</div></button>
+    </section>
+
+    <section class="card">
+      <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap">
+        <div><h2>Chapitas</h2><p class="muted small" style="margin-top:-5px">Podés buscar por código, nombre de mascota, correo del dueño o enlace corto.</p></div>
+        <button id="logoutBtn" class="btn soft tiny">Cerrar panel</button>
+      </div>
+
+      <div class="toolbar">
+        <div class="field wide"><label>Buscar</label><input id="search" type="search" autocomplete="off" placeholder="Ej. CE73C916, Roma o correo..."></div>
+        <div class="field"><label>Estado</label><select id="filter"><option value="all">Todas</option><option value="active">Activadas</option><option value="available">Disponibles</option><option value="pending">Pendientes</option><option value="blocked">Bloqueadas</option></select></div>
+        <button id="searchBtn" class="btn primary">Buscar</button>
+        <button id="refreshBtn" class="btn soft">↻ Actualizar</button>
+      </div>
+
+      <div class="note"><b>Reset seguro:</b> mantiene exactamente el mismo <b>QR, código y PIN</b>. Elimina la vinculación y el perfil asociado a esa chapita para dejarla lista para activarse otra vez. La cuenta del dueño no se elimina. El PIN original no se puede mostrar porque está guardado de forma cifrada.</div>
+      <div id="panelStatus" class="hidden"></div>
+
+      <div class="tablewrap" style="margin-top:14px">
+        <table>
+          <thead><tr><th>Chapita</th><th>Estado</th><th>Mascota</th><th>Dueño</th><th>Activación</th><th>Enlace</th><th>Acciones</th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+        <div id="empty" class="empty hidden">No encontré chapitas con ese filtro.</div>
+      </div>
+      <div class="footerline"><span id="resultCount" class="muted small"></span><span class="muted small">Perfil público: <span class="kbd">/?tag=CÓDIGO</span></span></div>
+    </section>
+  </main>
+</div>
+<script>
+const API='https://cgciwutqwnssdphugupq.supabase.co/functions/v1/patas-admin-tags';
+const APP='https://patas-a-casa.vercel.app';
+const $=id=>document.getElementById(id);
+let adminKey='';
+let loading=false;
+
+function setStatus(target,message,type='err'){
+  const el=$(target);
+  if(!message){el.className='hidden';el.textContent='';return}
+  el.className='statusmsg '+type;
+  el.textContent=message;
+}
+function fmtDate(v){if(!v)return '—';try{return new Intl.DateTimeFormat('es-AR',{dateStyle:'short',timeStyle:'short'}).format(new Date(v))}catch{return '—'}}
+function stateLabel(s){return ({active:'Activada',available:'Disponible',pending:'Pendiente',blocked:'Bloqueada'})[s]||s||'—'}
+function validHttps(v){try{const u=new URL(v);return u.protocol==='https:'?u:null}catch{return null}}
+async function callApi(body){
+  const r=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json','X-Request-Id':crypto.randomUUID().replaceAll('-','')},body:JSON.stringify({...body,admin_key:adminKey})});
+  let j={};try{j=await r.json()}catch{}
+  if(!r.ok)throw new Error(j.error||'No se pudo completar la operación');
+  return j;
+}
+function setStats(s={}){
+  $('stTotal').textContent=s.total??0;
+  $('stActive').textContent=s.active??0;
+  $('stAvailable').textContent=s.available??0;
+  $('stPending').textContent=s.pending??0;
+  $('stBlocked').textContent=s.blocked??0;
+}
+function actionButton(label,cls,handler){const b=document.createElement('button');b.className='btn tiny '+cls;b.textContent=label;b.addEventListener('click',handler);return b}
+function render(items){
+  const tbody=$('rows');tbody.replaceChildren();
+  $('empty').classList.toggle('hidden',items.length>0);
+  for(const item of items){
+    const tr=document.createElement('tr');
+    const tdCode=document.createElement('td');
+    const c=document.createElement('span');c.className='code';c.textContent=item.public_code||'—';tdCode.appendChild(c);
+    const created=document.createElement('span');created.className='secondary';created.textContent='Creada '+fmtDate(item.created_at);tdCode.appendChild(created);
+
+    const tdState=document.createElement('td');const chip=document.createElement('span');chip.className='chip '+item.state;chip.textContent=stateLabel(item.state);tdState.appendChild(chip);
+    if(item.last_admin_action_at){const la=document.createElement('span');la.className='secondary';la.textContent='Últ. admin: '+fmtDate(item.last_admin_action_at);tdState.appendChild(la)}
+
+    const tdPet=document.createElement('td');tdPet.textContent=item.pet_name||'—';if(item.species){const s=document.createElement('span');s.className='secondary';s.textContent=item.species;tdPet.appendChild(s)}
+    const tdOwner=document.createElement('td');tdOwner.textContent=item.owner_email||'—';
+    const tdAct=document.createElement('td');tdAct.textContent=fmtDate(item.activated_at);
+
+    const tdLink=document.createElement('td');
+    const short=validHttps(item.short_url||'');
+    if(short){const a=document.createElement('a');a.href=short.toString();a.target='_blank';a.rel='noopener';a.textContent='Abrir QR';a.style.fontWeight='900';a.style.color='#176f45';tdLink.appendChild(a)}else{tdLink.textContent='—'}
+
+    const tdActions=document.createElement('td');const actions=document.createElement('div');actions.className='actions';
+    actions.appendChild(actionButton('Ver perfil','soft',()=>window.open(APP+'/?tag='+encodeURIComponent(item.public_code),'_blank','noopener')));
+    actions.appendChild(actionButton('Copiar código','soft',async()=>{try{await navigator.clipboard.writeText(item.public_code);setStatus('panelStatus','Código '+item.public_code+' copiado.','ok')}catch{setStatus('panelStatus','No pude copiar el código.')}}));
+    if(item.state!=='available') actions.appendChild(actionButton('Resetear','red',()=>manage('reset',item)));
+    if(item.state==='blocked') actions.appendChild(actionButton('Desbloquear','green',()=>manage('unblock',item)));
+    else actions.appendChild(actionButton('Bloquear','amber',()=>manage('block',item)));
+    tdActions.appendChild(actions);
+
+    [tdCode,tdState,tdPet,tdOwner,tdAct,tdLink,tdActions].forEach(td=>tr.appendChild(td));tbody.appendChild(tr);
+  }
+}
+async function load(){
+  if(loading||!adminKey)return;loading=true;
+  $('searchBtn').disabled=true;$('refreshBtn').disabled=true;setStatus('panelStatus','Cargando chapitas…','ok');
+  try{
+    const j=await callApi({action:'list',search:$('search').value.trim(),status:$('filter').value,limit:200,offset:0});
+    setStats(j.stats||{});render(j.items||[]);$('resultCount').textContent=(j.filtered_count??(j.items||[]).length)+' resultado'+((j.filtered_count??0)===1?'':'s');setStatus('panelStatus','');
+  }catch(e){setStatus('panelStatus',e.message||'No se pudo cargar el panel');if(String(e.message||'').includes('Clave de administrador incorrecta'))logout(false)}
+  finally{loading=false;$('searchBtn').disabled=false;$('refreshBtn').disabled=false}
+}
+async function login(){
+  const key=$('adminKey').value.trim();if(!key){setStatus('loginStatus','Ingresá la clave de administrador.');return}
+  adminKey=key;$('loginBtn').disabled=true;setStatus('loginStatus','Verificando…','ok');
+  try{
+    const j=await callApi({action:'list',search:'',status:'all',limit:200,offset:0});
+    try{sessionStorage.setItem('pac_admin_tag_key',adminKey)}catch{}
+    $('loginCard').classList.add('hidden');$('panel').classList.remove('hidden');setStats(j.stats||{});render(j.items||[]);$('resultCount').textContent=(j.filtered_count??(j.items||[]).length)+' resultado'+((j.filtered_count??0)===1?'':'s');setStatus('loginStatus','');
+  }catch(e){adminKey='';setStatus('loginStatus',e.message||'No pude entrar al panel')}
+  finally{$('loginBtn').disabled=false}
+}
+function logout(clear=true){adminKey='';if(clear)try{sessionStorage.removeItem('pac_admin_tag_key')}catch{}$('panel').classList.add('hidden');$('loginCard').classList.remove('hidden');$('adminKey').value='';}
+async function manage(action,item){
+  const code=item.public_code;
+  let message='';
+  if(action==='reset'){
+    message=`¿Resetear la chapita ${code}?\n\n${item.pet_name?'Mascota: '+item.pet_name+'\n':''}${item.owner_email?'Cuenta: '+item.owner_email+'\n':''}\nSe eliminará el perfil vinculado a ESTA chapita y quedará disponible para activarse de nuevo.\n\nEl QR, el código y el PIN seguirán siendo exactamente los mismos. La cuenta del usuario NO se elimina.`;
+  }else if(action==='block') message=`¿Bloquear la chapita ${code}?\n\nNo podrá activarse ni usarse normalmente hasta que la desbloquees desde este panel.`;
+  else message=`¿Desbloquear la chapita ${code}?`;
+  if(!confirm(message))return;
+  setStatus('panelStatus','Aplicando cambio…','ok');
+  try{
+    const j=await callApi({action,public_code:code});
+    const labels={reset:'reseteada y lista para volver a activarse',block:'bloqueada',unblock:'desbloqueada'};
+    setStatus('panelStatus','✅ '+code+' '+labels[action]+'.'+(action==='reset'?' QR, código y PIN conservados.':''),'ok');
+    await load();
+  }catch(e){setStatus('panelStatus',e.message||'No se pudo realizar la acción')}
+}
+$('loginBtn').addEventListener('click',login);
+$('adminKey').addEventListener('keydown',e=>{if(e.key==='Enter')login()});
+$('searchBtn').addEventListener('click',load);
+$('refreshBtn').addEventListener('click',load);
+$('search').addEventListener('keydown',e=>{if(e.key==='Enter')load()});
+$('filter').addEventListener('change',load);
+$('logoutBtn').addEventListener('click',()=>logout(true));
+document.querySelectorAll('.stat').forEach(b=>b.addEventListener('click',()=>{$('filter').value=b.dataset.filter;load()}));
+try{const saved=sessionStorage.getItem('pac_admin_tag_key');if(saved){$('adminKey').value=saved;login()}}catch{}
+</script>
+</body>
+</html>
