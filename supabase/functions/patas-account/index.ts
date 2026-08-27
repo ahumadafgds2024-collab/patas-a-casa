@@ -100,6 +100,23 @@ async function completePending(id: string, userId: string, petId: string) {
   if (!r.ok) console.error("complete_pending", r.status, await r.text());
 }
 
+async function createPending(user: any, tag: any, petId: string | null, c: string) {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/pending_owner_claims`, {
+    method: "POST",
+    headers: { ...serviceHeaders, Prefer: "return=representation" },
+    body: JSON.stringify({
+      auth_user_id: user.id,
+      tag_id: tag.id,
+      pet_id: petId,
+      public_code: c,
+      email: String(user.email || "").trim().toLowerCase(),
+      expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+    }),
+  });
+  const rows = r.ok ? await r.json() : [];
+  return r.ok ? rows?.[0] ?? null : null;
+}
+
 function parsePhotoData(data: unknown) {
   if (!data) return null;
   const raw = String(data);
@@ -176,6 +193,52 @@ Deno.serve(async (req) => {
 
     const user = await currentUser(req);
     if (!user?.id) return json({ error: "Sesión vencida. Volvé a ingresar." }, 401);
+
+    if (b.action === "prepare_activation") {
+      if (!user.email || (!user.email_confirmed_at && !user.confirmed_at)) {
+        return json({ error: "Google no confirmó un correo válido para esta cuenta." }, 403);
+      }
+
+      const c = code(b.public_code);
+      const pin = String(b.activation_code ?? "").trim();
+      if (!c || !/^\d{8}$/.test(pin)) return json({ error: "Ingresá el código y los 8 números del PIN." }, 400);
+
+      const tag = await tagByCode(c);
+      if (!tag || tag.blocked_at) return json({ error: "Chapita no encontrada o bloqueada." }, 404);
+      if (!(await verifyPin(c, pin))) return json({ error: "PIN incorrecto." }, 403);
+
+      const freshTag = !tag.pet_id && !tag.activated_at;
+      const activeTag = Boolean(tag.pet_id && tag.activated_at);
+      if (!freshTag && !activeTag) return json({ error: "La chapita tiene un estado incompleto. Contactanos para revisarla." }, 409);
+
+      if (activeTag) {
+        const pet = await petById(tag.pet_id);
+        if (!pet) return json({ error: "No encontramos el perfil de esta mascota." }, 404);
+        if (pet.owner_id && pet.owner_id !== user.id) return json({ error: "Esta mascota ya pertenece a otra cuenta." }, 409);
+        if (pet.owner_id === user.id) return json({ ok: true, linked: true, already: true, public_code: c });
+
+        const link = await fetch(`${SUPABASE_URL}/rest/v1/pets?id=eq.${encodeURIComponent(pet.id)}&owner_id=is.null`, {
+          method: "PATCH",
+          headers: { ...serviceHeaders, Prefer: "return=representation" },
+          body: JSON.stringify({ owner_id: user.id, updated_at: new Date().toISOString() }),
+        });
+        const linked = link.ok ? await link.json() : [];
+        if (!link.ok || !linked?.length) return json({ error: "No pudimos agregar esta mascota a tu cuenta." }, 409);
+        return json({ ok: true, linked: true, public_code: c });
+      }
+
+      const existing = await pendingForUser(user.id, c);
+      if (existing) {
+        if (new Date(existing.expires_at).getTime() < Date.now()) {
+          return json({ error: "La activación pendiente venció. Contactanos para continuar sin perder la chapita." }, 410);
+        }
+        return json({ ok: true, profile_required: true, public_code: c });
+      }
+
+      const pending = await createPending(user, tag, null, c);
+      if (!pending) return json({ error: "No pudimos preparar la activación. Volvé a intentarlo." }, 409);
+      return json({ ok: true, profile_required: true, public_code: c });
+    }
 
     if (b.action === "complete_activation") {
       if (!user.email_confirmed_at && !user.confirmed_at) {
