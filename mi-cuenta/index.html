@@ -66,6 +66,30 @@ let pets=[],deferredInstall=null,currentUser=null,flyerBlob=null,flyerObjectUrl=
 
 const esc=(v="")=>String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
 function toast(m){const t=document.createElement("div");t.className="toast";t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),3200)}
+let fieldSequence=0;
+function prepareFormFields(scope=document){
+ scope.querySelectorAll?.(".field").forEach(field=>{
+  const label=field.querySelector(":scope > label"),control=field.querySelector("input:not([type=hidden]), textarea, select");
+  if(!label||!control)return;
+  if(!control.id)control.id="pac-account-field-"+(++fieldSequence);
+  label.htmlFor=control.id;
+ });
+}
+document.addEventListener("input",event=>{
+ const control=event.target;
+ if(control.matches?.("[data-pin]"))control.value=control.value.replace(/\D/g,"").slice(0,8);
+ control.setCustomValidity?.("");
+});
+document.addEventListener("invalid",event=>{
+ const control=event.target;
+ if(!control.setCustomValidity)return;
+ if(control.matches?.("[data-pin]"))control.setCustomValidity("Ingresá los 8 números del PIN.");
+ else if(control.validity?.valueMissing)control.setCustomValidity("Completá este campo.");
+ else if(control.validity?.typeMismatch)control.setCustomValidity("Ingresá un email válido.");
+ else if(control.validity?.tooShort)control.setCustomValidity("Ingresá al menos 8 caracteres.");
+},true);
+new MutationObserver(records=>records.forEach(record=>record.addedNodes.forEach(node=>{if(node.nodeType===1)prepareFormFields(node)}))).observe(document.body,{childList:true,subtree:true});
+prepareFormFields(document);
 function bindPasswordToggles(scope=document){
  scope.querySelectorAll("[data-password-toggle]").forEach(button=>button.addEventListener("click",()=>{
    const input=document.getElementById(button.dataset.passwordToggle);if(!input)return;
@@ -98,15 +122,15 @@ function showAuth(message=""){
  root.innerHTML=`<section class="card hero"><div class="kicker">PANEL DEL RESPONSABLE</div><h1>Tus mascotas, siempre a mano.</h1><p class="muted">Entrá desde acá sin escanear la chapita. Después podés agregar Patas a Casa a la pantalla de inicio.</p></section>
  <section class="card"><div class="tabs"><button class="tab on" id="loginTab">Ingresar</button><button class="tab" id="signupTab">Crear cuenta</button></div>
  ${message?`<div class="status err">${esc(message)}</div>`:""}
- <form id="loginForm">
+ <form id="loginForm" method="post">
   <div class="field"><label>Email</label><input name="email" type="email" autocomplete="email" required></div>
   <div class="field"><label>Contraseña</label><div class="password-wrap"><input id="loginPassword" name="password" type="password" autocomplete="current-password" minlength="8" required><button class="password-toggle" type="button" data-password-toggle="loginPassword" aria-label="Mostrar contraseña" aria-pressed="false">👁</button></div></div>
   <button class="btn primary wide" type="submit">Entrar a mi cuenta</button>
   <a href="/mi-cuenta/recuperar/" style="display:block;text-align:center;margin-top:12px;color:#555;font-size:13px;font-weight:800;text-decoration:none">¿Olvidaste tu contraseña?</a>
  </form>
- <form id="signupForm" class="hidden">
+ <form id="signupForm" class="hidden" method="post">
   <div class="note" style="margin-bottom:14px">Necesitás el código y el PIN privado de tu chapita. Se validan una sola vez y después te enviamos un correo para verificar tu cuenta.</div>
-  <div class="split"><div class="field"><label>Código de chapita</label><input name="code" value="${esc(pre)}" maxlength="12" placeholder="7B958A9D" required></div><div class="field"><label>PIN privado</label><input name="pin" inputmode="numeric" autocomplete="one-time-code" maxlength="9" placeholder="00000000" required><div class="small muted" style="margin-top:6px">Poné los 8 números del PIN.</div></div></div>
+  <div class="split"><div class="field"><label>Código de chapita</label><input name="code" value="${esc(pre)}" maxlength="12" placeholder="7B958A9D" required></div><div class="field"><label>PIN privado</label><input name="pin" inputmode="numeric" autocomplete="one-time-code" maxlength="8" pattern="[0-9]{8}" data-pin placeholder="00000000" required><div class="small muted" style="margin-top:6px">Poné los 8 números del PIN.</div></div></div>
   <div class="field"><label>Email</label><input name="email" type="email" autocomplete="email" required></div>
   <div class="field"><label>Elegí una contraseña</label><div class="password-wrap"><input id="signupPassword" name="password" type="password" autocomplete="new-password" minlength="8" required><button class="password-toggle" type="button" data-password-toggle="signupPassword" aria-label="Mostrar contraseña" aria-pressed="false">👁</button></div><div class="small muted" style="margin-top:6px">Mínimo 8 caracteres.</div></div>
   <button class="btn primary wide" type="submit">Crear cuenta y verificar email</button>
@@ -123,7 +147,7 @@ function showActivationProfile(c){
  document.title="Crear mascota · Patas a Casa";
  root.innerHTML=`<section class="card hero"><div class="kicker">CORREO VERIFICADO</div><h1>Creá el perfil de tu mascota.</h1><p class="muted">La cuenta ya está lista. Cargá ahora los datos de quien lleva la chapita.</p><div class="flow-steps"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span></div></section>
  <section class="card"><div class="note" style="margin-bottom:14px"><b>Chapita ${esc(c)} verificada ✅</b><br>No necesitás volver a ingresar el código ni el PIN.</div>
- <form id="activationProfileForm">
+ <form id="activationProfileForm" method="post">
   <div class="photo-pick"><div class="photo-prev" id="activationPhotoPreview">🐾</div><div class="photo-info"><b>Foto de tu mascota</b><div class="small muted">Ayuda a reconocerla rápidamente.</div><label class="file-btn">📷 Elegir foto<input id="activationPhoto" type="file" accept="image/jpeg,image/png,image/webp,image/*"></label></div></div>
   <div class="split"><div class="field"><label>Nombre de tu mascota</label><input name="name" placeholder="Rocco" maxlength="80" required></div><div class="field"><label>Especie</label><select name="species"><option>Perro</option><option>Gato</option><option>Otra</option></select></div></div>
   <div class="split"><div class="field"><label>Tu nombre</label><input name="contact_name" placeholder="Nombre del responsable" maxlength="80" required></div><div class="field"><label>WhatsApp / teléfono</label><input name="contact_whatsapp" inputmode="tel" placeholder="+54 9 261..." maxlength="40" required></div></div>
@@ -157,7 +181,7 @@ function renderDashboard(){
  <section class="card"><h2>Acceso rápido</h2><p class="muted small">Instalá este panel en tu celular para abrirlo desde un ícono, sin escanear ninguna chapita.</p><button class="btn dark wide ${isStandalone()?"hidden":""}" onclick="installApp()">📲 Añadir Patas a Casa a mi pantalla de inicio</button></section>`;
 }
 function openClaim(){
- openModal(`<div class="sheethead"><div><div class="kicker">NUEVA MASCOTA</div><h2>Agregar una chapita</h2></div><button class="x" onclick="closeModal()">×</button></div><p class="muted small">La chapita tiene que estar activada. Vas a usar su PIN una sola vez para demostrar que es tuya.</p><form id="claimForm"><div class="split"><div class="field"><label>Código</label><input name="code" maxlength="12" required></div><div class="field"><label>PIN privado</label><input name="pin" inputmode="numeric" autocomplete="one-time-code" maxlength="9" placeholder="00000000" required><div class="small muted" style="margin-top:6px">Poné los 8 números del PIN.</div></div></div><button class="btn primary wide" type="submit">Agregar a mi cuenta</button></form>`);
+ openModal(`<div class="sheethead"><div><div class="kicker">NUEVA MASCOTA</div><h2>Agregar una chapita</h2></div><button class="x" onclick="closeModal()">×</button></div><p class="muted small">La chapita tiene que estar activada. Vas a usar su PIN una sola vez para demostrar que es tuya.</p><form id="claimForm" method="post"><div class="split"><div class="field"><label>Código</label><input name="code" maxlength="12" required></div><div class="field"><label>PIN privado</label><input name="pin" inputmode="numeric" autocomplete="one-time-code" maxlength="8" pattern="[0-9]{8}" data-pin placeholder="00000000" required><div class="small muted" style="margin-top:6px">Poné los 8 números del PIN.</div></div></div><button class="btn primary wide" type="submit">Agregar a mi cuenta</button></form>`);
  document.getElementById("claimForm").addEventListener("submit",async e=>{e.preventDefault();const b=e.submitter,bak=b.textContent,f=new FormData(e.currentTarget);b.disabled=true;b.textContent="Vinculando…";try{await accountPost({action:"claim_pet",public_code:f.get("code"),activation_code:f.get("pin")});closeModal();await loadDashboard();toast("Mascota agregada ✅")}catch(err){toast(err.message)}finally{b.disabled=false;b.textContent=bak}});
 }
 async function lostPost(data){
@@ -179,7 +203,7 @@ async function toggleLost(c,status){
  }
  openModal(`<div class="sheethead"><div><div class="kicker">MARCAR COMO PERDIDO</div><h2>${esc(p.name)}</h2></div><button class="x" onclick="closeModal()">×</button></div>
  <p class="muted small">Estos datos aparecerán en el perfil público para que quien encuentre a ${esc(p.name)} sepa dónde y cuándo se perdió.</p>
- <form id="lostForm">
+ <form id="lostForm" method="post">
    <div class="field"><label>¿Dónde fue visto por última vez?</label><input name="lost_location" maxlength="160" placeholder="Ej. Parque General San Martín, cerca de los Portones" required></div>
    <div class="field"><label>Fecha y hora aproximada</label><input name="lost_at" type="datetime-local" value="${localDateTimeValue()}" required></div>
    <div class="field"><label>Detalles (opcional)</label><textarea name="lost_details" maxlength="700" placeholder="Ej. Se escapó con collar azul. Es amistoso pero puede estar asustado."></textarea></div>
@@ -232,7 +256,7 @@ async function shareFlyer(){
 function downloadFlyer(){if(!flyerBlob)return;const a=document.createElement("a"),url=URL.createObjectURL(flyerBlob);a.href=url;a.download=flyerFileName||"flyer-patas-a-casa.png";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500)}
 function compressPhoto(file){return new Promise((resolve,reject)=>{if(!file){resolve(null);return}if(!file.type.startsWith("image/")){reject(new Error("Elegí una imagen válida."));return}if(file.size>12*1024*1024){reject(new Error("La foto es demasiado grande."));return}const reader=new FileReader();reader.onerror=()=>reject(new Error("No pudimos leer la foto."));reader.onload=()=>{const img=new Image();img.onerror=()=>reject(new Error("No pudimos procesar la foto."));img.onload=()=>{const max=900,scale=Math.min(1,max/Math.max(img.naturalWidth||img.width,img.naturalHeight||img.height)),w=Math.max(1,Math.round((img.naturalWidth||img.width)*scale)),h=Math.max(1,Math.round((img.naturalHeight||img.height)*scale)),canvas=document.createElement("canvas");canvas.width=w;canvas.height=h;const ctx=canvas.getContext("2d");ctx.fillStyle="#fff";ctx.fillRect(0,0,w,h);ctx.drawImage(img,0,0,w,h);resolve(canvas.toDataURL("image/jpeg",.82))};img.src=String(reader.result)};reader.readAsDataURL(file)})}
 function editPet(c){
- const p=pets.find(x=>x.public_code===c);if(!p)return;openModal(`<div class="sheethead"><div><div class="kicker">EDITAR</div><h2>${esc(p.name)}</h2></div><button class="x" onclick="closeModal()">×</button></div><form id="editForm">
+ const p=pets.find(x=>x.public_code===c);if(!p)return;openModal(`<div class="sheethead"><div><div class="kicker">EDITAR</div><h2>${esc(p.name)}</h2></div><button class="x" onclick="closeModal()">×</button></div><form id="editForm" method="post">
  <div class="photo-pick"><div class="photo-prev" id="prev">${p.photo_url?`<img src="${esc(p.photo_url)}">`:(p.species==="Gato"?"🐱":"🐶")}</div><div class="photo-info"><b>Foto</b><div class="small muted">Se comprime antes de subir.</div><label class="file-btn">📷 Cambiar foto<input id="photo" type="file" accept="image/*"></label>${p.photo_url?`<label class="check"><input id="removePhoto" type="checkbox"> Quitar foto actual</label>`:""}</div></div>
  <div class="split"><div class="field"><label>Nombre</label><input name="name" value="${esc(p.name)}" required></div><div class="field"><label>Especie</label><select name="species"><option ${p.species==="Perro"?"selected":""}>Perro</option><option ${p.species==="Gato"?"selected":""}>Gato</option><option ${p.species==="Otra"?"selected":""}>Otra</option></select></div></div>
  <div class="split"><div class="field"><label>Raza</label><input name="breed" value="${esc(p.breed||"")}"></div><div class="field"><label>Edad</label><input name="age_text" value="${esc(p.age_text||"")}"></div></div>
