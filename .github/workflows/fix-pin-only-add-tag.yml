@@ -25,35 +25,36 @@ jobs:
           text = path.read_text(encoding='utf-8')
 
           new_block = r'''async function resolveTagCodeByPin(pin){
- const digits=String(pin||"").replace(/\D/g,"").slice(0,8);
- if(!/^\d{8}$/.test(digits))throw new Error("Ingresá los 8 números del PIN.");
- const s=await validSession();if(!s)throw new Error("Sesión vencida.");
- const r=await fetch(`${SUPABASE_URL}/rest/v1/rpc/find_tag_by_activation_pin`,{
-  method:"POST",
-  headers:{"Content-Type":"application/json","apikey":PUBLISHABLE_KEY,"Authorization":"Bearer "+s.access_token},
-  body:JSON.stringify({p_activation_code:digits})
- });
- const rows=await r.json().catch(()=>[]);
- if(r.status===401){setSession(null);showAuth("Tu sesión venció. Volvé a ingresar.");throw new Error("Sesión vencida.")}
- if(!r.ok)throw new Error("No pudimos verificar el PIN. Volvé a intentarlo.");
- if(!Array.isArray(rows)||!rows.length)throw new Error("PIN incorrecto o chapita no encontrada.");
- if(rows.length>1)throw new Error("Ese PIN coincide con más de una chapita. Contactanos para revisarlo.");
- const c=String(rows[0]?.public_code||"").trim().toUpperCase();
- if(!c)throw new Error("No pudimos identificar la chapita.");
- return c;
-}
-function openClaim(){
- openModal(`<div class="sheethead"><div><div class="kicker">NUEVA MASCOTA</div><h2>Agregar una chapita</h2></div><button class="x" onclick="closeModal()">×</button></div><p class="muted small">Ingresá los 8 números del PIN privado que vino con la chapita. No hace falta escanearla ni poner el código.</p><form id="claimForm" method="post"><div class="field"><label>PIN privado</label><input name="pin" inputmode="numeric" autocomplete="one-time-code" maxlength="8" pattern="[0-9]{8}" data-pin placeholder="00000000" required><div class="small muted" style="margin-top:6px">Poné los 8 números del PIN.</div></div><button class="btn primary wide" type="submit">Continuar</button></form>`);
- document.getElementById("claimForm").addEventListener("submit",async e=>{e.preventDefault();const b=e.submitter,bak=b.textContent,f=new FormData(e.currentTarget),pin=String(f.get("pin")||"").replace(/\D/g,"").slice(0,8);b.disabled=true;b.textContent="Verificando…";try{const c=await resolveTagCodeByPin(pin);const result=await accountPost({action:"prepare_activation",public_code:c,activation_code:pin});closeModal();if(result.profile_required&&result.public_code){history.replaceState({},document.title,"/mi-cuenta/?completar="+encodeURIComponent(result.public_code));showActivationProfile(result.public_code);return}await loadDashboard();toast(result.already?"Esta chapita ya está en tu cuenta ✅":"Chapita agregada ✅")}catch(err){toast(err.message)}finally{if(document.body.contains(b)){b.disabled=false;b.textContent=bak}}});
-}'''
+           const digits=String(pin||"").replace(/\D/g,"").slice(0,8);
+           if(!/^\d{8}$/.test(digits))throw new Error("Ingresá los 8 números del PIN.");
+           const s=await validSession();if(!s)throw new Error("Sesión vencida.");
+           const r=await fetch(`${SUPABASE_URL}/rest/v1/rpc/find_tag_by_activation_pin`,{
+            method:"POST",
+            headers:{"Content-Type":"application/json","apikey":PUBLISHABLE_KEY,"Authorization":"Bearer "+s.access_token},
+            body:JSON.stringify({p_activation_code:digits})
+           });
+           const rows=await r.json().catch(()=>[]);
+           if(r.status===401){setSession(null);showAuth("Tu sesión venció. Volvé a ingresar.");throw new Error("Sesión vencida.")}
+           if(!r.ok)throw new Error("No pudimos verificar el PIN. Volvé a intentarlo.");
+           if(!Array.isArray(rows)||!rows.length)throw new Error("PIN incorrecto o chapita no encontrada.");
+           if(rows.length>1)throw new Error("Ese PIN coincide con más de una chapita. Contactanos para revisarlo.");
+           const c=String(rows[0]?.public_code||"").trim().toUpperCase();
+           if(!c)throw new Error("No pudimos identificar la chapita.");
+           return c;
+          }
+          function openClaim(){
+           openModal(`<div class="sheethead"><div><div class="kicker">NUEVA MASCOTA</div><h2>Agregar una chapita</h2></div><button class="x" onclick="closeModal()">×</button></div><p class="muted small">Ingresá los 8 números del PIN privado que vino con la chapita. No hace falta escanearla ni poner el código.</p><form id="claimForm" method="post"><div class="field"><label>PIN privado</label><input name="pin" inputmode="numeric" autocomplete="one-time-code" maxlength="8" pattern="[0-9]{8}" data-pin placeholder="00000000" required><div class="small muted" style="margin-top:6px">Poné los 8 números del PIN.</div></div><button class="btn primary wide" type="submit">Continuar</button></form>`);
+           document.getElementById("claimForm").addEventListener("submit",async e=>{e.preventDefault();const b=e.submitter,bak=b.textContent,f=new FormData(e.currentTarget),pin=String(f.get("pin")||"").replace(/\D/g,"").slice(0,8);b.disabled=true;b.textContent="Verificando…";try{const c=await resolveTagCodeByPin(pin);const result=await accountPost({action:"prepare_activation",public_code:c,activation_code:pin});closeModal();if(result.profile_required&&result.public_code){history.replaceState({},document.title,"/mi-cuenta/?completar="+encodeURIComponent(result.public_code));showActivationProfile(result.public_code);return}await loadDashboard();toast(result.already?"Esta chapita ya está en tu cuenta ✅":"Chapita agregada ✅")}catch(err){toast(err.message)}finally{if(document.body.contains(b)){b.disabled=false;b.textContent=bak}}});
+          }'''
 
           pattern = r'function openClaim\(\)\{.*?\n\}\nasync function lostPost'
-          text, n = re.subn(pattern, new_block + '\nasync function lostPost', text, count=1, flags=re.S)
+          text, n = re.subn(pattern, lambda _m: new_block + '\nasync function lostPost', text, count=1, flags=re.S)
           if n != 1:
               raise SystemExit(f'Expected to replace openClaim once, replaced {n}')
 
-          text = text.replace('<div class="kicker">CORREO VERIFICADO</div><h1>Creá el perfil de tu mascota.</h1><p class="muted">La cuenta ya está lista. Cargá ahora los datos de quien lleva la chapita.</p>', '<div class="kicker">CHAPITA VERIFICADA</div><h1>Creá el perfil de tu mascota.</h1><p class="muted">La chapita ya está validada. Cargá ahora los datos de quien la va a llevar.</p>')
-
+          old = '<div class="kicker">CORREO VERIFICADO</div><h1>Creá el perfil de tu mascota.</h1><p class="muted">La cuenta ya está lista. Cargá ahora los datos de quien lleva la chapita.</p>'
+          new = '<div class="kicker">CHAPITA VERIFICADA</div><h1>Creá el perfil de tu mascota.</h1><p class="muted">La chapita ya está validada. Cargá ahora los datos de quien la va a llevar.</p>'
+          text = text.replace(old, new)
           path.write_text(text, encoding='utf-8')
           PY
 
