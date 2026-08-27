@@ -30,6 +30,7 @@ p{line-height:1.5}.muted{color:var(--muted)}.small{font-size:12px}
 .btn:disabled{opacity:.55}
 button:focus-visible,a:focus-visible{outline:3px solid rgba(255,106,54,.38);outline-offset:3px}.primary{background:linear-gradient(135deg,var(--orange),var(--orange2));color:#fff;box-shadow:0 12px 25px rgba(255,106,54,.22)}
 .dark{background:#171719;color:#fff}.soft{background:#f2f2f0;color:#2d2d30}.green{background:#eaf8ef;color:#176f45;border:1px solid #ccebd7}
+.google{background:#fff;color:#242424;border:1px solid #d9d9d6;box-shadow:0 4px 13px rgba(39,29,21,.055)}.google-mark{width:23px;height:23px;border-radius:50%;display:grid;place-items:center;background:#fff;color:#4285f4;border:1px solid #e7e7e4;font:950 16px/1 Arial,sans-serif}.auth-divider{display:flex;align-items:center;gap:10px;margin:14px 0;color:#8a847d;font-size:11px;font-weight:850}.auth-divider::before,.auth-divider::after{content:"";height:1px;background:var(--line);flex:1}
 .actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}.stack{display:grid;gap:9px}
 .field{margin-bottom:13px}.field label{display:block;font-size:12px;font-weight:900;margin-bottom:7px;color:#47474c}
 .field input,.field textarea,.field select{width:100%;border:1px solid #deded9;background:#fff;border-radius:14px;padding:13px;color:var(--ink);outline:none}
@@ -80,6 +81,7 @@ const PUBLISHABLE_KEY="sb_publishable_oozsLV8QMoy_ooLIqgh_qg_vvjV6IY5";
 const API="https://cgciwutqwnssdphugupq.supabase.co/functions/v1/patas-api";
 const REGISTER_API=SUPABASE_URL+"/functions/v1/patas-register-v2";
 const LOST_API="https://cgciwutqwnssdphugupq.supabase.co/functions/v1/patas-lost";
+const GOOGLE_PENDING_KEY="pac_google_activation_v1";
 const root=document.getElementById("root");
 const path=location.pathname;
 const params=new URLSearchParams(location.search);
@@ -222,6 +224,10 @@ function accountSetupForm(c,pin){
  </section>
  <section class="card">
    <div class="note" style="margin-bottom:14px"><b>Chapita ${esc(c)} verificada ✅</b><br>No tenés que ingresar el código ni el PIN otra vez.</div>
+   <div class="hidden" id="googleActivationOptions">
+    <button class="btn google" id="googleActivation" type="button"><span class="google-mark" aria-hidden="true">G</span>Continuar con Google</button>
+    <div class="auth-divider">o creá tu acceso con email</div>
+   </div>
    <form id="accountSetup" method="post">
      <div class="field"><label>Email</label><input name="email" type="email" autocomplete="email" placeholder="tu@email.com" maxlength="254" required></div>
      <div class="field"><label>Elegí una contraseña</label><div class="password-wrap"><input id="activationPassword" name="password" type="password" autocomplete="new-password" minlength="8" required><button class="password-toggle" type="button" data-password-toggle="activationPassword" aria-label="Mostrar contraseña" aria-pressed="false">👁</button></div><div class="small muted" style="margin-top:6px">Mínimo 8 caracteres.</div></div>
@@ -229,6 +235,11 @@ function accountSetupForm(c,pin){
    </form>
  </section>`;
  bindPasswordToggles(root);
+ fetch(SUPABASE_URL+"/auth/v1/settings",{headers:{apikey:PUBLISHABLE_KEY}}).then(r=>r.ok?r.json():null).then(settings=>{if(settings?.external?.google)document.getElementById("googleActivationOptions")?.classList.remove("hidden")}).catch(()=>{});
+ document.getElementById("googleActivation").addEventListener("click",()=>{
+   sessionStorage.setItem(GOOGLE_PENDING_KEY,JSON.stringify({public_code:c,activation_code:pin,created_at:Date.now()}));
+   location.assign("/mi-cuenta/?google=1");
+ });
  document.getElementById("accountSetup").addEventListener("submit",async e=>{
    e.preventDefault();const f=new FormData(e.currentTarget),mail=String(f.get("email")||"").trim().toLowerCase(),password=String(f.get("password")||""),button=document.getElementById("accountContinue");
    if(password.length<8){toast("La contraseña tiene que tener al menos 8 caracteres.");return}
