@@ -87,9 +87,39 @@ const code=(params.get('tag')||(path.match(/^\/t\/([A-Za-z0-9]+)/)||[])[1]||'').
 
 function esc(v=""){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]))}
 function tel(v=""){return String(v??"").replace(/[^\d+]/g,"")}
-function wa(v=""){return String(v??"").replace(/\D/g,"")}
+function wa(v=""){
+ let digits=String(v??"").replace(/\D/g,"");
+ if(digits.startsWith("00"))digits=digits.slice(2);
+ if(digits.startsWith("549"))return digits;
+ if(digits.startsWith("54"))return "549"+digits.slice(2).replace(/^0/,"");
+ digits=digits.replace(/^0/,"");
+ return digits.length===10?"549"+digits:digits;
+}
 function formatLostDateTime(v){const d=new Date(v);if(Number.isNaN(d.getTime()))return "";return new Intl.DateTimeFormat("es-AR",{dateStyle:"medium",timeStyle:"short"}).format(d)}
 function toast(m){const t=document.createElement("div");t.className="toast";t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),3000)}
+let fieldSequence=0;
+function prepareFormFields(scope=document){
+ scope.querySelectorAll?.(".field").forEach(field=>{
+   const label=field.querySelector(":scope > label"),control=field.querySelector("input:not([type=hidden]), textarea, select");
+   if(!label||!control)return;
+   if(!control.id)control.id="pac-field-"+(++fieldSequence);
+   label.htmlFor=control.id;
+ });
+}
+document.addEventListener("input",event=>{
+ const control=event.target;
+ if(control.matches?.("[data-pin]"))control.value=control.value.replace(/\D/g,"").slice(0,8);
+ control.setCustomValidity?.("");
+});
+document.addEventListener("invalid",event=>{
+ const control=event.target;
+ if(!control.setCustomValidity)return;
+ if(control.matches?.("[data-pin]"))control.setCustomValidity("Ingresá los 8 números del PIN.");
+ else if(control.validity?.valueMissing)control.setCustomValidity("Completá este campo.");
+ else if(control.validity?.typeMismatch)control.setCustomValidity("Ingresá un dato válido.");
+},true);
+new MutationObserver(records=>records.forEach(record=>record.addedNodes.forEach(node=>{if(node.nodeType===1)prepareFormFields(node)}))).observe(root,{childList:true,subtree:true});
+prepareFormFields(document);
 function bindPasswordToggles(scope=document){
  scope.querySelectorAll("[data-password-toggle]").forEach(button=>button.addEventListener("click",()=>{
    const input=document.getElementById(button.dataset.passwordToggle);if(!input)return;
@@ -170,8 +200,8 @@ function unactivated(c){
    <div class="stepbar"><div class="step on"></div><div class="step"></div><div class="step"></div><div class="step"></div></div>
  </section>
  <section class="card">
-   <form id="pinForm">
-     <div class="field"><label>PIN de activación</label><input class="pin" name="pin" inputmode="numeric" autocomplete="one-time-code" maxlength="9" placeholder="00000000" required><div class="small muted" style="margin-top:6px">Poné los 8 números del PIN.</div></div>
+   <form id="pinForm" method="post">
+     <div class="field"><label>PIN de activación</label><input class="pin" name="pin" inputmode="numeric" autocomplete="one-time-code" maxlength="8" pattern="[0-9]{8}" data-pin placeholder="00000000" required><div class="small muted" style="margin-top:6px">Poné los 8 números del PIN.</div></div>
      <button class="btn primary" id="continue" type="submit">Continuar</button>
    </form>
    <p class="small muted" style="text-align:center;margin-bottom:0">Código de chapita: ${esc(c)}</p>
@@ -192,7 +222,7 @@ function accountSetupForm(c,pin){
  </section>
  <section class="card">
    <div class="note" style="margin-bottom:14px"><b>Chapita ${esc(c)} verificada ✅</b><br>No tenés que ingresar el código ni el PIN otra vez.</div>
-   <form id="accountSetup">
+   <form id="accountSetup" method="post">
      <div class="field"><label>Email</label><input name="email" type="email" autocomplete="email" placeholder="tu@email.com" maxlength="254" required></div>
      <div class="field"><label>Elegí una contraseña</label><div class="password-wrap"><input id="activationPassword" name="password" type="password" autocomplete="new-password" minlength="8" required><button class="password-toggle" type="button" data-password-toggle="activationPassword" aria-label="Mostrar contraseña" aria-pressed="false">👁</button></div><div class="small muted" style="margin-top:6px">Mínimo 8 caracteres.</div></div>
      <button class="btn primary" id="accountContinue" type="submit">Crear cuenta y verificar correo</button>
@@ -227,7 +257,7 @@ function active(c,p){
  <section class="card"><h2>Contactá a su familia</h2><div class="actions">${phone?`<a class="btn dark" href="tel:${esc(phone)}">📞 Llamar</a>`:""}${whats?`<a class="btn green" target="_blank" rel="noopener" href="https://wa.me/${esc(whats)}?text=${encodeURIComponent("Hola, encontré a "+p.name+".")}">💬 WhatsApp</a>`:""}</div>${allowContact&&p.alt_contact?`<div class="box" style="margin-top:10px"><strong>Segundo contacto de emergencia</strong>${esc(p.alt_contact)}</div>`:""}${!phone&&!whats&&!(allowContact&&p.alt_contact)?`<div class="note" style="margin-top:10px">Los datos de contacto no están publicados. Podés enviar un aviso desde el formulario de abajo.</div>`:""}</section>
  ${health}
  <section class="card"><h2>📍 ¿Encontraste a ${esc(p.name)}?</h2><p class="small muted">Podés enviarle tu ubicación actual a su familia por WhatsApp. Compartirla es opcional.</p>
-   <form id="found">
+   <form id="found" method="post">
      <div class="field"><label>Mensaje</label><textarea name="message" maxlength="500" placeholder="Ej. Está conmigo en la plaza y parece estar bien."></textarea></div>
      <div class="field"><label>Zona aproximada</label><input name="area_text" maxlength="120" placeholder="Ej. Godoy Cruz, Mendoza"></div>
      <label class="check"><input id="geo" type="checkbox"><div><b>Compartir mi ubicación actual</b><div class="small muted">Tu celular te pedirá permiso. Si aceptás, se agrega un link de Google Maps al mensaje de WhatsApp.</div></div></label>
@@ -235,7 +265,7 @@ function active(c,p){
      <button id="foundBtn" class="btn primary" type="submit">Enviar aviso por WhatsApp</button>
    </form>
  </section>
- <div class="owner"><button id="ownerBtn">Administrar el perfil de ${esc(p.name)}</button></div>`;
+ <div class="owner"><button id="ownerBtn">¿Sos su responsable? Administrar perfil</button></div>`;
  if(p.photo_url){
    const petPhoto=document.querySelector(".avatar.has-photo");
    if(petPhoto){
@@ -282,8 +312,8 @@ function active(c,p){
 
 function ownerEdit(c,p){
  root.innerHTML=`<section class="card hero"><div class="kicker">RESPONSABLE</div><h1>Editá el perfil.</h1><p class="muted">Usá el PIN privado para cambiar la foto y los datos de tu mascota.</p></section>
- <section class="card"><form id="ownerForm">
- <div class="field"><label>PIN privado</label><input class="pin" name="activation_code" type="password" inputmode="numeric" autocomplete="one-time-code" maxlength="9" placeholder="00000000" required><div class="small muted" style="margin-top:6px">Poné los 8 números del PIN.</div></div>
+ <section class="card"><form id="ownerForm" method="post">
+ <div class="field"><label>PIN privado</label><input class="pin" name="activation_code" type="password" inputmode="numeric" autocomplete="one-time-code" maxlength="8" pattern="[0-9]{8}" data-pin placeholder="00000000" required><div class="small muted" style="margin-top:6px">Poné los 8 números del PIN.</div></div>
  <div class="photo-pick"><div class="photo-preview" id="ownerPhotoPreview">${p.photo_url?`<img src="${esc(p.photo_url)}" alt="Foto actual">`:p.species==="Gato"?"🐱":"🐶"}</div><div class="photo-actions"><b>Foto de ${esc(p.name)}</b><span class="small muted">Podés reemplazarla cuando quieras.</span><label class="file-btn">📷 Cambiar foto<input id="ownerPhoto" type="file" accept="image/jpeg,image/png,image/webp,image/*"></label>${p.photo_url?`<label class="small"><input id="removePhoto" type="checkbox"> Quitar foto actual</label>`:""}</div></div>
  <div class="field"><label>Nombre</label><input name="name" value="${esc(p.name)}" required></div>
  <div class="note" style="margin-bottom:14px">Para marcar a ${esc(p.name)} como perdido y cargar dónde y cuándo se perdió, usá <a href="/mi-cuenta/" style="font-weight:900;color:#171719">Mi cuenta</a>.</div>
