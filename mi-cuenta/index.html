@@ -189,7 +189,7 @@ function showAuth(message=""){
 
 function showActivationProfile(c){
  document.title="Crear mascota · Patas a Casa";
- root.innerHTML=`<section class="card hero"><div class="kicker">CORREO VERIFICADO</div><h1>Creá el perfil de tu mascota.</h1><p class="muted">La cuenta ya está lista. Cargá ahora los datos de quien lleva la chapita.</p><div class="flow-steps"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span></div></section>
+ root.innerHTML=`<section class="card hero"><div class="kicker">CHAPITA VERIFICADA</div><h1>Creá el perfil de tu mascota.</h1><p class="muted">La chapita ya está validada. Cargá ahora los datos de quien la va a llevar.</p><div class="flow-steps"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span></div></section>
  <section class="card"><div class="note" style="margin-bottom:14px"><b>Chapita ${esc(c)} verificada ✅</b><br>No necesitás volver a ingresar el código ni el PIN.</div>
  <form id="activationProfileForm" method="post">
   <div class="photo-pick"><div class="photo-prev" id="activationPhotoPreview">🐾</div><div class="photo-info"><b>Foto de tu mascota</b><div class="small muted">Ayuda a reconocerla rápidamente.</div><label class="file-btn">📷 Elegir foto<input id="activationPhoto" type="file" accept="image/jpeg,image/png,image/webp,image/*"></label></div></div>
@@ -224,9 +224,27 @@ function renderDashboard(){
  <section class="card"><h2>Mis mascotas</h2><div class="pets">${pets.length?pets.map(petCard).join(""):`<div class="empty">Todavía no hay mascotas vinculadas.<br><button class="btn primary" style="margin-top:12px" onclick="openClaim()">Agregar mi chapita</button></div>`}</div></section>
  <section class="card"><h2>Acceso rápido</h2><p class="muted small">Instalá este panel en tu celular para abrirlo desde un ícono, sin escanear ninguna chapita.</p><button class="btn dark wide ${isStandalone()?"hidden":""}" onclick="installApp()">📲 Añadir Patas a Casa a mi pantalla de inicio</button></section>`;
 }
+async function resolveTagCodeByPin(pin){
+ const digits=String(pin||"").replace(/\D/g,"").slice(0,8);
+ if(!/^\d{8}$/.test(digits))throw new Error("Ingresá los 8 números del PIN.");
+ const s=await validSession();if(!s)throw new Error("Sesión vencida.");
+ const r=await fetch(`${SUPABASE_URL}/rest/v1/rpc/find_tag_by_activation_pin`,{
+  method:"POST",
+  headers:{"Content-Type":"application/json","apikey":PUBLISHABLE_KEY,"Authorization":"Bearer "+s.access_token},
+  body:JSON.stringify({p_activation_code:digits})
+ });
+ const rows=await r.json().catch(()=>[]);
+ if(r.status===401){setSession(null);showAuth("Tu sesión venció. Volvé a ingresar.");throw new Error("Sesión vencida.")}
+ if(!r.ok)throw new Error("No pudimos verificar el PIN. Volvé a intentarlo.");
+ if(!Array.isArray(rows)||!rows.length)throw new Error("PIN incorrecto o chapita no encontrada.");
+ if(rows.length>1)throw new Error("Ese PIN coincide con más de una chapita. Contactanos para revisarlo.");
+ const c=String(rows[0]?.public_code||"").trim().toUpperCase();
+ if(!c)throw new Error("No pudimos identificar la chapita.");
+ return c;
+}
 function openClaim(){
- openModal(`<div class="sheethead"><div><div class="kicker">NUEVA MASCOTA</div><h2>Agregar una chapita</h2></div><button class="x" onclick="closeModal()">×</button></div><p class="muted small">La chapita tiene que estar activada. Vas a usar su PIN una sola vez para demostrar que es tuya.</p><form id="claimForm" method="post"><div class="split"><div class="field"><label>Código</label><input name="code" maxlength="12" required></div><div class="field"><label>PIN privado</label><input name="pin" inputmode="numeric" autocomplete="one-time-code" maxlength="8" pattern="[0-9]{8}" data-pin placeholder="00000000" required><div class="small muted" style="margin-top:6px">Poné los 8 números del PIN.</div></div></div><button class="btn primary wide" type="submit">Agregar a mi cuenta</button></form>`);
- document.getElementById("claimForm").addEventListener("submit",async e=>{e.preventDefault();const b=e.submitter,bak=b.textContent,f=new FormData(e.currentTarget);b.disabled=true;b.textContent="Vinculando…";try{await accountPost({action:"claim_pet",public_code:f.get("code"),activation_code:f.get("pin")});closeModal();await loadDashboard();toast("Mascota agregada ✅")}catch(err){toast(err.message)}finally{b.disabled=false;b.textContent=bak}});
+ openModal(`<div class="sheethead"><div><div class="kicker">NUEVA MASCOTA</div><h2>Agregar una chapita</h2></div><button class="x" onclick="closeModal()">×</button></div><p class="muted small">Ingresá los 8 números del PIN privado que vino con la chapita. No hace falta escanearla ni poner el código.</p><form id="claimForm" method="post"><div class="field"><label>PIN privado</label><input name="pin" inputmode="numeric" autocomplete="one-time-code" maxlength="8" pattern="[0-9]{8}" data-pin placeholder="00000000" required><div class="small muted" style="margin-top:6px">Poné los 8 números del PIN.</div></div><button class="btn primary wide" type="submit">Continuar</button></form>`);
+ document.getElementById("claimForm").addEventListener("submit",async e=>{e.preventDefault();const b=e.submitter,bak=b.textContent,f=new FormData(e.currentTarget),pin=String(f.get("pin")||"").replace(/\D/g,"").slice(0,8);b.disabled=true;b.textContent="Verificando…";try{const c=await resolveTagCodeByPin(pin);const result=await accountPost({action:"prepare_activation",public_code:c,activation_code:pin});closeModal();if(result.profile_required&&result.public_code){history.replaceState({},document.title,"/mi-cuenta/?completar="+encodeURIComponent(result.public_code));showActivationProfile(result.public_code);return}await loadDashboard();toast(result.already?"Esta chapita ya está en tu cuenta ✅":"Chapita agregada ✅")}catch(err){toast(err.message)}finally{if(document.body.contains(b)){b.disabled=false;b.textContent=bak}}});
 }
 async function lostPost(data){
  let s=await validSession();if(!s)throw new Error("Sesión vencida.");
