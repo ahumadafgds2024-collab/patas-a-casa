@@ -221,6 +221,7 @@ async function loadDashboard(){
 }
 function renderDashboard(){
  root.innerHTML=`<section class="card"><div class="topline"><div><div class="kicker">MI CUENTA</div><h1 style="font-size:31px;margin-bottom:6px">Tus mascotas.</h1><div class="account-email">${esc(currentUser?.email||"")}</div></div><button id="installBtn" class="btn primary install ${isStandalone()?"hidden":""}" onclick="installApp()">📲 Añadir al inicio</button></div><div class="actions" style="margin-top:14px"><button class="btn soft" onclick="openClaim()">＋ Agregar otra chapita</button><button class="btn soft" onclick="logout()">Cerrar sesión</button></div></section>
+ <section class="card" style="padding:14px"><a class="btn red wide" href="/mi-cuenta/perdidas/">🚨 Mascotas perdidas</a></section>
  <section class="card"><h2>Mis mascotas</h2><div class="pets">${pets.length?pets.map(petCard).join(""):`<div class="empty">Todavía no hay mascotas vinculadas.<br><button class="btn primary" style="margin-top:12px" onclick="openClaim()">Agregar mi chapita</button></div>`}</div></section>
  <section class="card"><h2>Acceso rápido</h2><p class="muted small">Instalá este panel en tu celular para abrirlo desde un ícono, sin escanear ninguna chapita.</p><button class="btn dark wide ${isStandalone()?"hidden":""}" onclick="installApp()">📲 Añadir Patas a Casa a mi pantalla de inicio</button></section>`;
 }
