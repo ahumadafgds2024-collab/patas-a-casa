@@ -28,6 +28,12 @@ if old not in s:
     raise SystemExit('No encontré getSession esperado')
 s = s.replace(old, new, 1)
 
+old = 'function isiOS(){return /iphone|ipad|ipod/i.test(navigator.userAgent)}'
+new = 'function isiOS(){return /iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1)}'
+if old not in s:
+    raise SystemExit('No encontré isiOS esperado')
+s = s.replace(old, new, 1)
+
 old = 'window.addEventListener("appinstalled",()=>{deferredInstall=null;document.getElementById("installBtn")?.classList.add("hidden");toast("Patas a Casa quedó instalada ✅")});'
 new = 'window.addEventListener("appinstalled",()=>{deferredInstall=null;document.getElementById("installBtn")?.classList.add("hidden");if(installPending()){setInstallPending(false);showInstallFinish(true)}else toast("Patas a Casa quedó instalada ✅")});'
 if old not in s:
@@ -40,7 +46,7 @@ fn = '''function showInstallFinish(installed=false){
  setInstallPending(true);if(isiOS())writeIosSessionBridge();
  const ios=isiOS();
  root.innerHTML=`<section class="card hero"><div class="kicker">ÚLTIMO PASO</div><h1>${installed?"Patas a Casa ya está agregada ✅":"Agregá Patas a Casa al inicio."}</h1><p class="muted">Tu cuenta y los datos de tu mascota ya quedaron guardados. Ahora dejá Patas a Casa en la pantalla de inicio para tenerla siempre a mano.</p></section>
- <section class="card">${installed?`<div class="status ok"><b>Instalación completada.</b><br>Buscá el ícono 🐾 de Patas a Casa en tu pantalla de inicio y abrilo desde ahí.</div>`:ios?`<h2>En iPhone</h2><div class="install-steps"><div class="step"><b>1.</b> Asegurate de estar en <b>Safari</b>.</div><div class="step"><b>2.</b> Tocá <b>Compartir</b> (el cuadrado con la flecha hacia arriba).</div><div class="step"><b>3.</b> Elegí <b>Agregar a pantalla de inicio</b> y confirmá.</div><div class="step"><b>4.</b> Cerrá Safari y abrí <b>Patas a Casa</b> desde el nuevo ícono 🐾.</div></div><button class="btn primary wide" style="margin-top:14px" onclick="installApp()">📲 Mostrar cómo agregarla</button><p class="small muted" style="margin-top:12px">Preparamos tu sesión para que al abrir el ícono puedas continuar con tu cuenta.</p>`:`<h2>Instalá Patas a Casa</h2><p class="muted small">Tocá el botón y confirmá <b>Instalar</b> o <b>Añadir a pantalla de inicio</b>.</p><button class="btn primary wide" onclick="installApp()">📲 Agregar Patas a Casa al inicio</button>`}</section>`;
+ <section class="card">${installed?`<div class="status ok"><b>Instalación completada.</b><br>Buscá el ícono 🐾 de Patas a Casa en tu pantalla de inicio y abrilo desde ahí.</div>`:ios?`<h2>En iPhone</h2><div class="install-steps"><div class="step"><b>1.</b> Asegurate de estar en <b>Safari</b>.</div><div class="step"><b>2.</b> Tocá <b>Compartir</b> (el cuadrado con la flecha hacia arriba).</div><div class="step"><b>3.</b> Elegí <b>Agregar a pantalla de inicio</b> y confirmá.</div><div class="step"><b>4.</b> Abrí <b>Patas a Casa</b> desde el nuevo ícono 🐾.</div></div><button class="btn primary wide" style="margin-top:14px" onclick="installApp()">📲 Mostrar cómo agregarla</button><p class="small muted" style="margin-top:12px">Tu cuenta ya está guardada. Al abrir el ícono vamos a intentar mantener la sesión automáticamente.</p>`:`<h2>Instalá Patas a Casa</h2><p class="muted small">Tocá el botón y confirmá <b>Instalar</b> o <b>Añadir a pantalla de inicio</b>.</p><button class="btn primary wide" onclick="installApp()">📲 Agregar Patas a Casa al inicio</button>`}</section>`;
 }
 '''
 if fn.strip() not in s:
@@ -48,8 +54,8 @@ if fn.strip() not in s:
         raise SystemExit('No encontré punto para showInstallFinish')
     s = s.replace(marker, fn + marker, 1)
 
-old = 'try{if(photo){button.textContent="Preparando foto…";o.photo_data=await compressPhoto(photo)}button.textContent="Creando mascota…";await accountPost(o);history.replaceState({},document.title,"/mi-cuenta/");await loadDashboard();toast("Mascota creada y vinculada ✅")} '
-new = 'try{if(photo){button.textContent="Preparando foto…";o.photo_data=await compressPhoto(photo)}button.textContent="Creando mascota…";await accountPost(o);history.replaceState({},document.title,"/mi-cuenta/");setInstallPending(true);if(isiOS())writeIosSessionBridge();showInstallFinish();toast("Mascota creada y vinculada ✅")} '
+old = 'try{if(photo){button.textContent="Preparando foto…";o.photo_data=await compressPhoto(photo)}button.textContent="Creando mascota…";await accountPost(o);history.replaceState({},document.title,"/mi-cuenta/");await loadDashboard();toast("Mascota creada y vinculada ✅")}'
+new = 'try{if(photo){button.textContent="Preparando foto…";o.photo_data=await compressPhoto(photo)}button.textContent="Creando mascota…";await accountPost(o);history.replaceState({},document.title,"/mi-cuenta/");setInstallPending(true);if(isiOS())writeIosSessionBridge();showInstallFinish();toast("Mascota creada y vinculada ✅")}'
 if old not in s:
     raise SystemExit('No encontré éxito de complete_activation')
 s = s.replace(old, new, 1)
