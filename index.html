@@ -231,12 +231,15 @@ function accountSetupForm(c,pin){
    <form id="accountSetup" method="post">
      <div class="field"><label>Email</label><input name="email" type="email" autocomplete="email" placeholder="tu@email.com" maxlength="254" required></div>
      <div class="field"><label>Elegí una contraseña</label><div class="password-wrap"><input id="activationPassword" name="password" type="password" autocomplete="new-password" minlength="8" required><button class="password-toggle" type="button" data-password-toggle="activationPassword" aria-label="Mostrar contraseña" aria-pressed="false">👁</button></div><div class="small muted" style="margin-top:6px">Mínimo 8 caracteres.</div></div>
+     <label class="check"><input id="legalActivation" type="checkbox" required><div><b>Acepto las condiciones de uso y la privacidad</b><div class="small muted">Al crear la cuenta aceptás las <a href="/terminos.html" target="_blank" rel="noopener" style="font-weight:900;color:#171719">Condiciones de uso</a> y consentís el tratamiento de tus datos según la <a href="/privacidad.html" target="_blank" rel="noopener" style="font-weight:900;color:#171719">Política de Privacidad</a>.</div></div></label>
      <button class="btn primary" id="accountContinue" type="submit">Crear cuenta y verificar correo</button>
    </form>
  </section>`;
  bindPasswordToggles(root);
  fetch(SUPABASE_URL+"/auth/v1/settings",{headers:{apikey:PUBLISHABLE_KEY}}).then(r=>r.ok?r.json():null).then(settings=>{if(settings?.external?.google)document.getElementById("googleActivationOptions")?.classList.remove("hidden")}).catch(()=>{});
  document.getElementById("googleActivation").addEventListener("click",()=>{
+   if(!document.getElementById("legalActivation")?.checked){toast("Aceptá las condiciones de uso y la Política de Privacidad para continuar.");return}
+   localStorage.setItem("pac_legal_consent",JSON.stringify({version:"2026-08-28",accepted_at:new Date().toISOString()}));
    sessionStorage.setItem(GOOGLE_PENDING_KEY,JSON.stringify({public_code:c,activation_code:pin,created_at:Date.now()}));
    location.assign("/mi-cuenta/?google=1");
  });
@@ -244,7 +247,7 @@ function accountSetupForm(c,pin){
    e.preventDefault();const f=new FormData(e.currentTarget),mail=String(f.get("email")||"").trim().toLowerCase(),password=String(f.get("password")||""),button=document.getElementById("accountContinue");
    if(password.length<8){toast("La contraseña tiene que tener al menos 8 caracteres.");return}
    button.disabled=true;button.textContent="Enviando verificación…";
-   try{await registerPost({action:"start_registration",public_code:c,activation_code:pin,email:mail,password});activationComplete(mail)}
+   try{localStorage.setItem("pac_legal_consent",JSON.stringify({version:"2026-08-28",accepted_at:new Date().toISOString()}));await registerPost({action:"start_registration",public_code:c,activation_code:pin,email:mail,password,legal_consent:true,legal_version:"2026-08-28"});activationComplete(mail)}
    catch(err){toast(err.message);button.disabled=false;button.textContent="Crear cuenta y verificar correo"}
  });
 }
