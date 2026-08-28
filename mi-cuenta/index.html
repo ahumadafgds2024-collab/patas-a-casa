@@ -64,6 +64,8 @@ const LOST_API=SUPABASE_URL+"/functions/v1/patas-lost";
 const AUTH=SUPABASE_URL+"/auth/v1";
 const SESSION_KEY="pac_owner_session_v1";
 const GOOGLE_PENDING_KEY="pac_google_activation_v1";
+const INSTALL_PENDING_KEY="pac_install_pending_v1";
+const IOS_SESSION_BRIDGE_COOKIE="pac_ios_session_bridge";
 const GOOGLE_REDIRECT_URL="https://patas-a-casa.vercel.app/mi-cuenta/?google=1";
 const googleAuthClient=window.supabase?.createClient?window.supabase.createClient(SUPABASE_URL,PUBLISHABLE_KEY,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:true,flowType:"implicit"}}):null;
 const root=document.getElementById("root"),modal=document.getElementById("modal");
@@ -103,6 +105,18 @@ function bindPasswordToggles(scope=document){
 }
 function setSession(s){if(!s){localStorage.removeItem(SESSION_KEY);return}if(!s.expires_at&&s.expires_in)s.expires_at=Math.floor(Date.now()/1000)+Number(s.expires_in);localStorage.setItem(SESSION_KEY,JSON.stringify(s))}
 function getSession(){try{return JSON.parse(localStorage.getItem(SESSION_KEY)||"null")}catch{return null}}
+function setInstallPending(on){try{on?localStorage.setItem(INSTALL_PENDING_KEY,"1"):localStorage.removeItem(INSTALL_PENDING_KEY)}catch{}}
+function installPending(){try{return localStorage.getItem(INSTALL_PENDING_KEY)==="1"}catch{return false}}
+function clearIosSessionBridge(){document.cookie=`${IOS_SESSION_BRIDGE_COOKIE}=; Max-Age=0; Path=/mi-cuenta/; SameSite=Lax; Secure`}
+function writeIosSessionBridge(){
+ if(!isiOS()||isStandalone())return;const s=getSession();if(!s?.access_token||!s?.refresh_token)return;
+ const payload=encodeURIComponent(JSON.stringify({access_token:s.access_token,refresh_token:s.refresh_token,expires_in:s.expires_in,expires_at:s.expires_at,token_type:s.token_type||"bearer"}));
+ if(payload.length>3600)return;document.cookie=`${IOS_SESSION_BRIDGE_COOKIE}=${payload}; Max-Age=1200; Path=/mi-cuenta/; SameSite=Lax; Secure`;
+}
+function consumeIosSessionBridge(){
+ if(getSession())return false;const match=document.cookie.match(new RegExp(`(?:^|;\s*)${IOS_SESSION_BRIDGE_COOKIE}=([^;]+)`));if(!match)return false;
+ try{const s=JSON.parse(decodeURIComponent(match[1]));if(!s?.access_token||!s?.refresh_token)return false;setSession(s);clearIosSessionBridge();return true}catch{clearIosSessionBridge();return false}
+}
 function queueGoogleActivation(publicCode,activationCode){
  const c=String(publicCode||"").trim().toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,12),pin=String(activationCode||"").replace(/\D/g,"").slice(0,8);
  if(!c)throw new Error("Ingresá el código de la chapita.");
@@ -141,14 +155,21 @@ async function logout(){const s=getSession();try{if(s?.access_token)await authPo
 function openModal(content){modal.innerHTML=`<div class="sheet">${content}</div>`;modal.classList.remove("hidden");modal.addEventListener("click",e=>{if(e.target===modal)closeModal()},{once:true})}
 function closeModal(){if(flyerObjectUrl){URL.revokeObjectURL(flyerObjectUrl);flyerObjectUrl=null}flyerBlob=null;flyerFileName="";modal.classList.add("hidden");modal.innerHTML=""}
 function isStandalone(){return window.matchMedia("(display-mode: standalone)").matches||window.navigator.standalone===true}
-function isiOS(){return /iphone|ipad|ipod/i.test(navigator.userAgent)}
+function isiOS(){return /iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1)}
 window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;const b=document.getElementById("installBtn");if(b&&!isStandalone())b.classList.remove("hidden")});
-window.addEventListener("appinstalled",()=>{deferredInstall=null;document.getElementById("installBtn")?.classList.add("hidden");toast("Patas a Casa quedó instalada ✅")});
+window.addEventListener("appinstalled",()=>{deferredInstall=null;document.getElementById("installBtn")?.classList.add("hidden");if(installPending()){setInstallPending(false);showInstallFinish(true)}else toast("Patas a Casa quedó instalada ✅")});
 async function installApp(){
  if(isStandalone()){toast("Ya está instalada en este dispositivo.");return}
  if(deferredInstall){deferredInstall.prompt();await deferredInstall.userChoice;deferredInstall=null;return}
  if(isiOS()){openModal(`<div class="sheethead"><h2>Agregar al inicio</h2><button class="x" onclick="closeModal()">×</button></div><div class="install-steps"><div class="step"><b>1.</b> Abrí esta página en Safari.</div><div class="step"><b>2.</b> Tocá <b>Compartir</b> (el cuadrado con flecha hacia arriba).</div><div class="step"><b>3.</b> Elegí <b>Agregar a Inicio</b> y confirmá.</div></div><p class="small muted">Después vas a abrir Patas a Casa desde el ícono como una app.</p>`);return}
  openModal(`<div class="sheethead"><h2>Instalar Patas a Casa</h2><button class="x" onclick="closeModal()">×</button></div><p>Tu navegador todavía no mostró el cuadro automático.</p><div class="step">En Chrome/Edge abrí el menú <b>⋮</b> y elegí <b>Instalar aplicación</b> o <b>Añadir a pantalla de inicio</b>.</div>`);
+}
+function showInstallFinish(installed=false){
+ if(isStandalone()){setInstallPending(false);clearIosSessionBridge();loadDashboard();return}
+ setInstallPending(true);if(isiOS())writeIosSessionBridge();
+ const ios=isiOS();
+ root.innerHTML=`<section class="card hero"><div class="kicker">ÚLTIMO PASO</div><h1>${installed?"Patas a Casa ya está agregada ✅":"Agregá Patas a Casa al inicio."}</h1><p class="muted">Tu cuenta y los datos de tu mascota ya quedaron guardados. Ahora dejá Patas a Casa en la pantalla de inicio para tenerla siempre a mano.</p></section>
+ <section class="card">${installed?`<div class="status ok"><b>Instalación completada.</b><br>Buscá el ícono 🐾 de Patas a Casa en tu pantalla de inicio y abrilo desde ahí.</div>`:ios?`<h2>En iPhone</h2><div class="install-steps"><div class="step"><b>1.</b> Asegurate de estar en <b>Safari</b>.</div><div class="step"><b>2.</b> Tocá <b>Compartir</b> (el cuadrado con la flecha hacia arriba).</div><div class="step"><b>3.</b> Elegí <b>Agregar a pantalla de inicio</b> y confirmá.</div><div class="step"><b>4.</b> Abrí <b>Patas a Casa</b> desde el nuevo ícono 🐾.</div></div><button class="btn primary wide" style="margin-top:14px" onclick="installApp()">📲 Mostrar cómo agregarla</button><p class="small muted" style="margin-top:12px">Tu cuenta ya está guardada. Al abrir el ícono vamos a intentar mantener la sesión automáticamente.</p>`:`<h2>Instalá Patas a Casa</h2><p class="muted small">Tocá el botón y confirmá <b>Instalar</b> o <b>Añadir a pantalla de inicio</b>.</p><button class="btn primary wide" onclick="installApp()">📲 Agregar Patas a Casa al inicio</button>`}</section>`;
 }
 function showAuth(message=""){
  const pre=new URLSearchParams(location.search).get("vincular")||"";
@@ -207,7 +228,7 @@ function showActivationProfile(c){
  document.getElementById("activationProfileForm").addEventListener("submit",async e=>{
   e.preventDefault();const form=e.currentTarget,f=new FormData(form),o=Object.fromEntries(f.entries()),button=document.getElementById("createPetButton"),photo=photoInput.files?.[0];
   o.action="complete_activation";o.public_code=c;o.contact_phone=o.contact_whatsapp;o.public_health=f.get("public_health")==="on";o.public_contact=true;o.status="normal";button.disabled=true;
-  try{if(photo){button.textContent="Preparando foto…";o.photo_data=await compressPhoto(photo)}button.textContent="Creando mascota…";await accountPost(o);history.replaceState({},document.title,"/mi-cuenta/");await loadDashboard();toast("Mascota creada y vinculada ✅")}
+  try{if(photo){button.textContent="Preparando foto…";o.photo_data=await compressPhoto(photo)}button.textContent="Creando mascota…";await accountPost(o);history.replaceState({},document.title,"/mi-cuenta/");setInstallPending(true);if(isiOS())writeIosSessionBridge();showInstallFinish();toast("Mascota creada y vinculada ✅")}
   catch(err){toast(err.message);button.disabled=false;button.textContent="Crear mascota y entrar a Mi cuenta"}
  });
 }
@@ -339,6 +360,7 @@ function editPet(c){
 }
 async function boot(){
  if("serviceWorker" in navigator)navigator.serviceWorker.register("/mi-cuenta/sw.js",{scope:"/mi-cuenta/"}).catch(()=>{});
+ consumeIosSessionBridge();
  try{await consumeGoogleOAuthReturn()}catch(err){clearGoogleActivation();showAuth(err.message);return}
  const s=await validSession();
  if(!s){
@@ -354,7 +376,7 @@ async function boot(){
  }
  let fin=null;try{fin=await registerPost({action:"finalize_registration"},true)}catch(err){console.warn("finalize_registration",err)}
  if(fin?.profile_required&&fin?.public_code){history.replaceState({},document.title,"/mi-cuenta/?completar="+encodeURIComponent(fin.public_code));showActivationProfile(fin.public_code);return}
- history.replaceState({},document.title,"/mi-cuenta/");await loadDashboard();
+ history.replaceState({},document.title,"/mi-cuenta/");if(isStandalone()){setInstallPending(false);clearIosSessionBridge()}else if(installPending()){showInstallFinish();return}await loadDashboard();
 }
 boot();
 </script>
