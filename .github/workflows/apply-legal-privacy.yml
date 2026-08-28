@@ -1,0 +1,49 @@
+name: Apply Legal Privacy
+
+on:
+  push:
+    paths:
+      - '.github/workflows/apply-legal-privacy.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Apply privacy and terms
+        run: python .github/scripts/apply_legal_privacy.py
+      - name: Check frontend JavaScript syntax
+        run: |
+          python - <<'PY'
+          import re
+          for path in ['index.html','mi-cuenta/index.html']:
+              html=open(path,encoding='utf-8').read()
+              scripts=re.findall(r'<script[^>]*>(.*?)</script>',html,re.S|re.I)
+              out='/tmp/'+path.replace('/','_')+'.js'
+              open(out,'w',encoding='utf-8').write('\n'.join(scripts))
+              print(path, 'scripts:',len(scripts))
+          PY
+          node --check /tmp/index.html.js
+          node --check /tmp/mi-cuenta_index.html.js
+      - name: Verify legal integration
+        run: |
+          grep -q 'id="legalActivation"' index.html
+          grep -q 'id="legalSignup"' mi-cuenta/index.html
+          grep -q 'Política de Privacidad' privacidad.html
+          grep -q 'Condiciones de uso' terminos.html
+      - name: Commit legal integration
+        run: |
+          if git diff --quiet -- index.html mi-cuenta/index.html privacidad.html terminos.html; then
+            echo 'No changes needed.'
+            exit 0
+          fi
+          git config user.name 'patas-a-casa-bot'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html mi-cuenta/index.html privacidad.html terminos.html
+          git commit -m 'Agregar privacidad y condiciones de uso'
+          git push
