@@ -6,7 +6,7 @@ on:
       - main
     paths:
       - .github/workflows/patch-install-final-step.yml
-      - scripts/patch_install_final_step.py
+      - scripts/fix_install_final_step.py
 
 permissions:
   contents: write
@@ -18,8 +18,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: main
-      - name: Apply patch
-        run: python scripts/patch_install_final_step.py
+      - name: Apply final fix
+        run: python scripts/fix_install_final_step.py
       - name: Commit patch
         run: |
           git config user.name "github-actions[bot]"
@@ -29,5 +29,5 @@ jobs:
             echo "No changes"
             exit 0
           fi
-          git commit -m "Hacer instalación el último paso del alta"
+          git commit -m "Corregir cierre de instalación del alta"
           git push origin HEAD:main
