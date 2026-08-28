@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - .github/workflows/patch-install-final-step.yml
+      - scripts/patch_install_final_step.py
 
 permissions:
   contents: write
