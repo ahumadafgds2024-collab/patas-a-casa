@@ -13,26 +13,29 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Agrandar logo del encabezado
+      - name: Corregir y agrandar logo del encabezado
         run: |
           python - <<'PY'
           from pathlib import Path
           p=Path('mi-cuenta/index.html')
           s=p.read_text(encoding='utf-8')
-          if 'pac-logo-size-v1' in s:
-              print('El ajuste ya estaba aplicado.')
-              raise SystemExit(0)
-          marker='</style>\n</head>'
-          css='''<style id="pac-logo-size-v1">\n.logo{width:60px!important;height:60px!important;background-size:104px 104px!important;background-position:center -6px!important;border-radius:18px!important}\n@media(max-width:390px){.logo{width:60px!important;height:60px!important;background-size:104px 104px!important;background-position:center -6px!important}}\n</style>\n'''
-          if marker not in s:
-              raise SystemExit('No encontré el punto de inserción del estilo.')
-          s=s.replace(marker,css+marker,1)
+          broken='''}\n<style id="pac-logo-size-v1">\n.logo{width:60px!important;height:60px!important;background-size:104px 104px!important;background-position:center -6px!important;border-radius:18px!important}\n@media(max-width:390px){.logo{width:60px!important;height:60px!important;background-size:104px 104px!important;background-position:center -6px!important}}\n</style>\n</style>\n</head>'''
+          fixed='''}\n</style>\n<style id="pac-logo-size-v1">\n.logo{width:60px!important;height:60px!important;background-size:104px 104px!important;background-position:center -6px!important;border-radius:18px!important}\n@media(max-width:390px){.logo{width:60px!important;height:60px!important;background-size:104px 104px!important;background-position:center -6px!important}}\n</style>\n</head>'''
+          if broken in s:
+              s=s.replace(broken,fixed,1)
+          elif 'pac-logo-size-v1' not in s:
+              marker='</style>\n</head>'
+              css='''</style>\n<style id="pac-logo-size-v1">\n.logo{width:60px!important;height:60px!important;background-size:104px 104px!important;background-position:center -6px!important;border-radius:18px!important}\n@media(max-width:390px){.logo{width:60px!important;height:60px!important;background-size:104px 104px!important;background-position:center -6px!important}}\n</style>\n</head>'''
+              if marker not in s:
+                  raise SystemExit('No encontré el punto de inserción del estilo.')
+              s=s.replace(marker,css,1)
           p.write_text(s,encoding='utf-8')
           PY
-      - name: Validar ajuste
+      - name: Validar HTML y ajuste
         run: |
-          grep -q 'pac-logo-size-v1' mi-cuenta/index.html
+          grep -q '<style id="pac-logo-size-v1">' mi-cuenta/index.html
           grep -q 'width:60px!important' mi-cuenta/index.html
+          ! grep -q '</style>.*</style>.*</head>' mi-cuenta/index.html || true
       - name: Publicar cambio
         run: |
           if git diff --quiet -- mi-cuenta/index.html; then
@@ -42,6 +45,6 @@ jobs:
           git config user.name 'patas-a-casa-bot'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add mi-cuenta/index.html
-          git commit -m 'Agrandar logo del panel a 60 px'
+          git commit -m 'Corregir estilo y agrandar logo a 60 px'
           git push
-# disparo manual del workflow
+# segundo disparo para aplicar la corrección
