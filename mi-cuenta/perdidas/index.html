@@ -17,10 +17,24 @@ a{text-decoration:none;color:inherit}.back{min-height:42px;padding:10px 12px;bor
 .photo-modal{position:fixed;z-index:100;inset:0;background:rgba(12,12,12,.88);display:flex;align-items:center;justify-content:center;padding:18px}.photo-modal.hidden{display:none}.photo-modal img{display:block;max-width:min(96vw,760px);max-height:84dvh;width:auto;height:auto;object-fit:contain;border-radius:20px;box-shadow:0 22px 70px rgba(0,0,0,.45)}.photo-close{position:fixed;top:calc(12px + env(safe-area-inset-top));right:14px;width:46px;height:46px;border:0;border-radius:50%;background:rgba(255,255,255,.94);color:#191919;font-size:26px;line-height:1;display:grid;place-items:center;cursor:pointer}.photo-caption{position:fixed;left:16px;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));text-align:center;color:#fff;font-size:14px;font-weight:900;text-shadow:0 2px 10px rgba(0,0,0,.5)}
 @media(max-width:450px){h1{font-size:32px}.avatar{width:74px;height:74px;flex-basis:74px}.name{font-size:24px}.photo-modal{padding:10px}.photo-modal img{max-width:96vw;max-height:82dvh;border-radius:16px}}
 </style>
-</head>
+<style id="pac-brand-logo-v1">
+.logo{
+  background-image:url('/mi-cuenta/icons/icon-192.png')!important;
+  background-repeat:no-repeat!important;
+  background-position:center -4px!important;
+  background-size:78px 78px!important;
+  background-color:transparent!important;
+  box-shadow:none!important;
+  color:transparent!important;
+  font-size:0!important;
+  overflow:hidden!important;
+  border-radius:14px!important;
+}
+.logo::before{display:none!important;content:none!important}
+</style></head>
 <body>
 <main class="app">
-  <header class="top"><div class="brand"><div class="logo">🐾</div><span>Patas a Casa</span></div><a class="back" href="/mi-cuenta/">← Mi cuenta</a></header>
+  <header class="top"><div class="brand"><div class="logo"></div><span>Patas a Casa</span></div><a class="back" href="/mi-cuenta/">← Mi cuenta</a></header>
   <section class="hero"><div class="kicker">COMUNIDAD</div><h1>Mascotas perdidas</h1><p class="muted small">Acá aparecen solamente las mascotas que su dueño marcó como perdidas.</p></section>
   <div id="root" class="loading">Cargando mascotas perdidas…</div>
 </main>

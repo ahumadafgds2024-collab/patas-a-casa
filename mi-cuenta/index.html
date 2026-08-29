@@ -47,10 +47,24 @@ header{margin:2px 3px 18px;padding:4px 0}.brand{gap:11px;font-size:17px}.logo{po
 .loading{position:relative;min-height:105px;display:grid;place-items:center}.loading::after{content:"";position:absolute;bottom:25px;width:92px;height:5px;border-radius:999px;background:linear-gradient(90deg,#eee7df 0,#fff 45%,#eee7df 100%);background-size:220% 100%;animation:pacShimmer 1.1s linear infinite}.toast{bottom:calc(20px + env(safe-area-inset-bottom));border-radius:17px;box-shadow:0 16px 42px rgba(23,19,16,.25);animation:pacToastIn .24s var(--pac-ease) both}
 @keyframes pacCardIn{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}@keyframes pacPetIn{from{opacity:0;transform:translateY(8px) scale(.99)}to{opacity:1;transform:none}}@keyframes pacBackdropIn{from{opacity:0}to{opacity:1}}@keyframes pacSheetUp{from{opacity:.5;transform:translateY(28px)}to{opacity:1;transform:none}}@keyframes pacToastIn{from{opacity:0;transform:translate(-50%,8px) scale(.98)}to{opacity:1;transform:translate(-50%,0) scale(1)}}@keyframes pacShimmer{to{background-position:-220% 0}}
 @media(max-width:560px){.topline{flex-direction:column}.install{width:100%}.actions{display:grid;grid-template-columns:1fr 1fr}.actions .btn{min-width:0}.split{grid-template-columns:1fr}.pet .actions{grid-template-columns:1fr 1fr}}@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}}
+</style><style id="pac-brand-logo-v1">
+.logo{
+  background-image:url('/mi-cuenta/icons/icon-192.png')!important;
+  background-repeat:no-repeat!important;
+  background-position:center -4px!important;
+  background-size:78px 78px!important;
+  background-color:transparent!important;
+  box-shadow:none!important;
+  color:transparent!important;
+  font-size:0!important;
+  overflow:hidden!important;
+  border-radius:14px!important;
+}
+.logo::before{display:none!important;content:none!important}
 </style></head>
 <body>
 <div class="app">
-<header><div class="brand"><div class="logo">🐾</div><div>Patas a Casa<div class="small muted">Mi cuenta</div></div></div></header>
+<header><div class="brand"><div class="logo"></div><div>Patas a Casa<div class="small muted">Mi cuenta</div></div></div></header>
 <main id="root"><section class="card loading">Cargando tu cuenta…</section></main>
 </div>
 <div id="modal" class="modal hidden"></div>
