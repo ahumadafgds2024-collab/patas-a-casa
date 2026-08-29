@@ -44,3 +44,4 @@ jobs:
           git add mi-cuenta/index.html
           git commit -m 'Agrandar logo del panel a 60 px'
           git push
+# disparo manual del workflow
