@@ -402,7 +402,7 @@ Deno.serve(async (req) => {
         body: JSON.stringify(payload),
       });
       const rows = r.ok ? await r.json() : [];
-      if (!r.ok || !rows?.length) return json({ error: "No pudimos guardar los cambios.\" }, 500);
+      if (!r.ok || !rows?.length) return json({ error: "No pudimos guardar los cambios." }, 500);
       return json({ ok: true, pet: rows[0] });
     }
 
