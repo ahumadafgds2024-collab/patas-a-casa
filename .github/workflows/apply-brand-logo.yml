@@ -1,0 +1,40 @@
+name: Apply Brand Logo
+
+on:
+  push:
+    paths:
+      - '.github/workflows/apply-brand-logo.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  update-brand:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Apply official Patas a Casa logo
+        run: python scripts/apply_brand_logo.py
+      - name: Validate changed HTML
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          for p in [Path('index.html'), Path('mi-cuenta/index.html')]:
+              text=p.read_text(encoding='utf-8')
+              assert 'pac-brand-logo-v1' in text, f'brand style missing in {p}'
+              assert '<div class="logo">🐾</div>' not in text, f'old logo remains in {p}'
+          print('Brand logo validation OK')
+          PY
+      - name: Commit brand update
+        run: |
+          if git diff --quiet; then
+            echo 'No changes needed.'
+            exit 0
+          fi
+          git config user.name 'patas-a-casa-bot'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html mi-cuenta/index.html mi-cuenta/perdidas/index.html mi-cuenta/confirmar/index.html mi-cuenta/recuperar/index.html privacidad.html terminos.html
+          git commit -m 'Usar logo oficial en encabezados'
+          git push
