@@ -160,7 +160,7 @@ function profilePayload(b: any) {
     sex: txt(b.sex, 30),
     age_text: txt(b.age_text, 40),
     size: txt(b.size, 30),
-    color: txt(b.color, 50),
+    color: txt(b.color, 160),
     diseases: txt(b.diseases),
     medications: txt(b.medications),
     medication_schedule: txt(b.medication_schedule, 300),
@@ -402,7 +402,7 @@ Deno.serve(async (req) => {
         body: JSON.stringify(payload),
       });
       const rows = r.ok ? await r.json() : [];
-      if (!r.ok || !rows?.length) return json({ error: "No pudimos guardar los cambios." }, 500);
+      if (!r.ok || !rows?.length) return json({ error: "No pudimos guardar los cambios.\" }, 500);
       return json({ ok: true, pet: rows[0] });
     }
 
