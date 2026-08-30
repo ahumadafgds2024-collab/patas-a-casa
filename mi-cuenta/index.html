@@ -285,12 +285,64 @@ async function finishScannedTag(decodedText){
   await loadDashboard();toast("Chapita agregada ✅")
  }catch(err){await stopTagScanner();openModal(`<div class="sheethead"><div><div class="kicker">NO PUDIMOS LEERLA</div><h2>Probá nuevamente</h2></div><button class="x" onclick="closeModal()">×</button></div><div class="status err">${esc(err.message)}</div><button class="btn primary wide" style="margin-top:12px" onclick="openQrScanner()">Volver a escanear</button><button class="btn soft wide" style="margin-top:9px" onclick="openPinClaim()">Mi chapita vino con PIN</button>`)}
 }
+function qrCameraErrorText(err){
+ const text=String(err?.name||"")+" "+String(err?.message||err||"");
+ if(/NotAllowedError|Permission denied|Permission dismissed|denied/i.test(text))return "Patas a Casa no tiene permiso para usar la cámara. Permití el acceso a la cámara y tocá Reintentar.";
+ if(/NotReadableError|Could not start video source|TrackStartError/i.test(text))return "Android no pudo iniciar la cámara. Cerrá cualquier app que pueda estar usándola y probá nuevamente.";
+ if(/NotFoundError|DevicesNotFoundError/i.test(text))return "No encontramos una cámara disponible en este dispositivo.";
+ if(/OverconstrainedError|ConstraintNotSatisfiedError/i.test(text))return "No pudimos seleccionar la cámara trasera automáticamente.";
+ if(/cargar el lector QR/i.test(text))return "No pudimos cargar el lector QR. Revisá la conexión y probá nuevamente.";
+ return "No pudimos abrir la cámara en vivo. Podés reintentar o sacar una foto del QR.";
+}
+async function startTagCamera(){
+ const config={fps:10,qrbox:{width:220,height:220},aspectRatio:1};
+ const ok=txt=>finishScannedTag(txt),miss=()=>{};
+ tagScanner=new Html5Qrcode("qrReader");tagScanLocked=false;
+ try{await tagScanner.start({facingMode:"environment"},config,ok,miss);return}
+ catch(firstErr){
+  await stopTagScanner();
+  try{
+   const cameras=await Html5Qrcode.getCameras();
+   if(!cameras?.length)throw firstErr;
+   const rear=cameras.find(c=>/back|rear|environment|trasera|posterior/i.test(String(c.label||"")))||cameras[cameras.length-1];
+   tagScanner=new Html5Qrcode("qrReader");tagScanLocked=false;
+   await tagScanner.start(rear.id,config,ok,miss);return
+  }catch(secondErr){await stopTagScanner();throw(secondErr||firstErr)}
+ }
+}
+async function scanQrPhoto(input){
+ const file=input?.files?.[0];if(!file)return;
+ const st=document.getElementById("qrReaderStatus");if(st)st.textContent="Leyendo foto…";
+ try{
+  await stopTagScanner();await loadQrScannerLibrary();
+  if(!document.getElementById("qrReader"))return;
+  tagScanner=new Html5Qrcode("qrReader");tagScanLocked=false;
+  const decoded=await tagScanner.scanFile(file,false);
+  await finishScannedTag(decoded)
+ }catch(err){
+  await stopTagScanner();
+  const status=document.getElementById("qrReaderStatus");if(status)status.innerHTML=`<span style="color:#a93442">No pudimos encontrar un QR en esa foto. Acercate un poco más y probá otra vez.</span>`;
+  if(input)input.value=""
+ }
+}
 async function openQrScanner(){
  await stopTagScanner();
- openModal(`<div class="sheethead"><div><div class="kicker">AGREGAR CHAPITA</div><h2>Escaneá el QR</h2></div><button class="x" onclick="closeModal()">×</button></div><p class="muted small">Apuntá la cámara al QR que está detrás de la chapita.</p><div id="qrReader" style="width:100%;min-height:260px;border-radius:18px;overflow:hidden;background:#111"></div><div id="qrReaderStatus" class="small muted" style="margin-top:10px">Preparando cámara…</div><button class="btn soft wide" type="button" style="margin-top:12px" onclick="openPinClaim()">¿Tu chapita vino con PIN?</button>`);
- try{await loadQrScannerLibrary();if(!document.getElementById("qrReader"))return;tagScanner=new Html5Qrcode("qrReader");tagScanLocked=false;await tagScanner.start({facingMode:"environment"},{fps:10,qrbox:{width:220,height:220},aspectRatio:1},txt=>finishScannedTag(txt),()=>{});const st=document.getElementById("qrReaderStatus");if(st)st.textContent="Buscando QR…"}
- catch(err){await stopTagScanner();const st=document.getElementById("qrReaderStatus");if(st)st.innerHTML=`<span style="color:#a93442">No pudimos abrir la cámara. Revisá el permiso de cámara o usá el PIN si tu chapita lo incluye.</span>`}
+ openModal(`<div class="sheethead"><div><div class="kicker">AGREGAR CHAPITA</div><h2>Escaneá el QR</h2></div><button class="x" onclick="closeModal()">×</button></div><p class="muted small">Apuntá la cámara al QR que está detrás de la chapita.</p><div id="qrReader" style="width:100%;min-height:260px;border-radius:18px;overflow:hidden;background:#111"></div><div id="qrReaderStatus" class="small muted" style="margin-top:10px">Preparando cámara…</div><input id="qrPhotoInput" type="file" accept="image/*" capture="environment" hidden><div id="qrCameraFallback" class="hidden" style="margin-top:12px"><button class="btn primary wide" type="button" id="qrRetryCamera">Reintentar cámara</button><button class="btn soft wide" type="button" id="qrTakePhoto" style="margin-top:9px">📷 Sacar foto del QR</button></div><button class="btn soft wide" type="button" style="margin-top:12px" onclick="openPinClaim()">¿Tu chapita vino con PIN?</button>`);
+ const photo=document.getElementById("qrPhotoInput"),take=document.getElementById("qrTakePhoto"),retry=document.getElementById("qrRetryCamera");
+ if(photo)photo.addEventListener("change",()=>scanQrPhoto(photo));
+ if(take)take.addEventListener("click",()=>photo?.click());
+ if(retry)retry.addEventListener("click",()=>openQrScanner());
+ try{
+  await loadQrScannerLibrary();if(!document.getElementById("qrReader"))return;
+  await startTagCamera();const st=document.getElementById("qrReaderStatus");if(st)st.textContent="Buscando QR…"
+ }catch(err){
+  await stopTagScanner();
+  const reader=document.getElementById("qrReader");if(reader){reader.style.display="none";reader.style.minHeight="0"}
+  const st=document.getElementById("qrReaderStatus");if(st)st.innerHTML=`<span style="color:#a93442">${esc(qrCameraErrorText(err))}</span>`;
+  document.getElementById("qrCameraFallback")?.classList.remove("hidden")
+ }
 }
+
 function openClaim(){
  openModal(`<div class="sheethead"><div><div class="kicker">NUEVA MASCOTA</div><h2>Agregar una chapita</h2></div><button class="x" onclick="closeModal()">×</button></div><p class="muted">Escaneá el QR que está detrás de la chapita. Patas a Casa detecta automáticamente si necesita PIN.</p><button class="btn primary wide" type="button" onclick="openQrScanner()">📷 Escanear QR</button><div style="height:1px;background:var(--line);margin:18px 0 14px"></div><div class="small muted" style="margin-bottom:8px;font-weight:850">CHAPITAS ANTERIORES</div><button class="btn soft wide" type="button" onclick="openPinClaim()">Ingresar PIN</button>`)
 }
