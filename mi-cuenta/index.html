@@ -343,9 +343,7 @@ async function openQrScanner(){
  }
 }
 
-function openClaim(){
- openModal(`<div class="sheethead"><div><div class="kicker">NUEVA MASCOTA</div><h2>Agregar una chapita</h2></div><button class="x" onclick="closeModal()">×</button></div><p class="muted">Escaneá el QR que está detrás de la chapita. Patas a Casa detecta automáticamente si necesita PIN.</p><button class="btn primary wide" type="button" onclick="openQrScanner()">📷 Escanear QR</button><div style="height:1px;background:var(--line);margin:18px 0 14px"></div><div class="small muted" style="margin-bottom:8px;font-weight:850">CHAPITAS ANTERIORES</div><button class="btn soft wide" type="button" onclick="openPinClaim()">Ingresar PIN</button>`)
-}
+function openClaim(){openPinClaim()}
 
 async function prepareQueuedActivation(pending){if(!pending)return null;if(pending.activation_method==="email")return await emailActivationPost({action:"prepare_activation",public_code:pending.public_code});return await accountPost({action:"prepare_activation",public_code:pending.public_code,activation_code:pending.activation_code})}
 async function registerPost(data,requiresAuth=false){let s=requiresAuth?await validSession():null;const h={"Content-Type":"application/json","apikey":PUBLISHABLE_KEY};if(s?.access_token)h.Authorization="Bearer "+s.access_token;const r=await fetch(REGISTER_API,{method:"POST",headers:h,body:JSON.stringify(data)});const j=await r.json().catch(()=>({}));if(r.status===401&&requiresAuth){setSession(null);showAuth("Tu sesión venció. Volvé a ingresar.");throw new Error("Sesión vencida.")}if(!r.ok)throw new Error(j.error||"Ocurrió un error.");return j}
