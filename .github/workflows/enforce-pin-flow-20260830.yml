@@ -1,0 +1,38 @@
+name: Enforce PIN Flow 20260830
+
+on:
+  push:
+    paths:
+      - '.github/scripts/enforce_pin_flow_20260830.py'
+      - '.github/workflows/enforce-pin-flow-20260830.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Aplicar y auditar flujo PIN
+        run: python .github/scripts/enforce_pin_flow_20260830.py
+      - name: Verificar invariantes
+        run: |
+          grep -Fq 'if(data.state==="unactivated"){unactivated(code)}' index.html
+          grep -Fq 'function openClaim(){openPinClaim()}' mi-cuenta/index.html
+          grep -Fq 'if(activationIsiOS){document.getElementById("googleActivationOptions")?.remove()}' index.html
+          grep -Fq 'if(isiOS()){document.querySelectorAll("[data-google-options]").forEach(el=>el.remove());return}' mi-cuenta/index.html
+          grep -Fq 'securityPost({action:"password",password})' mi-cuenta/index.html
+      - name: Commit frontend
+        run: |
+          if git diff --quiet -- index.html; then
+            echo 'No changes needed.'
+            exit 0
+          fi
+          git config user.name 'patas-a-casa-bot'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git commit -m 'Dejar activación pública directo a PIN'
+          git push
