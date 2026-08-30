@@ -1,0 +1,42 @@
+name: Smoke Test Email Activation
+
+on:
+  push:
+    paths:
+      - '.github/workflows/smoke-test-email-activation.yml'
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify production frontend contains new flow
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --retry 3 'https://patas-a-casa.vercel.app/?tag=EA4CDAE3' -o /tmp/page.html
+          grep -q 'patas-email-activation' /tmp/page.html
+          grep -q 'Ya tengo cuenta' /tmp/page.html
+      - name: Verify email-mode tag through deployed Edge Function
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --retry 3 \
+            'https://cgciwutqwnssdphugupq.supabase.co/functions/v1/patas-email-activation?action=mode&code=EA4CDAE3' \
+            -H 'apikey: sb_publishable_oozsLV8QMoy_ooLIqgh_qg_vvjV6IY5' > /tmp/email.json
+          python - <<'PY'
+          import json
+          data=json.load(open('/tmp/email.json'))
+          assert data.get('email_activation') is True, data
+          assert data.get('state') == 'fresh', data
+          print('email tag OK', data)
+          PY
+      - name: Verify legacy PIN tag remains PIN
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --retry 3 \
+            'https://cgciwutqwnssdphugupq.supabase.co/functions/v1/patas-email-activation?action=mode&code=K7M4XA' \
+            -H 'apikey: sb_publishable_oozsLV8QMoy_ooLIqgh_qg_vvjV6IY5' > /tmp/pin.json
+          python - <<'PY'
+          import json
+          data=json.load(open('/tmp/pin.json'))
+          assert data.get('email_activation') is False, data
+          print('legacy PIN tag OK', data)
+          PY
