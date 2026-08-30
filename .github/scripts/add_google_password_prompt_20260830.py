@@ -26,6 +26,16 @@ elif 'sessionStorage.setItem(GOOGLE_JUST_SIGNED_IN_KEY,"1")' not in h: raise Sys
 # Guardar contraseña mediante endpoint seguro para registrar que ya existe.
 h=h.replace('await updateAccountPassword(password);closeModal();toast("Contraseña guardada ✅")','await securityPost({action:"password",password});closeModal();toast("Contraseña guardada ✅")',1)
 
+# Supabase invalida la sesión activa al cambiar la contraseña. Volvemos a iniciar
+# sesión inmediatamente con la contraseña recién creada para que el usuario no
+# salga del flujo ni vea "Sesión vencida".
+old_save='try{await securityPost({action:"password",password});closeModal();toast("Contraseña guardada ✅")}catch(err){toast(err.message)}finally{if(document.body.contains(b)){b.disabled=false;b.textContent=bak}}'
+new_save='try{const sessionEmail=String(currentUser?.email||getSession()?.user?.email||"").trim().toLowerCase();await securityPost({action:"password",password});if(sessionEmail){try{await login(sessionEmail,password)}catch{setSession(null);closeModal();showAuth("Contraseña guardada. Ingresá con tu email y la nueva contraseña.");return}}closeModal();toast("Contraseña guardada ✅")}catch(err){toast(err.message)}finally{if(document.body.contains(b)){b.disabled=false;b.textContent=bak}}'
+if old_save in h:
+    h=h.replace(old_save,new_save,1)
+elif 'const sessionEmail=String(currentUser?.email||getSession()?.user?.email||"")' not in h:
+    raise SystemExit('No encontré guardado de contraseña')
+
 # Oferta opcional y solo tras Google.
 if 'async function maybeOfferGooglePasswordBackup()' not in h:
     anchor='function openAccountMenu(){'
@@ -48,7 +58,7 @@ if old3 in h: h=h.replace(old3,new3,1)
 elif new3 not in h: raise SystemExit('No encontré final de boot')
 
 check_js(h)
-for x in ['async function maybeOfferGooglePasswordBackup()','securityPost({action:"status"})','securityPost({action:"password",password})','GOOGLE_JUST_SIGNED_IN_KEY']:
+for x in ['async function maybeOfferGooglePasswordBackup()','securityPost({action:"status"})','securityPost({action:"password",password})','GOOGLE_JUST_SIGNED_IN_KEY','const sessionEmail=String(currentUser?.email||getSession()?.user?.email||"")']:
     if x not in h: raise SystemExit('Falta '+x)
 p.write_text(h,encoding='utf-8')
-print('OK aviso contraseña Google')
+print('OK aviso contraseña Google + sesión renovada')
