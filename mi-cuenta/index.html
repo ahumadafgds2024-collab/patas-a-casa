@@ -226,12 +226,12 @@ function queueGoogleActivation(publicCode,activationCode="",activationMethod="pi
  const c=String(publicCode||"").trim().toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,12),pin=String(activationCode||"").replace(/\D/g,"").slice(0,8),method=activationMethod==="email"?"email":"pin";
  if(!c)throw new Error("Ingresá el código de la chapita.");
  if(method==="pin"&&!/^\d{8}$/.test(pin))throw new Error("Ingresá los 8 números del PIN.");
- const pending={public_code:c,activation_code:method==="email"?"":pin,activation_method:method,created_at:Date.now()};sessionStorage.setItem(GOOGLE_PENDING_KEY,JSON.stringify(pending));return pending;
+ const pending={public_code:c,activation_code:method==="email"?"":pin,activation_method:method,created_at:Date.now()};(method==="email"?localStorage:sessionStorage).setItem(GOOGLE_PENDING_KEY,JSON.stringify(pending));return pending;
 }
 function pendingGoogleActivation(){
- try{const pending=JSON.parse(sessionStorage.getItem(GOOGLE_PENDING_KEY)||"null");if(!pending||Date.now()-Number(pending.created_at)>15*60*1000){sessionStorage.removeItem(GOOGLE_PENDING_KEY);return null}pending.activation_method=pending.activation_method==="email"?"email":"pin";return pending}catch{sessionStorage.removeItem(GOOGLE_PENDING_KEY);return null}
+ try{const raw=localStorage.getItem(GOOGLE_PENDING_KEY)||sessionStorage.getItem(GOOGLE_PENDING_KEY);const pending=JSON.parse(raw||"null");if(!pending||Date.now()-Number(pending.created_at)>15*60*1000){localStorage.removeItem(GOOGLE_PENDING_KEY);sessionStorage.removeItem(GOOGLE_PENDING_KEY);return null}pending.activation_method=pending.activation_method==="email"?"email":"pin";return pending}catch{localStorage.removeItem(GOOGLE_PENDING_KEY);sessionStorage.removeItem(GOOGLE_PENDING_KEY);return null}
 }
-function clearGoogleActivation(){sessionStorage.removeItem(GOOGLE_PENDING_KEY)}
+function clearGoogleActivation(){localStorage.removeItem(GOOGLE_PENDING_KEY);sessionStorage.removeItem(GOOGLE_PENDING_KEY)}
 async function revealGoogleOptions(){
  if(isiOS()){document.querySelectorAll("[data-google-options]").forEach(el=>el.remove());return}
  try{const r=await fetch(AUTH+"/settings",{headers:{apikey:PUBLISHABLE_KEY}}),settings=r.ok?await r.json():null;if(settings?.external?.google)document.querySelectorAll("[data-google-options]").forEach(el=>el.classList.remove("hidden"))}catch{}
