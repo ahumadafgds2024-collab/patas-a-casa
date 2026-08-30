@@ -375,7 +375,7 @@ function ownerEdit(c,p){
 async function boot(){
  if(!code){home();return}
  root.innerHTML='<section class="card loading">Leyendo chapita…</section>';
- try{const data=await getTag(code);if(data.state==="unactivated"){const emailMode=await emailActivationMode(code).catch(()=>false);if(emailMode)accountSetupForm(code,"","email");else unactivated(code)}else{const lostInfo=await getLostInfo(code).catch(()=>null);active(code,{...data.pet,...(lostInfo||{})})}}
+ try{const data=await getTag(code);if(data.state==="unactivated"){unactivated(code)}else{const lostInfo=await getLostInfo(code).catch(()=>null);active(code,{...data.pet,...(lostInfo||{})})}}
  catch(err){root.innerHTML=`<section class="card"><h2>No pudimos abrir esta chapita</h2><p class="muted">${esc(err.message)}</p></section>`}
 }
 boot();
