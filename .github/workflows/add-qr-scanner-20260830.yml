@@ -22,13 +22,6 @@ jobs:
         run: |
           grep -q 'function openPinClaim' mi-cuenta/index.html
           grep -q 'function openClaim(){openPinClaim()}' mi-cuenta/index.html
-          node --check <(python - <<'PY'
-          import re
-          h=open('mi-cuenta/index.html',encoding='utf-8').read()
-          s='\n'.join(re.findall(r'<script(?![^>]*\\bsrc=)[^>]*>(.*?)</script>',h,re.S|re.I))
-          print(s)
-          PY
-          )
       - name: Commit changes
         run: |
           if git diff --quiet -- mi-cuenta/index.html; then
