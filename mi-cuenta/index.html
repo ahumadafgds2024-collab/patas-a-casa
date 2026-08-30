@@ -334,9 +334,8 @@ function showAuth(message=""){
 function showActivationProfile(c){
  document.getElementById("accountMenuBtn")?.classList.add("hidden");
  document.title="Crear mascota · Patas a Casa";
- root.innerHTML=`<section class="card hero"><div class="kicker">CHAPITA VERIFICADA</div><h1>Creá el perfil de tu mascota.</h1><p class="muted">La chapita ya está validada. Cargá ahora los datos de quien la va a llevar.</p><div class="flow-steps"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span></div></section>
- <section class="card"><div class="note" style="margin-bottom:14px"><b>Chapita ${esc(c)} verificada ✅</b><br>No necesitás volver a ingresar el código ni el PIN.</div>
- <form id="activationProfileForm" method="post">
+ root.innerHTML=`<section class="card hero"><div class="kicker">ÚLTIMO PASO</div><h1>Creá el perfil de tu mascota.</h1><p class="muted">Cargá los datos de tu mascota para terminar de configurar la chapita.</p><div class="flow-steps"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span></div></section>
+ <section class="card"><form id="activationProfileForm" method="post">
   <div class="photo-pick"><div class="photo-prev" id="activationPhotoPreview">🐾</div><div class="photo-info"><b>Foto de tu mascota</b><div class="small muted">Ayuda a reconocerla rápidamente.</div><label class="file-btn">📷 Elegir foto<input id="activationPhoto" type="file" accept="image/jpeg,image/png,image/webp,image/*"></label></div></div>
   <div class="split"><div class="field"><label>Nombre de tu mascota</label><input name="name" placeholder="Rocco" maxlength="80" required></div><div class="field"><label>Especie</label><select name="species"><option>Perro</option><option>Gato</option><option>Otra</option></select></div></div>
   <div class="split"><div class="field"><label>Tu nombre</label><input name="contact_name" placeholder="Nombre del responsable" maxlength="80" required></div><div class="field"><label>WhatsApp / teléfono</label><input name="contact_whatsapp" inputmode="tel" placeholder="+54 9 261..." maxlength="40" required></div></div>
