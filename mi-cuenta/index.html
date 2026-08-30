@@ -148,6 +148,7 @@ const SUPABASE_URL="https://cgciwutqwnssdphugupq.supabase.co";
 const PUBLISHABLE_KEY="sb_publishable_oozsLV8QMoy_ooLIqgh_qg_vvjV6IY5";
 const ACCOUNT_API=SUPABASE_URL+"/functions/v1/patas-account";
 const REGISTER_API=SUPABASE_URL+"/functions/v1/patas-register-v2";
+const EMAIL_ACTIVATION_API=SUPABASE_URL+"/functions/v1/patas-email-activation";
 const LOST_API=SUPABASE_URL+"/functions/v1/patas-lost";
 const AUTH=SUPABASE_URL+"/auth/v1";
 const SESSION_KEY="pac_owner_session_v1";
@@ -220,21 +221,21 @@ function consumeIosSessionBridge(){
  if(getSession())return false;const match=document.cookie.match(new RegExp(`(?:^|;\s*)${IOS_SESSION_BRIDGE_COOKIE}=([^;]+)`));if(!match)return false;
  try{const s=JSON.parse(decodeURIComponent(match[1]));if(!s?.access_token||!s?.refresh_token)return false;setSession(s);clearIosSessionBridge();return true}catch{clearIosSessionBridge();return false}
 }
-function queueGoogleActivation(publicCode,activationCode){
- const c=String(publicCode||"").trim().toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,12),pin=String(activationCode||"").replace(/\D/g,"").slice(0,8);
+function queueGoogleActivation(publicCode,activationCode="",activationMethod="pin"){
+ const c=String(publicCode||"").trim().toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,12),pin=String(activationCode||"").replace(/\D/g,"").slice(0,8),method=activationMethod==="email"?"email":"pin";
  if(!c)throw new Error("Ingresá el código de la chapita.");
- if(!/^\d{8}$/.test(pin))throw new Error("Ingresá los 8 números del PIN.");
- const pending={public_code:c,activation_code:pin,created_at:Date.now()};sessionStorage.setItem(GOOGLE_PENDING_KEY,JSON.stringify(pending));return pending;
+ if(method==="pin"&&!/^\d{8}$/.test(pin))throw new Error("Ingresá los 8 números del PIN.");
+ const pending={public_code:c,activation_code:method==="email"?"":pin,activation_method:method,created_at:Date.now()};sessionStorage.setItem(GOOGLE_PENDING_KEY,JSON.stringify(pending));return pending;
 }
 function pendingGoogleActivation(){
- try{const pending=JSON.parse(sessionStorage.getItem(GOOGLE_PENDING_KEY)||"null");if(!pending||Date.now()-Number(pending.created_at)>15*60*1000){sessionStorage.removeItem(GOOGLE_PENDING_KEY);return null}return pending}catch{sessionStorage.removeItem(GOOGLE_PENDING_KEY);return null}
+ try{const pending=JSON.parse(sessionStorage.getItem(GOOGLE_PENDING_KEY)||"null");if(!pending||Date.now()-Number(pending.created_at)>15*60*1000){sessionStorage.removeItem(GOOGLE_PENDING_KEY);return null}pending.activation_method=pending.activation_method==="email"?"email":"pin";return pending}catch{sessionStorage.removeItem(GOOGLE_PENDING_KEY);return null}
 }
 function clearGoogleActivation(){sessionStorage.removeItem(GOOGLE_PENDING_KEY)}
 async function revealGoogleOptions(){
  try{const r=await fetch(AUTH+"/settings",{headers:{apikey:PUBLISHABLE_KEY}}),settings=r.ok?await r.json():null;if(settings?.external?.google)document.querySelectorAll("[data-google-options]").forEach(el=>el.classList.remove("hidden"))}catch{}
 }
 async function startGoogleSignIn(pending=null){
- if(pending)queueGoogleActivation(pending.public_code,pending.activation_code);
+ if(pending)queueGoogleActivation(pending.public_code,pending.activation_code,pending.activation_method);
  if(!googleAuthClient)throw new Error("No pudimos cargar el ingreso con Google. Revisá tu conexión y volvé a intentar.");
  const {error}=await googleAuthClient.auth.signInWithOAuth({provider:"google",options:{redirectTo:GOOGLE_REDIRECT_URL}});
  if(error)throw error;
@@ -253,6 +254,8 @@ async function login(email,password){const s=await authPost("/token?grant_type=p
 async function refreshSession(){let s=getSession();if(!s?.refresh_token)return null;try{const n=await authPost("/token?grant_type=refresh_token",{refresh_token:s.refresh_token});setSession(n);return n}catch{setSession(null);return null}}
 async function validSession(){let s=getSession();if(!s)return null;const now=Math.floor(Date.now()/1000);if(!s.expires_at||s.expires_at-now<90)s=await refreshSession();return s}
 async function accountPost(data,requiresAuth=true){let s=requiresAuth?await validSession():null;const h={"Content-Type":"application/json","apikey":PUBLISHABLE_KEY};if(s?.access_token)h.Authorization="Bearer "+s.access_token;const r=await fetch(ACCOUNT_API,{method:"POST",headers:h,body:JSON.stringify(data)});const j=await r.json().catch(()=>({}));if(r.status===401&&requiresAuth){setSession(null);showAuth("Tu sesión venció. Volvé a ingresar.");throw new Error("Sesión vencida.")}if(!r.ok)throw new Error(j.error||"Ocurrió un error.");return j}
+async function emailActivationPost(data){let s=await validSession();if(!s)throw new Error("Sesión vencida.");const h={"Content-Type":"application/json","apikey":PUBLISHABLE_KEY,"Authorization":"Bearer "+s.access_token};const r=await fetch(EMAIL_ACTIVATION_API,{method:"POST",headers:h,body:JSON.stringify(data)});const j=await r.json().catch(()=>({}));if(r.status===401){setSession(null);showAuth("Tu sesión venció. Volvé a ingresar.");throw new Error("Sesión vencida.")}if(!r.ok)throw new Error(j.error||"No pudimos preparar la activación.");return j}
+async function prepareQueuedActivation(pending){if(!pending)return null;if(pending.activation_method==="email")return await emailActivationPost({action:"prepare_activation",public_code:pending.public_code});return await accountPost({action:"prepare_activation",public_code:pending.public_code,activation_code:pending.activation_code})}
 async function registerPost(data,requiresAuth=false){let s=requiresAuth?await validSession():null;const h={"Content-Type":"application/json","apikey":PUBLISHABLE_KEY};if(s?.access_token)h.Authorization="Bearer "+s.access_token;const r=await fetch(REGISTER_API,{method:"POST",headers:h,body:JSON.stringify(data)});const j=await r.json().catch(()=>({}));if(r.status===401&&requiresAuth){setSession(null);showAuth("Tu sesión venció. Volvé a ingresar.");throw new Error("Sesión vencida.")}if(!r.ok)throw new Error(j.error||"Ocurrió un error.");return j}
 async function logout(){const s=getSession();try{if(s?.access_token)await authPost("/logout",{},s.access_token)}catch{}setSession(null);pets=[];currentUser=null;showAuth()}
 function openAccountMenu(){
@@ -312,7 +315,7 @@ function showAuth(message=""){
  loginTab.onclick=()=>tab("login");signupTab.onclick=()=>tab("signup");if(pre)tab("signup");
  document.getElementById("googleLogin").addEventListener("click",async e=>{const b=e.currentTarget,bak=b.innerHTML;b.disabled=true;b.textContent="Abriendo Google…";try{await startGoogleSignIn()}catch(err){toast(err.message);b.disabled=false;b.innerHTML=bak}});
  document.getElementById("googleSignup").addEventListener("click",async e=>{const b=e.currentTarget,bak=b.innerHTML,f=new FormData(sf);if(!document.getElementById("legalSignup")?.checked){toast("Aceptá las condiciones de uso y la Política de Privacidad para continuar.");return}localStorage.setItem("pac_legal_consent",JSON.stringify({version:"2026-08-28",accepted_at:new Date().toISOString()}));b.disabled=true;b.textContent="Abriendo Google…";try{await startGoogleSignIn({public_code:f.get("code"),activation_code:f.get("pin")})}catch(err){toast(err.message);b.disabled=false;b.innerHTML=bak}});
- lf.addEventListener("submit",async e=>{e.preventDefault();const b=e.submitter,bak=b.textContent,f=new FormData(e.currentTarget);b.disabled=true;b.textContent="Ingresando…";try{await login(f.get("email"),f.get("password"));let fin=null;try{fin=await registerPost({action:"finalize_registration"},true)}catch(err){console.warn("finalize_registration",err)}if(fin?.profile_required&&fin?.public_code){history.replaceState({},document.title,"/mi-cuenta/?completar="+encodeURIComponent(fin.public_code));showActivationProfile(fin.public_code);return}history.replaceState({},document.title,"/mi-cuenta/");await loadDashboard();if(fin?.linked&&!fin?.already)toast("Correo verificado. Tu mascota ya está vinculada ✅")}catch(err){const m=/email not confirmed/i.test(String(err?.message||""))?"Primero confirmá tu correo desde el enlace que te enviamos.":err.message;toast(m)}finally{b.disabled=false;b.textContent=bak}});
+ lf.addEventListener("submit",async e=>{e.preventDefault();const b=e.submitter,bak=b.textContent,f=new FormData(e.currentTarget);b.disabled=true;b.textContent="Ingresando…";try{await login(f.get("email"),f.get("password"));const queued=pendingGoogleActivation();if(queued){const claim=await prepareQueuedActivation(queued);clearGoogleActivation();if(claim?.profile_required&&claim?.public_code){history.replaceState({},document.title,"/mi-cuenta/?completar="+encodeURIComponent(claim.public_code));showActivationProfile(claim.public_code);return}}let fin=null;try{fin=await registerPost({action:"finalize_registration"},true)}catch(err){console.warn("finalize_registration",err)}if(fin?.profile_required&&fin?.public_code){history.replaceState({},document.title,"/mi-cuenta/?completar="+encodeURIComponent(fin.public_code));showActivationProfile(fin.public_code);return}history.replaceState({},document.title,"/mi-cuenta/");await loadDashboard();if(fin?.linked&&!fin?.already)toast("Correo verificado. Tu mascota ya está vinculada ✅")}catch(err){const m=/email not confirmed/i.test(String(err?.message||""))?"Primero confirmá tu correo desde el enlace que te enviamos.":err.message;toast(m)}finally{b.disabled=false;b.textContent=bak}});
  sf.addEventListener("submit",async e=>{e.preventDefault();const form=e.currentTarget,b=e.submitter,bak=b.textContent,f=new FormData(form),mail=String(f.get("email")).trim().toLowerCase(),pass=String(f.get("password")),tagCode=String(f.get("code")||"").trim().toUpperCase();b.disabled=true;b.textContent="Enviando verificación…";try{localStorage.setItem("pac_legal_consent",JSON.stringify({version:"2026-08-28",accepted_at:new Date().toISOString()}));await registerPost({action:"start_registration",public_code:tagCode,activation_code:f.get("pin"),email:mail,password:pass,legal_consent:true,legal_version:"2026-08-28"},false);form.innerHTML=`<div class="status ok"><b>Revisá tu correo ✅</b><br>Te enviamos un enlace de verificación a ${esc(mail)}.</div><p class="muted small">Abrí el correo y tocá el enlace. Si no lo encontrás en la bandeja de entrada, revisá Spam. Después vas a cargar los datos de la mascota y entrar a Mi cuenta.</p><button class="btn dark wide" type="button" id="goLogin">Ir a ingresar</button>`;document.getElementById("goLogin").onclick=()=>tab("login")}catch(err){toast(err.message)}finally{if(document.body.contains(b)){b.disabled=false;b.textContent=bak}}});
 }
 
@@ -487,7 +490,7 @@ async function boot(){
  }
  const googlePending=pendingGoogleActivation();
  if(googlePending){
-  try{const claim=await accountPost({action:"prepare_activation",public_code:googlePending.public_code,activation_code:googlePending.activation_code});clearGoogleActivation();if(claim?.profile_required){history.replaceState({},document.title,"/mi-cuenta/?completar="+encodeURIComponent(googlePending.public_code));showActivationProfile(googlePending.public_code);return}}
+  try{const claim=await prepareQueuedActivation(googlePending);clearGoogleActivation();if(claim?.profile_required){history.replaceState({},document.title,"/mi-cuenta/?completar="+encodeURIComponent(claim.public_code||googlePending.public_code));showActivationProfile(claim.public_code||googlePending.public_code);return}}
   catch(err){clearGoogleActivation();showAuth(err.message);return}
  }
  let fin=null;try{fin=await registerPost({action:"finalize_registration"},true)}catch(err){console.warn("finalize_registration",err)}
