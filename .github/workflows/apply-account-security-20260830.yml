@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - '.github/workflows/apply-account-security-20260830.yml'
+      - '.github/scripts/apply_account_security_20260830.py'
 
 permissions:
   contents: write
