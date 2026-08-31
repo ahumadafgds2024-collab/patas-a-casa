@@ -17,7 +17,9 @@ jobs:
         with:
           fetch-depth: 0
       - name: Limpiar lector QR y activacion email-only
-        run: python .github/scripts/add_qr_scanner_20260830.py
+        run: |
+          sed -i 's/re.subn(queue_pattern, queue_replacement, account/re.subn(queue_pattern, lambda _m: queue_replacement, account/' .github/scripts/add_qr_scanner_20260830.py
+          python .github/scripts/add_qr_scanner_20260830.py
       - name: Verificar flujo actual
         run: |
           grep -q 'function openClaim(){openPinClaim()}' mi-cuenta/index.html
