@@ -1,0 +1,144 @@
+name: Polish PWA colors and legal routes
+
+on:
+  push:
+    branches:
+      - polish-pwa-colors-legal-routes
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: polish-pwa-colors-legal-routes
+          fetch-depth: 0
+
+      - name: Apply isolated visual and routing fixes
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+
+          # 1) Confirmation screen: align Android/browser chrome and initial background.
+          p = Path('mi-cuenta/confirmar/index.html')
+          text = p.read_text(encoding='utf-8')
+          viewport = '<meta name="viewport" content="width=device-width,initial-scale=1">'
+          if text.count(viewport) != 1:
+              raise SystemExit('Unexpected confirmar viewport markup')
+          text = text.replace(viewport, viewport + '\n<meta name="theme-color" content="#f6f1e9">', 1)
+          old_body = '*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 50% -10%,#fff 0,#f7f7f4 38%,#f2f2ef 100%);color:var(--ink);font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;min-height:100vh}'
+          new_body = '*{box-sizing:border-box}html{background:#f6f1e9}body{margin:0;background:linear-gradient(180deg,#faf7f2 0,#f6f1e9 100%);color:var(--ink);font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;min-height:100vh}'
+          if text.count(old_body) != 1:
+              raise SystemExit('Unexpected confirmar body styles')
+          text = text.replace(old_body, new_body, 1)
+          p.write_text(text, encoding='utf-8')
+
+          # 2) Manifest splash/background: use the same beige as the app.
+          p = Path('mi-cuenta/manifest.webmanifest')
+          manifest = json.loads(p.read_text(encoding='utf-8'))
+          if manifest.get('theme_color') != '#f6f1e9':
+              raise SystemExit('Unexpected manifest theme_color')
+          manifest['background_color'] = '#f6f1e9'
+          p.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+
+          # 3) Keep Privacy / Terms navigation inside the /mi-cuenta/ PWA scope.
+          p = Path('mi-cuenta/index.html')
+          text = p.read_text(encoding='utf-8')
+          if '/terminos.html' not in text or '/privacidad.html' not in text:
+              raise SystemExit('Expected legal links were not found in Mi cuenta')
+          text = text.replace('href="/terminos.html"', 'href="/mi-cuenta/terminos"')
+          text = text.replace('href="/privacidad.html"', 'href="/mi-cuenta/privacidad"')
+          text = text.replace('href="/mi-cuenta/terminos" target="_blank" rel="noopener"', 'href="/mi-cuenta/terminos"')
+          text = text.replace('href="/mi-cuenta/privacidad" target="_blank" rel="noopener"', 'href="/mi-cuenta/privacidad"')
+          p.write_text(text, encoding='utf-8')
+
+          # Keep cross-links inside scope too, while preserving original public URLs via rewrites.
+          p = Path('privacidad.html')
+          text = p.read_text(encoding='utf-8')
+          if 'href="/terminos.html"' not in text:
+              raise SystemExit('Expected privacy -> terms link not found')
+          p.write_text(text.replace('href="/terminos.html"', 'href="/mi-cuenta/terminos"'), encoding='utf-8')
+
+          p = Path('terminos.html')
+          text = p.read_text(encoding='utf-8')
+          if 'href="/privacidad.html"' not in text:
+              raise SystemExit('Expected terms -> privacy link not found')
+          p.write_text(text.replace('href="/privacidad.html"', 'href="/mi-cuenta/privacidad"'), encoding='utf-8')
+
+          p = Path('vercel.json')
+          config = json.loads(p.read_text(encoding='utf-8'))
+          rewrites = config.setdefault('rewrites', [])
+          wanted = [
+              {'source': '/mi-cuenta/privacidad', 'destination': '/privacidad.html'},
+              {'source': '/mi-cuenta/terminos', 'destination': '/terminos.html'},
+          ]
+          existing_sources = {r.get('source') for r in rewrites}
+          for rule in reversed(wanted):
+              if rule['source'] not in existing_sources:
+                  rewrites.insert(0, rule)
+          p.write_text(json.dumps(config, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+          PY
+
+      - name: Validate changes
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+
+          confirm = Path('mi-cuenta/confirmar/index.html').read_text(encoding='utf-8')
+          assert confirm.count('<meta name="theme-color" content="#f6f1e9">') == 1
+          assert 'linear-gradient(180deg,#faf7f2 0,#f6f1e9 100%)' in confirm
+          assert '#f2f2ef 100%' not in confirm
+
+          manifest = json.loads(Path('mi-cuenta/manifest.webmanifest').read_text(encoding='utf-8'))
+          assert manifest['theme_color'] == '#f6f1e9'
+          assert manifest['background_color'] == '#f6f1e9'
+
+          account = Path('mi-cuenta/index.html').read_text(encoding='utf-8')
+          assert 'href="/terminos.html"' not in account
+          assert 'href="/privacidad.html"' not in account
+          assert 'href="/mi-cuenta/terminos"' in account
+          assert 'href="/mi-cuenta/privacidad"' in account
+          assert 'href="/mi-cuenta/terminos" target="_blank"' not in account
+          assert 'href="/mi-cuenta/privacidad" target="_blank"' not in account
+
+          config = json.loads(Path('vercel.json').read_text(encoding='utf-8'))
+          assert {'source': '/mi-cuenta/privacidad', 'destination': '/privacidad.html'} in config['rewrites']
+          assert {'source': '/mi-cuenta/terminos', 'destination': '/terminos.html'} in config['rewrites']
+
+          privacy = Path('privacidad.html').read_text(encoding='utf-8')
+          terms = Path('terminos.html').read_text(encoding='utf-8')
+          assert 'href="/mi-cuenta/terminos"' in privacy
+          assert 'href="/mi-cuenta/privacidad"' in terms
+          PY
+
+          node - <<'NODE'
+          const fs = require('fs');
+          for (const file of ['mi-cuenta/index.html','mi-cuenta/confirmar/index.html']) {
+            const html = fs.readFileSync(file,'utf8');
+            for (const m of html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)) {
+              if (m[1].trim()) new Function(m[1]);
+            }
+          }
+          console.log('Inline JavaScript syntax validated.');
+          NODE
+
+          git diff --check
+          changed="$(git diff --name-only | sort)"
+          expected="$(printf '%s\n' mi-cuenta/confirmar/index.html mi-cuenta/index.html mi-cuenta/manifest.webmanifest privacidad.html terminos.html vercel.json | sort)"
+          test "$changed" = "$expected"
+
+      - name: Commit fixes
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add mi-cuenta/confirmar/index.html mi-cuenta/index.html mi-cuenta/manifest.webmanifest privacidad.html terminos.html vercel.json
+          git commit -m "Unificar colores y rutas legales de la PWA"
+          git push origin HEAD:polish-pwa-colors-legal-routes
