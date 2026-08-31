@@ -36,6 +36,7 @@ Aplicación web para identificación de mascotas mediante chapitas QR, activaci�
 ## Documentación operativa
 
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md): mapa técnico y fuentes de verdad.
+- [`docs/DATABASE.md`](docs/DATABASE.md): tablas, relaciones, datos sensibles, RLS e índices.
 - [`docs/EDGE-FUNCTIONS.md`](docs/EDGE-FUNCTIONS.md): inventario exacto de funciones productivas, drift y endpoints retirados.
 - [`docs/SECURITY.md`](docs/SECURITY.md): modelo de seguridad y hallazgos de auditoría.
 - [`docs/OPERATIONS.md`](docs/OPERATIONS.md): proceso seguro para cambios, despliegues y rollback.
