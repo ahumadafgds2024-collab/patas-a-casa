@@ -19,7 +19,7 @@
   ],
   "rewrites": [
     {
-      "source": "/mi-cuenta/publico/:path*",
+      "source": "/mi-cuenta/publico",
       "destination": "/index.html"
     },
     {
