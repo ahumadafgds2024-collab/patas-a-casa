@@ -149,9 +149,7 @@ const PUBLISHABLE_KEY="sb_publishable_oozsLV8QMoy_ooLIqgh_qg_vvjV6IY5";
 const ACCOUNT_API=SUPABASE_URL+"/functions/v1/patas-account";
 const SECURITY_API=SUPABASE_URL+"/functions/v1/patas-account-security";
 const REGISTER_API=SUPABASE_URL+"/functions/v1/patas-register-v2";
-const EMAIL_ACTIVATION_API=SUPABASE_URL+"/functions/v1/patas-email-activation";
 const LOST_API=SUPABASE_URL+"/functions/v1/patas-lost";
-const TAG_SCAN_API=SUPABASE_URL+"/functions/v1/patas-tag-scan";
 const AUTH=SUPABASE_URL+"/auth/v1";
 const SESSION_KEY="pac_owner_session_v1";
 const GOOGLE_PENDING_KEY="pac_google_activation_v1";
@@ -161,7 +159,7 @@ const IOS_SESSION_BRIDGE_COOKIE="pac_ios_session_bridge";
 const GOOGLE_REDIRECT_URL="https://patas-a-casa.vercel.app/mi-cuenta/?google=1";
 const googleAuthClient=window.supabase?.createClient?window.supabase.createClient(SUPABASE_URL,PUBLISHABLE_KEY,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:true,flowType:"implicit"}}):null;
 const root=document.getElementById("root"),modal=document.getElementById("modal");
-let pets=[],deferredInstall=null,currentUser=null,flyerBlob=null,flyerObjectUrl=null,flyerFileName="",tagScanner=null,tagScanLocked=false,qrScannerLibPromise=null;
+let pets=[],deferredInstall=null,currentUser=null,flyerBlob=null,flyerObjectUrl=null,flyerFileName="";
 
 const esc=(v="")=>String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
 function uiIcon(name){
@@ -224,14 +222,14 @@ function consumeIosSessionBridge(){
  if(getSession())return false;const match=document.cookie.match(new RegExp(`(?:^|;\s*)${IOS_SESSION_BRIDGE_COOKIE}=([^;]+)`));if(!match)return false;
  try{const s=JSON.parse(decodeURIComponent(match[1]));if(!s?.access_token||!s?.refresh_token)return false;setSession(s);clearIosSessionBridge();return true}catch{clearIosSessionBridge();return false}
 }
-function queueGoogleActivation(publicCode,activationCode="",activationMethod="pin"){
- const c=String(publicCode||"").trim().toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,12),pin=String(activationCode||"").replace(/\D/g,"").slice(0,8),method=activationMethod==="email"?"email":"pin";
+function queueGoogleActivation(publicCode,activationCode=""){
+ const c=String(publicCode||"").trim().toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,12),pin=String(activationCode||"").replace(/\D/g,"").slice(0,8);
  if(!c)throw new Error("Ingresá el código de la chapita.");
- if(method==="pin"&&!/^\d{8}$/.test(pin))throw new Error("Ingresá los 8 números del PIN.");
- const pending={public_code:c,activation_code:method==="email"?"":pin,activation_method:method,created_at:Date.now()};(method==="email"?localStorage:sessionStorage).setItem(GOOGLE_PENDING_KEY,JSON.stringify(pending));return pending;
+ if(!/^\d{8}$/.test(pin))throw new Error("Ingresá los 8 números del PIN.");
+ const pending={public_code:c,activation_code:pin,created_at:Date.now()};sessionStorage.setItem(GOOGLE_PENDING_KEY,JSON.stringify(pending));return pending;
 }
 function pendingGoogleActivation(){
- try{const raw=localStorage.getItem(GOOGLE_PENDING_KEY)||sessionStorage.getItem(GOOGLE_PENDING_KEY);const pending=JSON.parse(raw||"null");if(!pending||Date.now()-Number(pending.created_at)>15*60*1000){localStorage.removeItem(GOOGLE_PENDING_KEY);sessionStorage.removeItem(GOOGLE_PENDING_KEY);return null}pending.activation_method=pending.activation_method==="email"?"email":"pin";return pending}catch{localStorage.removeItem(GOOGLE_PENDING_KEY);sessionStorage.removeItem(GOOGLE_PENDING_KEY);return null}
+ try{localStorage.removeItem(GOOGLE_PENDING_KEY);const raw=sessionStorage.getItem(GOOGLE_PENDING_KEY);const pending=JSON.parse(raw||"null");if(!pending||Date.now()-Number(pending.created_at)>15*60*1000){sessionStorage.removeItem(GOOGLE_PENDING_KEY);return null}return pending}catch{sessionStorage.removeItem(GOOGLE_PENDING_KEY);return null}
 }
 function clearGoogleActivation(){localStorage.removeItem(GOOGLE_PENDING_KEY);sessionStorage.removeItem(GOOGLE_PENDING_KEY)}
 async function revealGoogleOptions(){
@@ -239,7 +237,7 @@ async function revealGoogleOptions(){
  try{const r=await fetch(AUTH+"/settings",{headers:{apikey:PUBLISHABLE_KEY}}),settings=r.ok?await r.json():null;if(settings?.external?.google)document.querySelectorAll("[data-google-options]").forEach(el=>el.classList.remove("hidden"))}catch{}
 }
 async function startGoogleSignIn(pending=null){
- if(pending)queueGoogleActivation(pending.public_code,pending.activation_code,pending.activation_method);
+ if(pending)queueGoogleActivation(pending.public_code,pending.activation_code);
  if(!googleAuthClient)throw new Error("No pudimos cargar el ingreso con Google. Revisá tu conexión y volvé a intentar.");
  const {error}=await googleAuthClient.auth.signInWithOAuth({provider:"google",options:{redirectTo:GOOGLE_REDIRECT_URL}});
  if(error)throw error;
@@ -260,92 +258,9 @@ async function validSession(){let s=getSession();if(!s)return null;const now=Mat
 async function accountPost(data,requiresAuth=true){let s=requiresAuth?await validSession():null;const h={"Content-Type":"application/json","apikey":PUBLISHABLE_KEY};if(s?.access_token)h.Authorization="Bearer "+s.access_token;const r=await fetch(ACCOUNT_API,{method:"POST",headers:h,body:JSON.stringify(data)});const j=await r.json().catch(()=>({}));if(r.status===401&&requiresAuth){setSession(null);showAuth("Tu sesión venció. Volvé a ingresar.");throw new Error("Sesión vencida.")}if(!r.ok)throw new Error(j.error||"Ocurrió un error.");return j}
 async function securityPost(data){let s=await validSession();if(!s)throw new Error("Sesión vencida.");const h={"Content-Type":"application/json","apikey":PUBLISHABLE_KEY,"Authorization":"Bearer "+s.access_token};const r=await fetch(SECURITY_API,{method:"POST",headers:h,body:JSON.stringify(data)});const j=await r.json().catch(()=>({}));if(r.status===401){setSession(null);showAuth("Tu sesión venció. Volvé a ingresar.");throw new Error("Sesión vencida.")}if(!r.ok)throw new Error(j.error||"No pudimos completar esta acción.");return j}
 async function updateAccountPassword(password){let s=await validSession();if(!s)throw new Error("Sesión vencida.");const r=await fetch(AUTH+"/user",{method:"PUT",headers:{"Content-Type":"application/json",apikey:PUBLISHABLE_KEY,Authorization:"Bearer "+s.access_token},body:JSON.stringify({password})});const j=await r.json().catch(()=>({}));if(r.status===401){setSession(null);showAuth("Tu sesión venció. Volvé a ingresar.");throw new Error("Sesión vencida.")}if(!r.ok)throw new Error(j.msg||j.error_description||j.error||"No pudimos guardar la contraseña.");return j}
-async function emailActivationPost(data){let s=await validSession();if(!s)throw new Error("Sesión vencida.");const h={"Content-Type":"application/json","apikey":PUBLISHABLE_KEY,"Authorization":"Bearer "+s.access_token};const r=await fetch(EMAIL_ACTIVATION_API,{method:"POST",headers:h,body:JSON.stringify(data)});const j=await r.json().catch(()=>({}));if(r.status===401){setSession(null);showAuth("Tu sesión venció. Volvé a ingresar.");throw new Error("Sesión vencida.")}if(!r.ok)throw new Error(j.error||"No pudimos preparar la activación.");return j}
-async function tagScanPost(scan){let s=await validSession();if(!s)throw new Error("Sesión vencida.");const h={"Content-Type":"application/json","apikey":PUBLISHABLE_KEY,"Authorization":"Bearer "+s.access_token};const r=await fetch(TAG_SCAN_API,{method:"POST",headers:h,body:JSON.stringify({scan})});const j=await r.json().catch(()=>({}));if(r.status===401){setSession(null);showAuth("Tu sesión venció. Volvé a ingresar.");throw new Error("Sesión vencida.")}if(!r.ok)throw new Error(j.error||"No pudimos leer esa chapita.");return j}
-function loadQrScannerLibrary(){
- if(window.Html5Qrcode)return Promise.resolve(window.Html5Qrcode);
- if(qrScannerLibPromise)return qrScannerLibPromise;
- const sources=["https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js","https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"];
- qrScannerLibPromise=new Promise((resolve,reject)=>{let i=0;const next=()=>{if(i>=sources.length){reject(new Error("No pudimos cargar el lector QR."));return}const s=document.createElement("script");s.src=sources[i++];s.async=true;s.onload=()=>window.Html5Qrcode?resolve(window.Html5Qrcode):next();s.onerror=()=>next();document.head.appendChild(s)};next()});
- return qrScannerLibPromise;
-}
-async function stopTagScanner(){const sc=tagScanner;tagScanner=null;tagScanLocked=false;if(!sc)return;try{await sc.stop()}catch{}try{sc.clear()}catch{}}
-async function finishScannedTag(decodedText){
- if(tagScanLocked)return;tagScanLocked=true;
- try{
-  const info=await tagScanPost(decodedText);await stopTagScanner();
-  if(info.state==="already_mine"){closeModal();toast("Esta chapita ya está en tu cuenta ✅");return}
-  if(info.state==="owned_by_other"){openModal(`<div class="sheethead"><div><div class="kicker">CHAPITA EN USO</div><h2>Esta chapita ya tiene responsable</h2></div><button class="x" onclick="closeModal()">×</button></div><p class="muted">No se puede agregar a otra cuenta.</p><button class="btn soft wide" onclick="closeModal()">Entendido</button>`);return}
-  if(info.activation_method==="pin"){
-   openPinClaim(info.public_code);return
-  }
-  if(info.state!=="fresh"){openModal(`<div class="sheethead"><h2>No podemos agregar esta chapita</h2><button class="x" onclick="closeModal()">×</button></div><p class="muted">La chapita ya fue activada o tiene un estado que necesita revisión.</p><button class="btn soft wide" onclick="closeModal()">Cerrar</button>`);return}
-  const result=await emailActivationPost({action:"prepare_activation",public_code:info.public_code});closeModal();
-  if(result?.profile_required){history.replaceState({},document.title,"/mi-cuenta/?completar="+encodeURIComponent(result.public_code||info.public_code));showActivationProfile(result.public_code||info.public_code);return}
-  await loadDashboard();toast("Chapita agregada ✅")
- }catch(err){await stopTagScanner();openModal(`<div class="sheethead"><div><div class="kicker">NO PUDIMOS LEERLA</div><h2>Probá nuevamente</h2></div><button class="x" onclick="closeModal()">×</button></div><div class="status err">${esc(err.message)}</div><button class="btn primary wide" style="margin-top:12px" onclick="openQrScanner()">Volver a escanear</button><button class="btn soft wide" style="margin-top:9px" onclick="openPinClaim()">Mi chapita vino con PIN</button>`)}
-}
-function qrCameraErrorText(err){
- const text=String(err?.name||"")+" "+String(err?.message||err||"");
- if(/NotAllowedError|Permission denied|Permission dismissed|denied/i.test(text))return "Patas a Casa no tiene permiso para usar la cámara. Permití el acceso a la cámara y tocá Reintentar.";
- if(/NotReadableError|Could not start video source|TrackStartError/i.test(text))return "Android no pudo iniciar la cámara. Cerrá cualquier app que pueda estar usándola y probá nuevamente.";
- if(/NotFoundError|DevicesNotFoundError/i.test(text))return "No encontramos una cámara disponible en este dispositivo.";
- if(/OverconstrainedError|ConstraintNotSatisfiedError/i.test(text))return "No pudimos seleccionar la cámara trasera automáticamente.";
- if(/cargar el lector QR/i.test(text))return "No pudimos cargar el lector QR. Revisá la conexión y probá nuevamente.";
- return "No pudimos abrir la cámara en vivo. Podés reintentar o sacar una foto del QR.";
-}
-async function startTagCamera(){
- const config={fps:10,qrbox:{width:220,height:220},aspectRatio:1};
- const ok=txt=>finishScannedTag(txt),miss=()=>{};
- tagScanner=new Html5Qrcode("qrReader");tagScanLocked=false;
- try{await tagScanner.start({facingMode:"environment"},config,ok,miss);return}
- catch(firstErr){
-  await stopTagScanner();
-  try{
-   const cameras=await Html5Qrcode.getCameras();
-   if(!cameras?.length)throw firstErr;
-   const rear=cameras.find(c=>/back|rear|environment|trasera|posterior/i.test(String(c.label||"")))||cameras[cameras.length-1];
-   tagScanner=new Html5Qrcode("qrReader");tagScanLocked=false;
-   await tagScanner.start(rear.id,config,ok,miss);return
-  }catch(secondErr){await stopTagScanner();throw(secondErr||firstErr)}
- }
-}
-async function scanQrPhoto(input){
- const file=input?.files?.[0];if(!file)return;
- const st=document.getElementById("qrReaderStatus");if(st)st.textContent="Leyendo foto…";
- try{
-  await stopTagScanner();await loadQrScannerLibrary();
-  if(!document.getElementById("qrReader"))return;
-  tagScanner=new Html5Qrcode("qrReader");tagScanLocked=false;
-  const decoded=await tagScanner.scanFile(file,false);
-  await finishScannedTag(decoded)
- }catch(err){
-  await stopTagScanner();
-  const status=document.getElementById("qrReaderStatus");if(status)status.innerHTML=`<span style="color:#a93442">No pudimos encontrar un QR en esa foto. Acercate un poco más y probá otra vez.</span>`;
-  if(input)input.value=""
- }
-}
-async function openQrScanner(){
- await stopTagScanner();
- openModal(`<div class="sheethead"><div><div class="kicker">AGREGAR CHAPITA</div><h2>Escaneá el QR</h2></div><button class="x" onclick="closeModal()">×</button></div><p class="muted small">Apuntá la cámara al QR que está detrás de la chapita.</p><div id="qrReader" style="width:100%;min-height:260px;border-radius:18px;overflow:hidden;background:#111"></div><div id="qrReaderStatus" class="small muted" style="margin-top:10px">Preparando cámara…</div><input id="qrPhotoInput" type="file" accept="image/*" capture="environment" hidden><div id="qrCameraFallback" class="hidden" style="margin-top:12px"><button class="btn primary wide" type="button" id="qrRetryCamera">Reintentar cámara</button><button class="btn soft wide" type="button" id="qrTakePhoto" style="margin-top:9px">📷 Sacar foto del QR</button></div><button class="btn soft wide" type="button" style="margin-top:12px" onclick="openPinClaim()">¿Tu chapita vino con PIN?</button>`);
- const photo=document.getElementById("qrPhotoInput"),take=document.getElementById("qrTakePhoto"),retry=document.getElementById("qrRetryCamera");
- if(photo)photo.addEventListener("change",()=>scanQrPhoto(photo));
- if(take)take.addEventListener("click",()=>photo?.click());
- if(retry)retry.addEventListener("click",()=>openQrScanner());
- try{
-  await loadQrScannerLibrary();if(!document.getElementById("qrReader"))return;
-  await startTagCamera();const st=document.getElementById("qrReaderStatus");if(st)st.textContent="Buscando QR…"
- }catch(err){
-  await stopTagScanner();
-  const reader=document.getElementById("qrReader");if(reader){reader.style.display="none";reader.style.minHeight="0"}
-  const st=document.getElementById("qrReaderStatus");if(st)st.innerHTML=`<span style="color:#a93442">${esc(qrCameraErrorText(err))}</span>`;
-  document.getElementById("qrCameraFallback")?.classList.remove("hidden")
- }
-}
-
 function openClaim(){openPinClaim()}
 
-async function prepareQueuedActivation(pending){if(!pending)return null;if(pending.activation_method==="email")return await emailActivationPost({action:"prepare_activation",public_code:pending.public_code});return await accountPost({action:"prepare_activation",public_code:pending.public_code,activation_code:pending.activation_code})}
+async function prepareQueuedActivation(pending){if(!pending)return null;return await accountPost({action:"prepare_activation",public_code:pending.public_code,activation_code:pending.activation_code})}
 async function registerPost(data,requiresAuth=false){let s=requiresAuth?await validSession():null;const h={"Content-Type":"application/json","apikey":PUBLISHABLE_KEY};if(s?.access_token)h.Authorization="Bearer "+s.access_token;const r=await fetch(REGISTER_API,{method:"POST",headers:h,body:JSON.stringify(data)});const j=await r.json().catch(()=>({}));if(r.status===401&&requiresAuth){setSession(null);showAuth("Tu sesión venció. Volvé a ingresar.");throw new Error("Sesión vencida.")}if(!r.ok)throw new Error(j.error||"Ocurrió un error.");return j}
 async function logout(){const s=getSession();try{if(s?.access_token)await authPost("/logout",{},s.access_token)}catch{}setSession(null);pets=[];currentUser=null;showAuth()}
 async function maybeOfferGooglePasswordBackup(){
@@ -365,7 +280,7 @@ function openDeleteAccount(){
  document.getElementById("deleteAccountConfirm").addEventListener("click",async e=>{const word=String(document.getElementById("deleteAccountWord")?.value||"").trim().toUpperCase();if(word!=="ELIMINAR"){toast("Escribí ELIMINAR para confirmar.");return}const b=e.currentTarget,bak=b.textContent;b.disabled=true;b.textContent="Eliminando…";try{await securityPost({action:"delete_account"});setSession(null);pets=[];currentUser=null;closeModal();showAuth();toast("Tu cuenta fue eliminada ✅")}catch(err){toast(err.message);b.disabled=false;b.textContent=bak}});
 }
 function openModal(content){modal.innerHTML=`<div class="sheet">${content}</div>`;modal.classList.remove("hidden");modal.addEventListener("click",e=>{if(e.target===modal)closeModal()},{once:true})}
-function closeModal(){stopTagScanner();if(flyerObjectUrl){URL.revokeObjectURL(flyerObjectUrl);flyerObjectUrl=null}flyerBlob=null;flyerFileName="";modal.classList.add("hidden");modal.innerHTML=""}
+function closeModal(){if(flyerObjectUrl){URL.revokeObjectURL(flyerObjectUrl);flyerObjectUrl=null}flyerBlob=null;flyerFileName="";modal.classList.add("hidden");modal.innerHTML=""}
 function isStandalone(){return window.matchMedia("(display-mode: standalone)").matches||window.navigator.standalone===true}
 function isiOS(){return /iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1)}
 window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;const b=document.getElementById("installBtn");if(b&&!isStandalone())b.classList.remove("hidden")});

@@ -95,7 +95,6 @@ const SUPABASE_URL="https://cgciwutqwnssdphugupq.supabase.co";
 const PUBLISHABLE_KEY="sb_publishable_oozsLV8QMoy_ooLIqgh_qg_vvjV6IY5";
 const API="https://cgciwutqwnssdphugupq.supabase.co/functions/v1/patas-api";
 const REGISTER_API=SUPABASE_URL+"/functions/v1/patas-register-v2";
-const EMAIL_ACTIVATION_API=SUPABASE_URL+"/functions/v1/patas-email-activation";
 const LOST_API="https://cgciwutqwnssdphugupq.supabase.co/functions/v1/patas-lost";
 const GOOGLE_PENDING_KEY="pac_google_activation_v1";
 const root=document.getElementById("root");
@@ -203,8 +202,6 @@ async function getTag(c){const r=await fetch(API+"?action=tag&code="+encodeURICo
 async function getLostInfo(c){const r=await fetch(LOST_API+"?code="+encodeURIComponent(c),{cache:"no-store"});const j=await r.json();if(!r.ok)throw new Error(j.error||"No pudimos cargar los datos de pérdida");return j}
 async function post(data){const r=await fetch(API,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});const j=await r.json();if(!r.ok)throw new Error(j.error||"Ocurrió un error");return j}
 async function registerPost(data){const r=await fetch(REGISTER_API,{method:"POST",headers:{"Content-Type":"application/json","apikey":PUBLISHABLE_KEY},body:JSON.stringify(data)});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||"No pudimos configurar el correo");return j}
-async function emailActivationPost(data){const r=await fetch(EMAIL_ACTIVATION_API,{method:"POST",headers:{"Content-Type":"application/json","apikey":PUBLISHABLE_KEY},body:JSON.stringify(data)});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||"No pudimos preparar la activación");return j}
-async function emailActivationMode(c){const r=await fetch(EMAIL_ACTIVATION_API+"?action=mode&code="+encodeURIComponent(c),{headers:{apikey:PUBLISHABLE_KEY},cache:"no-store"});if(!r.ok)throw new Error("No pudimos comprobar el método de activación");const j=await r.json();return j?.email_activation===true}
 
 function home(){
  document.title="Patas a Casa";
@@ -233,21 +230,19 @@ function unactivated(c){
  });
 }
 
-function accountSetupForm(c,pin,method="pin"){
- const emailMode=method==="email";
+function accountSetupForm(c,pin){
  root.innerHTML=`<section class="card hero">
    <div class="kicker">ACTIVAR CHAPITA</div>
    <h1>Activá tu chapita.</h1>
-   <p class="muted">${emailMode?"Creá una cuenta o ingresá con la que ya tenés. Después vas a cargar los datos de tu mascota.":"Antes de crear el perfil, elegí el correo y la contraseña con los que vas a administrarlo."}</p>
+   <p class="muted">Antes de crear el perfil, elegí el correo y la contraseña con los que vas a administrarlo.</p>
    <div class="stepbar"><div class="step on"></div><div class="step on"></div><div class="step"></div><div class="step"></div></div>
  </section>
  <section class="card">
-   <div class="note" style="margin-bottom:14px">${emailMode?`<b>Tu chapita está lista ✅</b><br>Creá una cuenta o ingresá a la que ya tenés para continuar.`:`<b>Chapita ${esc(c)} verificada ✅</b><br>No tenés que ingresar el código ni el PIN otra vez.`}</div>
+   <div class="note" style="margin-bottom:14px"><b>Chapita ${esc(c)} verificada ✅</b><br>No tenés que ingresar el código ni el PIN otra vez.</div>
    <div class="hidden" id="googleActivationOptions">
     <button class="btn google" id="googleActivation" type="button"><span class="google-mark" aria-hidden="true">G</span>Continuar con Google</button>
     <div class="auth-divider">o</div>
    </div>
-   ${emailMode?`<button class="btn soft" id="existingActivationAccount" type="button" style="margin-bottom:10px">Ya tengo cuenta</button><div class="auth-divider">o creá una cuenta nueva</div>`:""}
    <form id="accountSetup" method="post">
      <div class="field"><label>Email</label><input name="email" type="email" autocomplete="email" placeholder="tu@email.com" maxlength="254" required></div>
      <div class="field"><label>Elegí una contraseña</label><div class="password-wrap"><input id="activationPassword" name="password" type="password" autocomplete="new-password" minlength="8" required><button class="password-toggle" type="button" data-password-toggle="activationPassword" aria-label="Mostrar contraseña" aria-pressed="false">👁</button></div><div class="small muted" style="margin-top:6px">Mínimo 8 caracteres.</div></div>
@@ -261,15 +256,14 @@ function accountSetupForm(c,pin,method="pin"){
  document.getElementById("googleActivation")?.addEventListener("click",()=>{
    if(!document.getElementById("legalActivation")?.checked){toast("Aceptá las condiciones de uso y la Política de Privacidad para continuar.");return}
    localStorage.setItem("pac_legal_consent",JSON.stringify({version:"2026-08-28",accepted_at:new Date().toISOString()}));
-   (emailMode?localStorage:sessionStorage).setItem(GOOGLE_PENDING_KEY,JSON.stringify({public_code:c,activation_code:emailMode?"":pin,activation_method:emailMode?"email":"pin",created_at:Date.now()}));
+   sessionStorage.setItem(GOOGLE_PENDING_KEY,JSON.stringify({public_code:c,activation_code:pin,created_at:Date.now()}));
    location.assign("/mi-cuenta/?google=1");
  });
- document.getElementById("existingActivationAccount")?.addEventListener("click",()=>{localStorage.setItem(GOOGLE_PENDING_KEY,JSON.stringify({public_code:c,activation_code:"",activation_method:"email",created_at:Date.now()}));location.assign("/mi-cuenta/")});
  document.getElementById("accountSetup").addEventListener("submit",async e=>{
    e.preventDefault();const f=new FormData(e.currentTarget),mail=String(f.get("email")||"").trim().toLowerCase(),password=String(f.get("password")||""),button=document.getElementById("accountContinue");
    if(password.length<8){toast("La contraseña tiene que tener al menos 8 caracteres.");return}
    button.disabled=true;button.textContent="Enviando verificación…";
-   try{localStorage.setItem("pac_legal_consent",JSON.stringify({version:"2026-08-28",accepted_at:new Date().toISOString()}));const payload={action:"start_registration",public_code:c,email:mail,password,legal_consent:true,legal_version:"2026-08-28"};if(emailMode)await emailActivationPost(payload);else await registerPost({...payload,activation_code:pin});activationComplete(mail)}
+   try{localStorage.setItem("pac_legal_consent",JSON.stringify({version:"2026-08-28",accepted_at:new Date().toISOString()}));const payload={action:"start_registration",public_code:c,email:mail,password,legal_consent:true,legal_version:"2026-08-28"};await registerPost({...payload,activation_code:pin});activationComplete(mail)}
    catch(err){toast(err.message);button.disabled=false;button.textContent="Crear cuenta y verificar correo"}
  });
 }
