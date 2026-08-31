@@ -326,7 +326,7 @@ function showAuth(message=""){
   </div>
   <div class="field"><label>Email</label><input name="email" type="email" autocomplete="email" required></div>
   <div class="field"><label>Elegí una contraseña</label><div class="password-wrap"><input id="signupPassword" name="password" type="password" autocomplete="new-password" minlength="8" required><button class="password-toggle" type="button" data-password-toggle="signupPassword" aria-label="Mostrar contraseña" aria-pressed="false">👁</button></div><div class="small muted" style="margin-top:6px">Mínimo 8 caracteres.</div></div>
-  <label class="check"><input id="legalSignup" type="checkbox" required><div><b>Acepto las condiciones de uso y la privacidad</b><div class="small muted">Al crear la cuenta aceptás las <a href="/terminos.html" target="_blank" rel="noopener" style="font-weight:900;color:#171719">Condiciones de uso</a> y consentís el tratamiento de tus datos según la <a href="/privacidad.html" target="_blank" rel="noopener" style="font-weight:900;color:#171719">Política de Privacidad</a>.</div></div></label>
+  <label class="check"><input id="legalSignup" type="checkbox" required><div><b>Acepto las condiciones de uso y la privacidad</b><div class="small muted">Al crear la cuenta aceptás las <a href="/mi-cuenta/terminos" style="font-weight:900;color:#171719">Condiciones de uso</a> y consentís el tratamiento de tus datos según la <a href="/mi-cuenta/privacidad" style="font-weight:900;color:#171719">Política de Privacidad</a>.</div></div></label>
   <button class="btn primary wide" type="submit">Crear cuenta y verificar email</button>
  </form></section>`;
  const loginTab=document.getElementById("loginTab"),signupTab=document.getElementById("signupTab"),lf=document.getElementById("loginForm"),sf=document.getElementById("signupForm");
@@ -387,7 +387,7 @@ function renderDashboard(){
  <section class="community-card"><a class="community-link" href="/mi-cuenta/perdidas/">${uiIcon("users")}<span>Mascotas perdidas</span><span class="community-arrow" aria-hidden="true">→</span></a></section>
  <section class="card pets-card"><h2>Mis mascotas</h2><div class="pets">${pets.length?pets.map(petCard).join(""):`<div class="empty">Todavía no hay mascotas vinculadas.<br><button class="btn primary" style="margin-top:12px" onclick="openClaim()">${uiIcon("plus")} Agregar mi chapita</button></div>`}</div></section>
  ${quickAccess}
- <div class="small muted" style="text-align:center;padding:8px 4px 2px"><a href="/privacidad.html" style="color:inherit;font-weight:850">Privacidad</a> · <a href="/terminos.html" style="color:inherit;font-weight:850">Condiciones de uso</a></div>`;
+ <div class="small muted" style="text-align:center;padding:8px 4px 2px"><a href="/mi-cuenta/privacidad" style="color:inherit;font-weight:850">Privacidad</a> · <a href="/mi-cuenta/terminos" style="color:inherit;font-weight:850">Condiciones de uso</a></div>`;
 }
 async function resolveTagCodeByPin(pin){
  const digits=String(pin||"").replace(/\D/g,"").slice(0,8);

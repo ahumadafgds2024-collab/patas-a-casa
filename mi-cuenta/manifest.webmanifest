@@ -7,7 +7,7 @@
   "start_url": "/mi-cuenta/",
   "scope": "/mi-cuenta/",
   "display": "standalone",
-  "background_color": "#f4f4f1",
+  "background_color": "#f6f1e9",
   "theme_color": "#f6f1e9",
   "prefer_related_applications": false,
   "icons": [
