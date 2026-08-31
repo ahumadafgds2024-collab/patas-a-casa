@@ -19,6 +19,10 @@
   ],
   "rewrites": [
     {
+      "source": "/mi-cuenta/publico",
+      "destination": "/index.html"
+    },
+    {
       "source": "/gestion-chapitas",
       "destination": "/gestion-chapitas.html"
     }
