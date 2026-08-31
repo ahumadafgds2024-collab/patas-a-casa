@@ -36,9 +36,11 @@ Aplicación web para identificación de mascotas mediante chapitas QR, activaci�
 ## Documentación operativa
 
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md): mapa técnico y fuentes de verdad.
+- [`docs/EDGE-FUNCTIONS.md`](docs/EDGE-FUNCTIONS.md): inventario exacto de funciones productivas, drift y endpoints retirados.
 - [`docs/SECURITY.md`](docs/SECURITY.md): modelo de seguridad y hallazgos de auditoría.
 - [`docs/OPERATIONS.md`](docs/OPERATIONS.md): proceso seguro para cambios, despliegues y rollback.
 - [`docs/AUDIT-2026-08-31.md`](docs/AUDIT-2026-08-31.md): auditoría y prioridades de saneamiento.
+- [`.github/WORKFLOWS.md`](.github/WORKFLOWS.md): clasificación y política de GitHub Actions.
 
 ## Regla de oro
 
