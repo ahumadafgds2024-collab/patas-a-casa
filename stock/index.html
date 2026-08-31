@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#173c5b">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Stock Patas">
+  <meta name="format-detection" content="telephone=no">
+  <title>Stock · Patas a Casa</title>
+  <link rel="manifest" href="/stock/manifest.webmanifest">
+  <style>
+    :root{--navy:#173c5b;--orange:#ed8a3b;--bg:#f7f9fb;--card:#fff;--text:#17324a;--muted:#6b7f90;--line:#e2e8ed;--danger:#b63d3d;--ok:#2b7a58;--shadow:0 8px 28px rgba(23,60,91,.08)}
+    *{box-sizing:border-box}html{-webkit-text-size-adjust:100%;background:var(--bg)}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:var(--text);background:var(--bg);min-height:100%}
+    button,input,select{font:inherit}button{touch-action:manipulation}.app{max-width:760px;margin:0 auto;padding:calc(18px + env(safe-area-inset-top)) 16px calc(32px + env(safe-area-inset-bottom))}
+    .head{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:18px}.brand h1{font-size:25px;line-height:1.1;margin:0;color:var(--navy)}.brand p{margin:5px 0 0;color:var(--muted);font-size:14px}.badge{background:#fff1e6;color:#a85212;border:1px solid #f5d6bd;border-radius:999px;padding:7px 10px;font-size:12px;font-weight:800;white-space:nowrap}
+    .summary{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:16px}.sum{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:12px;box-shadow:var(--shadow)}.sum small{display:block;color:var(--muted);font-size:11px;margin-bottom:4px}.sum strong{font-size:25px;color:var(--navy)}
+    .tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}.tab{min-height:46px;border:1px solid var(--line);background:#fff;border-radius:13px;color:var(--navy);font-weight:800}.tab.active{background:var(--navy);border-color:var(--navy);color:#fff}
+    .section{background:var(--card);border:1px solid var(--line);border-radius:17px;overflow:hidden;box-shadow:var(--shadow)}.section-title{padding:15px 16px 12px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:12px}.section-title h2{margin:0;font-size:16px}.section-title span{font-size:12px;color:var(--muted)}
+    .row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;padding:13px 14px;border-bottom:1px solid var(--line)}.row:last-child{border-bottom:0}.color-info{min-width:0;display:flex;align-items:center;gap:11px}.dot{width:30px;height:30px;border-radius:50%;border:1px solid rgba(0,0,0,.12);flex:0 0 auto}.name{font-weight:800;font-size:16px;text-transform:capitalize}.state{font-size:12px;color:var(--muted);margin-top:2px}.state.low{color:#ad651d;font-weight:700}.state.zero{color:var(--danger);font-weight:700}
+    .controls{display:flex;align-items:center;gap:7px}.qty{min-width:38px;text-align:center;font-size:21px;font-weight:900;color:var(--navy);font-variant-numeric:tabular-nums}.btn{width:43px;height:43px;border-radius:12px;border:1px solid var(--line);background:#fff;color:var(--navy);font-size:22px;font-weight:900}.btn.plus{background:#e9f3f8;border-color:#cfe0e9}.btn:active{transform:scale(.96)}
+    .actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}.action{min-height:46px;border-radius:13px;border:1px solid var(--line);background:#fff;color:var(--navy);font-weight:800}.action.primary{background:var(--orange);border-color:var(--orange);color:#fff}.note{margin:14px 4px 0;font-size:12px;line-height:1.45;color:var(--muted);text-align:center}.toast{position:sticky;bottom:10px;margin:14px auto 0;width:max-content;max-width:calc(100% - 20px);background:var(--navy);color:#fff;border-radius:999px;padding:9px 14px;font-size:13px;font-weight:700;opacity:0;transform:translateY(6px);pointer-events:none;transition:.18s}.toast.show{opacity:1;transform:none}
+    dialog{border:0;border-radius:18px;padding:0;width:min(92vw,420px);box-shadow:0 20px 70px rgba(0,0,0,.25)}dialog::backdrop{background:rgba(10,24,36,.45)}.modal{padding:20px}.modal h3{margin:0 0 8px}.modal p{color:var(--muted);font-size:14px;line-height:1.45}.modal-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}.danger{background:#fff;border:1px solid #e7bcbc;color:var(--danger);min-height:44px;border-radius:12px;font-weight:800}.cancel{background:var(--navy);border:1px solid var(--navy);color:#fff;min-height:44px;border-radius:12px;font-weight:800}
+    @media(max-width:390px){.app{padding-left:12px;padding-right:12px}.brand h1{font-size:22px}.summary{gap:6px}.sum{padding:10px 8px}.sum strong{font-size:22px}.row{padding:12px 10px;gap:7px}.dot{width:26px;height:26px}.controls{gap:4px}.btn{width:39px;height:41px}.qty{min-width:32px}.name{font-size:15px}}
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="head">
+      <div class="brand"><h1>Stock · Patas a Casa</h1><p>Control rápido de chapitas</p></div>
+      <div class="badge">Guardado automático</div>
+    </header>
+
+    <section class="summary" aria-label="Resumen de stock">
+      <div class="sum"><small>Total</small><strong id="total">0</strong></div>
+      <div class="sum"><small>Stock bajo</small><strong id="low">0</strong></div>
+      <div class="sum"><small>Sin stock</small><strong id="zero">0</strong></div>
+    </section>
+
+    <nav class="tabs" aria-label="Tipo de chapita">
+      <button class="tab active" type="button" data-type="grande">Grandes</button>
+      <button class="tab" type="button" data-type="chica">Chicas</button>
+      <button class="tab" type="button" data-type="gato">Gato</button>
+    </nav>
+
+    <section class="section">
+      <div class="section-title"><h2 id="sectionLabel">Chapitas grandes</h2><span>− venta · + ingreso</span></div>
+      <div id="list"></div>
+    </section>
+
+    <div class="actions">
+      <button id="undoBtn" class="action" type="button">Deshacer último</button>
+      <button id="resetBtn" class="action primary" type="button">Reiniciar stock</button>
+    </div>
+
+    <p class="note">Las cantidades se guardan en este dispositivo aunque cierres la app. Si cambiás de celular o borrás los datos del navegador, este stock no se transfiere automáticamente.</p>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  </main>
+
+  <dialog id="resetDialog">
+    <div class="modal">
+      <h3>¿Reiniciar todo el stock?</h3>
+      <p>Esto pondrá en cero todos los colores de Grandes, Chicas y Gato.</p>
+      <div class="modal-actions"><button id="cancelReset" class="cancel" type="button">Cancelar</button><button id="confirmReset" class="danger" type="button">Sí, reiniciar</button></div>
+    </div>
+  </dialog>
+
+  <script>
+    (()=>{
+      const COLORS=[
+        {id:'naranja',label:'Naranja',hex:'#ef8a3a'},
+        {id:'celeste',label:'Celeste',hex:'#74c9e8'},
+        {id:'rosado',label:'Rosado',hex:'#ef9fb6'},
+        {id:'negro',label:'Negro',hex:'#20252a'},
+        {id:'blanco',label:'Blanco',hex:'#ffffff'},
+        {id:'verde',label:'Verde',hex:'#74b884'},
+        {id:'morado',label:'Morado',hex:'#9074bd'},
+        {id:'amarillo',label:'Amarillo',hex:'#efd35c'}
+      ];
+      const TYPES=['grande','chica','gato'];
+      const LABELS={grande:'Chapitas grandes',chica:'Chapitas chicas',gato:'Chapitas de gato'};
+      const KEY='patas-a-casa-stock-v1';
+      const initial=()=>Object.fromEntries(TYPES.map(t=>[t,Object.fromEntries(COLORS.map(c=>[c.id,0]))]));
+      let stock=load();
+      let current='grande';
+      let history=[];
+      let toastTimer;
+
+      function load(){
+        try{
+          const raw=localStorage.getItem(KEY); if(!raw) return initial();
+          const parsed=JSON.parse(raw); const clean=initial();
+          TYPES.forEach(t=>COLORS.forEach(c=>{const n=Number(parsed?.[t]?.[c.id]); clean[t][c.id]=Number.isFinite(n)&&n>=0?Math.floor(n):0;}));
+          return clean;
+        }catch(e){return initial();}
+      }
+      function save(){try{localStorage.setItem(KEY,JSON.stringify(stock));}catch(e){} renderSummary();}
+      function showToast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),1300);}
+      function renderSummary(){let total=0,low=0,zero=0;TYPES.forEach(t=>COLORS.forEach(c=>{const n=stock[t][c.id];total+=n;if(n===0)zero++;else if(n<=3)low++;}));document.getElementById('total').textContent=total;document.getElementById('low').textContent=low;document.getElementById('zero').textContent=zero;}
+      function status(n){if(n===0)return ['Sin stock','zero'];if(n<=3)return ['Stock bajo','low'];return ['Disponible',''];}
+      function renderList(){
+        document.getElementById('sectionLabel').textContent=LABELS[current];
+        const list=document.getElementById('list');list.innerHTML='';
+        COLORS.forEach(c=>{
+          const n=stock[current][c.id],st=status(n); const row=document.createElement('div'); row.className='row';
+          row.innerHTML=`<div class="color-info"><span class="dot" style="background:${c.hex}"></span><div><div class="name">${c.label}</div><div class="state ${st[1]}">${st[0]}</div></div></div><div class="controls"><button class="btn minus" type="button" aria-label="Restar una ${c.label}" data-color="${c.id}" data-delta="-1">−</button><div class="qty">${n}</div><button class="btn plus" type="button" aria-label="Sumar una ${c.label}" data-color="${c.id}" data-delta="1">+</button></div>`;
+          list.appendChild(row);
+        });
+      }
+      function render(){renderList();renderSummary();document.getElementById('undoBtn').disabled=history.length===0;document.getElementById('undoBtn').style.opacity=history.length===0?'.45':'1';}
+      function adjust(color,delta){const before=stock[current][color];const after=Math.max(0,before+delta);if(after===before){showToast('Ya está en 0');return;}history.push({type:current,color,before});if(history.length>30)history.shift();stock[current][color]=after;save();render();showToast(delta>0?'Unidad agregada':'Venta registrada');}
+
+      document.querySelectorAll('.tab').forEach(btn=>btn.addEventListener('click',()=>{current=btn.dataset.type;document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b===btn));renderList();}));
+      document.getElementById('list').addEventListener('click',e=>{const b=e.target.closest('button[data-color]');if(!b)return;adjust(b.dataset.color,Number(b.dataset.delta));});
+      document.getElementById('undoBtn').addEventListener('click',()=>{const h=history.pop();if(!h)return;stock[h.type][h.color]=h.before;save();render();showToast('Último movimiento deshecho');});
+      const dlg=document.getElementById('resetDialog');
+      document.getElementById('resetBtn').addEventListener('click',()=>{if(typeof dlg.showModal==='function')dlg.showModal();else if(confirm('¿Reiniciar todo el stock?')){stock=initial();history=[];save();render();}});
+      document.getElementById('cancelReset').addEventListener('click',()=>dlg.close());
+      document.getElementById('confirmReset').addEventListener('click',()=>{stock=initial();history=[];save();render();dlg.close();showToast('Stock reiniciado');});
+      render();
+    })();
+  </script>
+</body>
+</html>
