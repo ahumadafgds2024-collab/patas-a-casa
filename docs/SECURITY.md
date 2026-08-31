@@ -44,6 +44,19 @@ Riesgo residual: cualquier usuario autenticado puede invocarla directamente. Ant
 
 El origen/CORS es defensa complementaria; la autorización real depende de la clave administrativa y los RPC protegidos.
 
+### Headers web
+
+Las respuestas verificadas de producción incluyen:
+- `Strict-Transport-Security: max-age=63072000; includeSubDomains; preload`;
+- `X-Content-Type-Options: nosniff`;
+- `X-Frame-Options: DENY`;
+- `Referrer-Policy: strict-origin-when-cross-origin`;
+- `Permissions-Policy` restringiendo cámara y micrófono, y permitiendo geolocalización sólo al propio sitio.
+
+Por lo tanto, **HSTS ya está activo** en la capa de Vercel. No hace falta agregarlo manualmente al proyecto mientras Vercel continúe entregándolo correctamente.
+
+No se observó una Content-Security-Policy global estricta. El frontend utiliza bastante CSS/JavaScript inline, por lo que introducir una CSP restrictiva sin una refactorización previa podría romper funcionalidades.
+
 ### Supabase Auth
 
 El Security Advisor informa que **Leaked Password Protection está deshabilitado**. Activarlo es una mejora recomendada, pero debe hacerse desde la configuración de Auth y probar el alta/cambio de contraseña antes de considerarlo cerrado.
@@ -59,8 +72,7 @@ El Security Advisor informa que **Leaked Password Protection está deshabilitado
 ### P2 — endurecimiento
 
 - Activar protección contra contraseñas filtradas en Supabase Auth.
-- Evaluar Content-Security-Policy. Actualmente el frontend usa gran cantidad de CSS/JS inline; agregar una CSP estricta sin refactor previo podría romper producción.
-- Evaluar HSTS cuando todos los dominios y redirecciones HTTPS estén confirmados.
+- Evaluar Content-Security-Policy después de reducir dependencias de CSS/JS inline y probar el flujo completo.
 
 ## Regla para cambios de seguridad
 
