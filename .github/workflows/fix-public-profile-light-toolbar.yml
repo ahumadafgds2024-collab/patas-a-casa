@@ -1,0 +1,67 @@
+name: Fix public profile navigation
+
+on:
+  push:
+    branches:
+      - fix-public-profile-light-toolbar
+
+permissions:
+  contents: write
+
+jobs:
+  fix-link:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: fix-public-profile-light-toolbar
+          fetch-depth: 0
+
+      - name: Apply the single intended change
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('mi-cuenta/index.html')
+          text = path.read_text(encoding='utf-8')
+          old = 'href="/?tag=${encodeURIComponent(p.public_code)}" target="_blank" rel="noopener"'
+          new = 'href="/?tag=${encodeURIComponent(p.public_code)}"'
+          count = text.count(old)
+          if count > 1:
+              raise SystemExit(f'Expected at most one public-profile link, found {count}')
+          if count == 1:
+              path.write_text(text.replace(old, new, 1), encoding='utf-8')
+              print('Public profile link changed to same-view navigation.')
+          else:
+              print('Public profile link was already fixed; no HTML change needed.')
+          PY
+
+      - name: Validate HTML JavaScript syntax and whitespace
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const html = fs.readFileSync('mi-cuenta/index.html', 'utf8');
+          const scripts = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)]
+            .map(m => m[1])
+            .filter(code => code.trim());
+          if (!scripts.length) throw new Error('No inline JavaScript found to validate.');
+          for (const code of scripts) new Function(code);
+          console.log(`Validated ${scripts.length} inline script block(s).`);
+          NODE
+          git diff --check
+
+      - name: Commit only when needed
+        shell: bash
+        run: |
+          if ! git diff --quiet -- mi-cuenta/index.html; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add mi-cuenta/index.html
+            git commit -m "Abrir perfil público en la misma vista"
+            git push origin HEAD:fix-public-profile-light-toolbar
+          else
+            echo "No content change to commit."
+          fi
