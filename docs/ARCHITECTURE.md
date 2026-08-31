@@ -74,9 +74,11 @@ Proyecto productivo: `cgciwutqwnssdphugupq`.
 
 Todas tienen RLS habilitado. Actualmente las tablas no conceden privilegios directos a `anon` ni `authenticated`; el acceso productivo se concentra en funciones de backend con `service_role` y en RPCs controlados.
 
-### Edge Functions activas en Supabase
+### Edge Functions desplegadas
 
-#### Versionadas actualmente en GitHub
+Supabase contiene 18 deployments de Edge Functions, pero no las 18 representan lógica productiva actual.
+
+#### Productivas y versionadas en GitHub — 5
 
 - `patas-api`
 - `patas-account`
@@ -84,7 +86,19 @@ Todas tienen RLS habilitado. Actualmente las tablas no conceden privilegios dire
 - `patas-admin-tags`
 - `patas-lost-community`
 
-#### Activas en Supabase pero no presentes en `supabase/functions/`
+#### Productivas con drift — 3
+
+Contienen lógica real en producción pero todavía no están presentes bajo `supabase/functions/`:
+
+- `patas-lost`
+- `patas-account-security`
+- `patas-admin-shortio`
+
+Éste es el drift productivo que debe resolverse primero.
+
+#### Retiradas / compatibilidad — 10
+
+Sus deployments siguen existiendo, pero el código vivo responde deliberadamente HTTP `410` y no ejecuta lógica productiva:
 
 - `patas-demo`
 - `publish-patas-web`
@@ -92,15 +106,12 @@ Todas tienen RLS habilitado. Actualmente las tablas no conceden privilegios dire
 - `publish-patas-static`
 - `xhtml-test`
 - `patas-admin`
-- `patas-lost`
 - `patas-register-v2-test`
 - `patas-short`
-- `patas-admin-shortio`
 - `patas-email-activation`
-- `patas-account-security`
 - `patas-tag-scan`
 
-Esto es **drift de infraestructura**: producción posee código que el repositorio no puede reconstruir por sí solo. Antes de eliminar cualquiera, hay que capturar su versión actual, comprobar referencias y revisar logs.
+El inventario detallado, versiones y criterio de retiro están documentados en [`EDGE-FUNCTIONS.md`](EDGE-FUNCTIONS.md).
 
 ## Fuentes de verdad
 
@@ -115,7 +126,7 @@ Esto es **drift de infraestructura**: producción posee código que el repositor
 
 ## Deuda estructural identificada
 
-1. Sólo una parte de las Edge Functions activas está versionada.
+1. Tres Edge Functions productivas todavía viven sólo en Supabase y deben versionarse exactamente.
 2. El esquema vivo de base de datos no puede reconstruirse únicamente con las dos migraciones actuales.
 3. Existen muchos scripts/workflows de cambios puntuales que dificultan distinguir automatización permanente de parches históricos.
 4. Los archivos principales de frontend son grandes y monolíticos; conviene modularizarlos más adelante, pero no como parte de una limpieza de riesgo cero.
