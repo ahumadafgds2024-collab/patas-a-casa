@@ -1,3 +1,0 @@
-production_frontend=ok
-email_tag=EA4CDAE3
-legacy_pin_tag=K7M4XA
