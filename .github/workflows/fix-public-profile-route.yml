@@ -1,0 +1,55 @@
+name: Fix public profile route
+
+on:
+  push:
+    branches:
+      - fix-public-profile-scope
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix-public-profile-scope
+          fetch-depth: 0
+      - name: Normalize in-scope public route
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+
+          account = Path('mi-cuenta/index.html')
+          text = account.read_text(encoding='utf-8')
+          old = 'href="/mi-cuenta/publico/?tag=${encodeURIComponent(p.public_code)}"'
+          new = 'href="/mi-cuenta/publico?tag=${encodeURIComponent(p.public_code)}"'
+          if text.count(old) != 1:
+              raise SystemExit('Expected exactly one in-scope public link to normalize')
+          account.write_text(text.replace(old, new, 1), encoding='utf-8')
+
+          p = Path('vercel.json')
+          config = json.loads(p.read_text(encoding='utf-8'))
+          rewrites = config.get('rewrites', [])
+          rewrites = [r for r in rewrites if r.get('source') != '/mi-cuenta/publico/:path*']
+          exact = {'source': '/mi-cuenta/publico', 'destination': '/index.html'}
+          if exact not in rewrites:
+              rewrites.insert(0, exact)
+          config['rewrites'] = rewrites
+          p.write_text(json.dumps(config, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+          PY
+          node - <<'NODE'
+          const fs=require('fs');const html=fs.readFileSync('mi-cuenta/index.html','utf8');for(const m of html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)){if(m[1].trim())new Function(m[1]);}
+          NODE
+          git diff --check
+      - name: Commit
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add mi-cuenta/index.html vercel.json
+          git commit -m "Corregir ruta interna del perfil público"
+          git push origin HEAD:fix-public-profile-scope
