@@ -1,0 +1,10 @@
+{
+  "name": "Stock · Patas a Casa",
+  "short_name": "Stock Patas",
+  "start_url": "/stock/",
+  "scope": "/stock/",
+  "display": "standalone",
+  "background_color": "#f7f9fb",
+  "theme_color": "#173c5b",
+  "description": "Control interno de stock de chapitas Patas a Casa"
+}
