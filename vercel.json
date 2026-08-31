@@ -19,6 +19,14 @@
   ],
   "rewrites": [
     {
+      "source": "/mi-cuenta/privacidad",
+      "destination": "/privacidad.html"
+    },
+    {
+      "source": "/mi-cuenta/terminos",
+      "destination": "/terminos.html"
+    },
+    {
       "source": "/mi-cuenta/publico",
       "destination": "/index.html"
     },
