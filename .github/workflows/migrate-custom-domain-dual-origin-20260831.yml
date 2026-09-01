@@ -1,0 +1,36 @@
+name: Migrate custom domain dual origin 20260831
+
+on:
+  push:
+    paths:
+      - '.github/scripts/migrate_custom_domain_dual_origin_20260831.py'
+      - '.github/workflows/migrate-custom-domain-dual-origin-20260831.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Aplicar migración dual-origin
+        run: python .github/scripts/migrate_custom_domain_dual_origin_20260831.py
+      - name: Verificar cambios
+        run: |
+          grep -Fq 'const GOOGLE_REDIRECT_URL=location.origin+"/mi-cuenta/?google=1";' mi-cuenta/index.html
+          grep -Fq 'const REDIRECT_URL=location.origin+"/mi-cuenta/recuperar/";' mi-cuenta/recuperar/index.html
+          grep -Fq 'const APP=location.origin;' gestion-chapitas.html
+      - name: Commit changes
+        run: |
+          if git diff --quiet -- mi-cuenta/index.html mi-cuenta/recuperar/index.html gestion-chapitas.html; then
+            echo 'No changes needed.'
+            exit 0
+          fi
+          git config user.name 'patas-a-casa-bot'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add mi-cuenta/index.html mi-cuenta/recuperar/index.html gestion-chapitas.html
+          git commit -m 'Usar el dominio actual en autenticación y panel'
+          git push
