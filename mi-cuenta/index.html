@@ -156,7 +156,7 @@ const GOOGLE_PENDING_KEY="pac_google_activation_v1";
 const GOOGLE_JUST_SIGNED_IN_KEY="pac_google_just_signed_in_v1";
 const INSTALL_PENDING_KEY="pac_install_pending_v1";
 const IOS_SESSION_BRIDGE_COOKIE="pac_ios_session_bridge";
-const GOOGLE_REDIRECT_URL="https://patas-a-casa.vercel.app/mi-cuenta/?google=1";
+const GOOGLE_REDIRECT_URL=location.origin+"/mi-cuenta/?google=1";
 const googleAuthClient=window.supabase?.createClient?window.supabase.createClient(SUPABASE_URL,PUBLISHABLE_KEY,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:true,flowType:"implicit"}}):null;
 const root=document.getElementById("root"),modal=document.getElementById("modal");
 let pets=[],deferredInstall=null,currentUser=null,flyerBlob=null,flyerObjectUrl=null,flyerFileName="";

@@ -64,7 +64,7 @@ html{-webkit-tap-highlight-color:transparent;background:#f6f1e9}body{background:
 const SUPABASE_URL="https://cgciwutqwnssdphugupq.supabase.co";
 const PUBLISHABLE_KEY="sb_publishable_oozsLV8QMoy_ooLIqgh_qg_vvjV6IY5";
 const AUTH=SUPABASE_URL+"/auth/v1";
-const REDIRECT_URL="https://patas-a-casa.vercel.app/mi-cuenta/recuperar/";
+const REDIRECT_URL=location.origin+"/mi-cuenta/recuperar/";
 const requestCard=document.getElementById("requestCard"),changeCard=document.getElementById("changeCard"),invalidCard=document.getElementById("invalidCard");
 const hash=new URLSearchParams(location.hash.replace(/^#/,""));
 const accessToken=hash.get("access_token")||"";
