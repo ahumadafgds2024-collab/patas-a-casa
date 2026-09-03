@@ -1,6 +1,7 @@
-const CACHE="pac-owner-v4";
+const CACHE="pac-owner-v5";
 const ASSETS=["/mi-cuenta/","/mi-cuenta/manifest.webmanifest","/mi-cuenta/icons/icon-192.png","/mi-cuenta/icons/icon-512.png"];
-self.addEventListener("install",event=>{event.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting()))});
+const OPTIONAL_ASSETS=["/mi-cuenta/ios-guia/paso-1.jpg","/mi-cuenta/ios-guia/paso-2.jpg","/mi-cuenta/ios-guia/paso-3.jpg","/mi-cuenta/ios-guia/paso-4.jpg"];
+self.addEventListener("install",event=>{event.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS).then(()=>Promise.allSettled(OPTIONAL_ASSETS.map(asset=>c.add(asset))))).then(()=>self.skipWaiting()))});
 self.addEventListener("activate",event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
 self.addEventListener("fetch",event=>{
   const req=event.request;
