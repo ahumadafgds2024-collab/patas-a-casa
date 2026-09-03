@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#fff8f1">
 <title>Patas a Casa</title>
 <link rel="icon" type="image/png" href="/mi-cuenta/icons/icon-192.png">
-<style>html,body{margin:0;min-height:100%;background:#fff8f1;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}.loading{min-height:100vh;display:grid;place-items:center;color:#17324d;font-weight:800}.loading div{text-align:center}.paw{font-size:34px;margin-bottom:10px}</style>
+<style>html,body{margin:0;min-height:100%;width:100%;max-width:100%;overflow-x:hidden;background:#fff8f1;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}.loading{min-height:100vh;display:grid;place-items:center;color:#17324d;font-weight:800}.loading div{text-align:center}.paw{font-size:34px;margin-bottom:10px}</style>
 <script>
 (function(){
   const params=new URLSearchParams(location.search);
@@ -18,7 +18,98 @@
   fetch('/landing.html',{cache:'no-store'})
     .then(r=>{if(!r.ok)throw new Error('landing');return r.text()})
     .then(html=>{
-      const mobileFix='<style id="pac-landing-mobile-fix">@media(max-width:680px){.nav-actions>a.btn{display:none!important}.nav{gap:10px}.brand{min-width:0}.mobile-menu a:last-child{background:#17324d;color:#fff;margin-top:4px;text-align:center}}</style>';
+      const mobileFix=`<style id="pac-landing-mobile-fix">
+html,body{width:100%;max-width:100%;overflow-x:hidden!important}
+body{position:relative}
+main,.hero,.section,.cta,footer{max-width:100%;overflow-x:hidden}
+@media(max-width:680px){
+  .wrap{width:calc(100% - 28px)!important;max-width:100%!important}
+  .nav{gap:10px!important}
+  .brand{min-width:0;max-width:calc(100% - 58px)}
+  .brand span{overflow:hidden;text-overflow:ellipsis}
+  .nav-actions>a.btn{display:none!important}
+  .mobile-menu a:last-child{background:#17324d;color:#fff;margin-top:4px;text-align:center}
+
+  .hero{padding:104px 0 52px!important}
+  .hero::before{right:-130px!important}
+  .hero::after{left:-110px!important}
+  .hero-grid{width:100%;max-width:100%;overflow:hidden}
+  h1{font-size:clamp(40px,12vw,48px)!important;line-height:1!important;letter-spacing:-.055em!important}
+  h1 .accent{white-space:normal!important}
+  .hero-copy{font-size:16px!important;line-height:1.58!important}
+  .eyebrow{max-width:100%;font-size:10px!important;line-height:1.25;white-space:normal}
+  .hero-actions{display:grid!important;grid-template-columns:1fr!important}
+  .hero-actions .btn{width:100%;min-width:0}
+  .hero-sub{display:grid!important;gap:9px!important}
+
+  .hero-visual{width:100%!important;max-width:100%!important;min-height:430px!important;margin:28px auto 0!important;transform:none!important;overflow:hidden!important;border-radius:30px;perspective:none!important}
+  .glow{width:320px!important;height:320px!important}
+  .phone{width:218px!important;height:430px!important;right:3%!important;top:4px!important;border-width:6px!important;border-radius:34px!important;padding:8px!important}
+  .phone::before{width:70px!important;height:17px!important;top:7px!important}
+  .phone-screen{border-radius:25px!important;padding:23px 9px 10px!important}
+  .phone-brand{margin-bottom:9px!important;font-size:8px!important}
+  .pet-head{padding:12px 8px!important;border-radius:19px!important}
+  .pet-photo{width:60px!important;height:60px!important;border-radius:19px!important;font-size:32px!important}
+  .pet-name{font-size:21px!important}
+  .pet-meta{font-size:9px!important}
+  .status-pill{font-size:8px!important;padding:5px 7px!important}
+  .phone-block{padding:9px!important;border-radius:14px!important;margin-top:7px!important}
+  .phone-title{font-size:9px!important}
+  .phone-btn{height:31px!important;font-size:8px!important;border-radius:10px!important}
+  .phone-note{font-size:8px!important}
+
+  .tag-mock{width:154px!important;height:154px!important;left:2%!important;bottom:6%!important;transform:rotate(-7deg)!important}
+  .tag-mock{animation-name:tagFloatMobile!important}
+  .tag-hole{width:24px!important;height:24px!important;border-width:5px!important;top:5px!important}
+  .paws{font-size:46px!important}
+  .tag-label{bottom:31px!important;font-size:10px!important}
+  .tag-small{bottom:19px!important;font-size:7px!important}
+  .qr-side{width:82px!important;height:82px!important;left:72px!important;bottom:88px!important;padding:9px!important;border-radius:15px!important;transform:rotate(8deg)!important}
+  .qr-side{animation-name:qrFloatMobile!important}
+  .qr-grid{background-size:18px 18px!important}
+  .float-card{font-size:9px!important;padding:7px 9px!important;border-radius:13px!important;max-width:145px}
+  .float-icon{width:21px!important;height:21px!important;font-size:11px;margin-right:5px!important}
+  .fc1{left:2%!important;top:19%!important}
+  .fc2{right:2%!important;bottom:4%!important}
+  .fc3{display:none!important}
+  @keyframes tagFloatMobile{50%{transform:rotate(-5deg) translateY(-8px)}}
+  @keyframes qrFloatMobile{50%{transform:rotate(6deg) translateY(6px)}}
+
+  .trust{margin-top:34px!important;border-radius:20px!important}
+  .trust-item{padding:16px!important}
+  .section{padding:68px 0!important}
+  .section h2{font-size:clamp(34px,10vw,40px)!important;line-height:1.04!important}
+  .lead{font-size:15px!important;line-height:1.58!important}
+  .story-card,.story-card.big,.step-card,.feature-card{border-radius:23px!important}
+  .story-card,.story-card.big{padding:23px!important}
+  .story-card.big h3{font-size:29px!important}
+  .steps,.features{grid-template-columns:1fr!important}
+  .found-grid,.story-grid,.lost-grid,.activate-box,.cta-box{grid-template-columns:1fr!important;gap:34px!important}
+  .found-phone{width:min(100%,310px)!important;max-width:100%!important;transform:none!important;border-radius:34px!important;padding:8px!important}
+  .found-screen{border-radius:27px!important;padding:20px 14px!important}
+  .feature-row{gap:11px!important}
+  .activate-box{padding:27px 20px!important;border-radius:27px!important}
+  .activate-box h2{font-size:36px!important}
+  .cta{padding:68px 0!important}
+  .cta-box{padding:34px 22px!important;border-radius:28px!important}
+  .cta-box h2{font-size:36px!important}
+  .cta-actions{width:100%;max-width:none!important}
+  .cta-actions .btn{width:100%}
+  .footer-inner{display:grid!important;gap:18px!important}
+}
+@media(max-width:390px){
+  .wrap{width:calc(100% - 22px)!important}
+  h1{font-size:39px!important}
+  .hero-visual{min-height:400px!important}
+  .phone{width:205px!important;height:405px!important;right:1%!important}
+  .tag-mock{width:142px!important;height:142px!important;left:0!important}
+  .qr-side{width:76px!important;height:76px!important;left:66px!important;bottom:82px!important}
+  .float-card{font-size:8px!important}
+  .found-phone{width:100%!important}
+  .section h2{font-size:34px!important}
+  .cta-box h2{font-size:34px!important}
+}
+</style>`;
       html=html.replace('</head>',mobileFix+'</head>');
       document.open();document.write(html);document.close();
     })
