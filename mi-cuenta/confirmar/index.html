@@ -40,6 +40,8 @@ const PUBLISHABLE_KEY="sb_publishable_oozsLV8QMoy_ooLIqgh_qg_vvjV6IY5";
 const REGISTER_API=SUPABASE_URL+"/functions/v1/patas-register-v2";
 const SESSION_KEY="pac_owner_session_v1";
 const params=new URLSearchParams(location.hash.replace(/^#/,""));
+const query=new URLSearchParams(location.search);
+const tagCode=String(query.get("chapita")||"").replace(/[^A-Z0-9]/gi,"").slice(0,12);
 const title=document.getElementById("title"),copy=document.getElementById("text"),status=document.getElementById("status"),continueLink=document.getElementById("continueLink");
 
 async function finishConfirmation(){
@@ -48,7 +50,8 @@ async function finishConfirmation(){
   title.textContent="No pudimos confirmar el correo";
   copy.textContent="El enlace puede haber vencido, ya haber sido usado o ser inválido.";
   status.className="status err";status.textContent=params.get("error_description")||"Pedí un nuevo correo de verificación.";
-  continueLink.textContent="Ir a Mi cuenta";return
+  continueLink.href=tagCode?"/mi-cuenta/?vincular="+encodeURIComponent(tagCode):"/mi-cuenta/";
+  continueLink.textContent=tagCode?"Reenviar correo":"Ir a Mi cuenta";return
  }
  const accessToken=params.get("access_token"),refreshToken=params.get("refresh_token");
  if(!accessToken){status.textContent="El correo quedó confirmado. Ingresá a Mi cuenta para continuar.";continueLink.textContent="Ir a Mi cuenta";return}
