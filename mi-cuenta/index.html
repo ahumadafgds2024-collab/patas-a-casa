@@ -32,6 +32,7 @@ button:focus-visible,a:focus-visible{outline:3px solid rgba(255,106,54,.38);outl
 .photo-pick{display:flex;align-items:center;gap:13px;padding:12px;border:1px solid var(--line);border-radius:18px;background:#fafaf8;margin-bottom:14px}.photo-prev{width:76px;height:76px;border-radius:20px;background:#ffe7dc;display:grid;place-items:center;font-size:35px;overflow:hidden}.photo-prev img{width:100%;height:100%;object-fit:cover}.photo-info{flex:1}.file-btn{display:inline-flex;margin-top:7px;padding:9px 11px;border-radius:12px;background:#fff;border:1px solid #ddd;font-size:11px;font-weight:900;cursor:pointer}.file-btn input{display:none}.check{display:flex;gap:8px;align-items:flex-start;font-size:12px;margin:10px 0}.check input{margin-top:2px}
 .flow-steps{display:flex;gap:6px;margin:15px 0 2px}.flow-steps span{height:5px;flex:1;border-radius:99px;background:#e9e8e4}.flow-steps span.on{background:var(--orange)}
 .install-steps{display:grid;gap:10px}.step{background:#fafaf8;border:1px solid var(--line);border-radius:16px;padding:12px;font-size:13px;line-height:1.45}
+.ios-guide{display:grid;gap:12px}.ios-guide-frame{overflow:hidden;border:1px solid var(--line);border-radius:20px;background:#f7f3ed}.ios-guide-frame img{display:block;width:100%;height:auto;max-height:58dvh;object-fit:contain}.ios-guide-progress{display:flex;align-items:center;justify-content:center;gap:7px}.ios-guide-dot{width:8px;height:8px;border-radius:50%;background:#ddd5cc;transition:transform .16s ease,background .16s ease}.ios-guide-dot.on{background:var(--orange);transform:scale(1.28)}.ios-guide-label{text-align:center;font-size:12px;font-weight:900;color:#5f5851}.ios-guide-nav{display:grid;grid-template-columns:1fr 1fr;gap:9px}.ios-guide-nav .btn{min-width:0}.ios-guide-nav .btn:disabled{opacity:.38;cursor:default}
 .loading{text-align:center;padding:35px;color:var(--muted)}.toast{position:fixed;z-index:80;left:50%;bottom:max(22px,env(safe-area-inset-bottom));transform:translateX(-50%);background:#171719;color:#fff;padding:12px 15px;border-radius:15px;box-shadow:0 14px 40px rgba(0,0,0,.22);font-size:13px;max-width:90%}.pet-photo-btn{appearance:none;border:0;padding:0;cursor:zoom-in;color:inherit}.pet-photo-btn:focus-visible{outline:3px solid rgba(255,106,54,.38);outline-offset:3px}
 @media(max-width:560px){h1{font-size:33px}.split{grid-template-columns:1fr}.topline{flex-direction:column}.install{width:100%}.actions{display:grid;grid-template-columns:1fr}.actions .btn{min-width:0}.avatar{width:72px;height:72px;flex-basis:72px}.petname{font-size:23px}}
 </style>
@@ -289,12 +290,34 @@ function openModal(content,closable=true){modal.innerHTML=`<div class="sheet">${
 function closeModal(){if(flyerObjectUrl){URL.revokeObjectURL(flyerObjectUrl);flyerObjectUrl=null}flyerBlob=null;flyerFileName="";modal.classList.add("hidden");modal.innerHTML=""}
 function isStandalone(){return window.matchMedia("(display-mode: standalone)").matches||window.navigator.standalone===true}
 function isiOS(){return /iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1)}
+const IOS_INSTALL_GUIDE=[
+ {src:"/mi-cuenta/ios-guia/paso-1.jpg",alt:"Paso 1: abrir Patas a Casa y tocar el icono Compartir del navegador"},
+ {src:"/mi-cuenta/ios-guia/paso-2.jpg",alt:"Paso 2: elegir Agregar a pantalla de inicio en el menu de compartir"},
+ {src:"/mi-cuenta/ios-guia/paso-3.jpg",alt:"Paso 3: confirmar tocando Agregar"},
+ {src:"/mi-cuenta/ios-guia/paso-4.jpg",alt:"Paso 4: abrir Patas a Casa desde el nuevo icono de la pantalla de inicio"}
+];
+let iosGuideStep=0;
+function renderIosGuide(step){
+ iosGuideStep=Math.max(0,Math.min(Number(step)||0,IOS_INSTALL_GUIDE.length-1));
+ const current=IOS_INSTALL_GUIDE[iosGuideStep],img=document.getElementById("iosGuideImage"),label=document.getElementById("iosGuideLabel"),prev=document.getElementById("iosGuidePrev"),next=document.getElementById("iosGuideNext");
+ if(!img||!label||!prev||!next)return;
+ img.src=current.src;img.alt=current.alt;label.textContent=`Paso ${iosGuideStep+1} de ${IOS_INSTALL_GUIDE.length}`;
+ document.querySelectorAll(".ios-guide-dot").forEach((dot,index)=>dot.classList.toggle("on",index===iosGuideStep));
+ prev.disabled=iosGuideStep===0;next.textContent=iosGuideStep===IOS_INSTALL_GUIDE.length-1?"Listo":"Siguiente";
+ const upcoming=IOS_INSTALL_GUIDE[iosGuideStep+1];if(upcoming){const preload=new Image();preload.src=upcoming.src}
+}
+function moveIosGuide(delta){if(iosGuideStep===IOS_INSTALL_GUIDE.length-1&&delta>0){closeModal();return}renderIosGuide(iosGuideStep+delta)}
+function openIosInstallGuide(){
+ const dots=IOS_INSTALL_GUIDE.map((_,index)=>`<span class="ios-guide-dot${index===0?" on":""}"></span>`).join("");
+ openModal(`<div class="sheethead"><div><div class="kicker">GUÍA PARA IPHONE</div><h2>Agregar al inicio</h2></div><button class="x" onclick="closeModal()" aria-label="Cerrar">×</button></div><div class="ios-guide"><div class="ios-guide-frame"><img id="iosGuideImage" src="${IOS_INSTALL_GUIDE[0].src}" alt="${IOS_INSTALL_GUIDE[0].alt}" width="864" height="1536"></div><div><div class="ios-guide-progress" aria-hidden="true">${dots}</div><div class="ios-guide-label" id="iosGuideLabel">Paso 1 de ${IOS_INSTALL_GUIDE.length}</div></div><div class="ios-guide-nav"><button class="btn soft" id="iosGuidePrev" type="button" onclick="moveIosGuide(-1)" disabled>Anterior</button><button class="btn primary" id="iosGuideNext" type="button" onclick="moveIosGuide(1)">Siguiente</button></div><p class="small muted" style="margin:0;text-align:center">Las pantallas pueden verse un poco distintas según tu versión de iOS.</p></div>`);
+ renderIosGuide(0);
+}
 window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;const b=document.getElementById("installBtn");if(b&&!isStandalone())b.classList.remove("hidden")});
 window.addEventListener("appinstalled",()=>{deferredInstall=null;document.getElementById("installBtn")?.classList.add("hidden");if(installPending()){setInstallPending(false);showInstallFinish(true)}else toast("Patas a Casa quedó instalada ✅")});
 async function installApp(){
  if(isStandalone()){toast("Ya está instalada en este dispositivo.");return}
  if(deferredInstall){deferredInstall.prompt();await deferredInstall.userChoice;deferredInstall=null;return}
- if(isiOS()){openModal(`<div class="sheethead"><h2>Agregar al inicio</h2><button class="x" onclick="closeModal()">×</button></div><p class="muted small">Podés hacerlo desde Safari o Chrome. No hace falta cambiar de navegador.</p><div class="install-steps"><div class="step"><b>1.</b> Tocá <b>Compartir</b>.</div><div class="step"><b>2.</b> Buscá <b>Agregar a pantalla de inicio</b>.</div><div class="step"><b>3.</b> Tocá <b>Agregar</b>.</div></div><p class="small muted">Después abrí Patas a Casa desde el nuevo ícono 🐾.</p>`);return}
+ if(isiOS()){openIosInstallGuide();return}
  openModal(`<div class="sheethead"><h2>Instalar Patas a Casa</h2><button class="x" onclick="closeModal()">×</button></div><p>Tu navegador todavía no mostró el cuadro automático.</p><div class="step">En Chrome/Edge abrí el menú <b>⋮</b> y elegí <b>Instalar aplicación</b> o <b>Añadir a pantalla de inicio</b>.</div>`);
 }
 function showInstallFinish(installed=false){
