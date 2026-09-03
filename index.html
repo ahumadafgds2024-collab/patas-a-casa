@@ -17,7 +17,11 @@
   }
   fetch('/landing.html',{cache:'no-store'})
     .then(r=>{if(!r.ok)throw new Error('landing');return r.text()})
-    .then(html=>{document.open();document.write(html);document.close()})
+    .then(html=>{
+      const mobileFix='<style id="pac-landing-mobile-fix">@media(max-width:680px){.nav-actions>a.btn{display:none!important}.nav{gap:10px}.brand{min-width:0}.mobile-menu a:last-child{background:#17324d;color:#fff;margin-top:4px;text-align:center}}</style>';
+      html=html.replace('</head>',mobileFix+'</head>');
+      document.open();document.write(html);document.close();
+    })
     .catch(()=>location.replace('/landing.html'));
 })();
 </script>
