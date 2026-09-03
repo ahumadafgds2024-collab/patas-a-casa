@@ -263,14 +263,16 @@ function accountSetupForm(c,pin){
    e.preventDefault();const f=new FormData(e.currentTarget),mail=String(f.get("email")||"").trim().toLowerCase(),password=String(f.get("password")||""),button=document.getElementById("accountContinue");
    if(password.length<8){toast("La contraseña tiene que tener al menos 8 caracteres.");return}
    button.disabled=true;button.textContent="Enviando verificación…";
-   try{localStorage.setItem("pac_legal_consent",JSON.stringify({version:"2026-08-28",accepted_at:new Date().toISOString()}));const payload={action:"start_registration",public_code:c,email:mail,password,legal_consent:true,legal_version:"2026-08-28"};await registerPost({...payload,activation_code:pin});activationComplete(mail)}
+   try{localStorage.setItem("pac_legal_consent",JSON.stringify({version:"2026-08-28",accepted_at:new Date().toISOString()}));const payload={action:"start_registration",public_code:c,email:mail,password,legal_consent:true,legal_version:"2026-08-28"};await registerPost({...payload,activation_code:pin});activationComplete(c,mail)}
    catch(err){toast(err.message);button.disabled=false;button.textContent="Crear cuenta y verificar correo"}
  });
 }
 
-function activationComplete(mail){
+function activationComplete(c,mail){
  document.title="Revisá tu correo · Patas a Casa";
- root.innerHTML=`<section class="card hero"><div class="kicker">VERIFICAR CORREO</div><h1>Revisá tu correo ✅</h1><p class="muted">Te enviamos un enlace de verificación a <b>${esc(mail)}</b>.</p><div class="stepbar"><div class="step on"></div><div class="step on"></div><div class="step on"></div><div class="step"></div></div></section><section class="card"><div class="note"><b>¿Qué sigue?</b><br>Abrí el enlace del correo. Si no lo encontrás en la bandeja de entrada, revisá Spam. Al confirmarlo, vas a cargar los datos de tu mascota y después vas a entrar a Mi cuenta con la mascota ya creada.</div></section>`;
+ root.innerHTML=`<section class="card hero"><div class="kicker">VERIFICAR CORREO</div><h1>Revisá tu correo ✅</h1><p class="muted">Te enviamos un enlace de verificación a <b>${esc(mail)}</b>.</p><div class="stepbar"><div class="step on"></div><div class="step on"></div><div class="step on"></div><div class="step"></div></div></section><section class="card"><div class="note"><b>¿Qué sigue?</b><br>Abrí el enlace del correo. Si no lo encontrás en la bandeja de entrada, revisá Spam. Al confirmarlo, vas a cargar los datos de tu mascota y después vas a entrar a Mi cuenta con la mascota ya creada.</div><button class="btn soft" id="resendVerification" type="button" style="margin-top:12px">Reenviar correo de verificación</button><div class="small muted" id="resendStatus" style="margin-top:9px;text-align:center"></div></section>`;
+ const resendButton=document.getElementById("resendVerification"),resendStatus=document.getElementById("resendStatus");
+ resendButton.addEventListener("click",async()=>{const old=resendButton.textContent;resendButton.disabled=true;resendButton.textContent="Reenviando…";resendStatus.textContent="";try{await registerPost({action:"resend_confirmation",public_code:c,email:mail});resendStatus.textContent="Listo, enviamos un enlace nuevo. Revisá también Spam.";resendButton.textContent="Correo reenviado ✅"}catch(err){resendStatus.textContent=err.message;resendButton.disabled=false;resendButton.textContent=old}});
 }
 
 function active(c,p){
