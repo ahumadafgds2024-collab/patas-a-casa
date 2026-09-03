@@ -19,6 +19,16 @@
   ],
   "rewrites": [
     {
+      "source": "/",
+      "destination": "/landing.html",
+      "missing": [
+        {
+          "type": "query",
+          "key": "tag"
+        }
+      ]
+    },
+    {
       "source": "/mi-cuenta/privacidad",
       "destination": "/privacidad.html"
     },
