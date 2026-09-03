@@ -1,0 +1,37 @@
+name: Fix iPhone Install Modal 20260903
+
+on:
+  push:
+    paths:
+      - '.github/scripts/fix_ios_install_modal_20260903.py'
+      - '.github/workflows/fix-ios-install-modal-20260903.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Corregir modal de guia iPhone
+        run: python .github/scripts/fix_ios_install_modal_20260903.py
+      - name: Verificar invariantes
+        run: |
+          grep -q 'role="dialog" aria-modal="true"' mi-cuenta/index.html
+          grep -q 'modal.onclick=null' mi-cuenta/index.html
+          grep -q 'IOS_INSTALL_GUIDE=\[' mi-cuenta/index.html
+          grep -q '/mi-cuenta/ios-guia/paso-4.jpg' mi-cuenta/index.html
+      - name: Commit changes
+        run: |
+          if git diff --quiet -- mi-cuenta/index.html; then
+            echo 'No changes needed.'
+            exit 0
+          fi
+          git config user.name 'patas-a-casa-bot'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add mi-cuenta/index.html
+          git commit -m 'Corregir cierre de guia iPhone'
+          git push
