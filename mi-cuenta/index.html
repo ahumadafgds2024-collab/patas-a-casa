@@ -136,6 +136,206 @@ body{
 .logo{width:60px!important;height:60px!important;background-size:104px 104px!important;background-position:center -6px!important;border-radius:18px!important}
 @media(max-width:390px){.logo{width:60px!important;height:60px!important;background-size:104px 104px!important;background-position:center -6px!important}}
 </style>
+<style id="pac-owner-visual-v2">
+:root{
+  --owner-teal:#078785;
+  --owner-teal-dark:#056b6c;
+  --owner-teal-soft:#e5f5f2;
+  --owner-orange:#ff672b;
+  --owner-orange-dark:#ed541d;
+  --owner-cream:#f7f0e7;
+  --owner-ink:#161512;
+}
+body{
+  background:
+    radial-gradient(circle at 4% 2%,rgba(255,103,43,.16),transparent 24rem),
+    radial-gradient(circle at 100% 15%,rgba(7,135,133,.16),transparent 23rem),
+    linear-gradient(180deg,#fffaf4 0%,#f7f0e7 58%,#f2e9dd 100%)!important;
+  color:var(--owner-ink);
+}
+.app{max-width:560px;padding-left:13px;padding-right:13px}
+header{margin-bottom:20px;padding:2px 1px}
+.brand{font-weight:900;letter-spacing:-.035em}
+.brand .small{font-weight:650;letter-spacing:0;color:#665e56}
+.header-menu{
+  color:var(--owner-teal-dark)!important;
+  background:rgba(255,255,255,.82);
+  border-color:rgba(7,135,133,.12);
+  box-shadow:0 8px 24px rgba(43,35,27,.07);
+}
+.account-overview{
+  overflow:hidden;
+  padding:24px!important;
+  color:#fff;
+  border:0!important;
+  background:
+    radial-gradient(circle at 88% 13%,rgba(255,255,255,.20),transparent 8rem),
+    radial-gradient(circle at 105% 115%,rgba(255,103,43,.42),transparent 12rem),
+    linear-gradient(140deg,#056d70 0%,#07938d 62%,#08a098 100%)!important;
+  box-shadow:0 22px 48px rgba(4,95,94,.22)!important;
+}
+.account-overview::before{
+  content:"";
+  position:absolute;
+  width:145px;
+  height:145px;
+  right:-62px;
+  top:-76px;
+  border:24px solid rgba(255,255,255,.09);
+  border-radius:50%;
+  pointer-events:none;
+}
+.account-overview>*{position:relative;z-index:1}
+.account-overview .kicker{color:#bdf6ef!important;font-weight:850}
+.account-overview h1{color:#fff;font-size:34px!important;letter-spacing:-.055em}
+.account-overview .account-email{color:rgba(255,255,255,.72);font-weight:550}
+.account-overview .install{
+  background:var(--owner-orange)!important;
+  color:#fff!important;
+  border:1px solid rgba(255,255,255,.16)!important;
+  box-shadow:0 10px 24px rgba(100,37,10,.20)!important;
+}
+.account-overview .add-tag-btn{
+  min-height:50px;
+  margin-top:18px;
+  background:rgba(255,255,255,.95)!important;
+  color:var(--owner-teal-dark)!important;
+  border:1px solid rgba(255,255,255,.48)!important;
+  box-shadow:0 8px 24px rgba(4,83,82,.13)!important;
+}
+.account-overview .add-tag-btn .ui-icon{color:var(--owner-orange)!important}
+.community-card{
+  border-color:rgba(7,135,133,.16)!important;
+  border-radius:20px;
+  background:rgba(255,255,255,.72)!important;
+  box-shadow:0 10px 28px rgba(54,42,31,.055)!important;
+  backdrop-filter:blur(12px);
+}
+.community-link{min-height:61px;color:var(--owner-teal-dark)!important}
+.community-link .ui-icon{color:var(--owner-teal)!important}
+.community-arrow{color:var(--owner-orange)!important}
+.pets-card{
+  padding:10px 0 0!important;
+  border:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  overflow:visible!important;
+}
+.pets-card>h2{margin:0 5px 15px;font-size:25px;letter-spacing:-.045em}
+.pets{gap:16px}
+.pet{
+  position:relative;
+  overflow:hidden;
+  padding:20px!important;
+  border:1px solid rgba(43,35,27,.075)!important;
+  border-radius:27px!important;
+  background:
+    linear-gradient(145deg,rgba(229,245,242,.82) 0%,rgba(255,255,255,.98) 38%,#fff 100%)!important;
+  box-shadow:0 18px 42px rgba(49,37,26,.10)!important;
+}
+.pet::before{
+  content:"";
+  position:absolute;
+  inset:0 0 auto;
+  height:6px;
+  background:linear-gradient(90deg,var(--owner-teal),#19aaa2 62%,var(--owner-orange));
+}
+.pet::after{
+  content:"";
+  position:absolute;
+  width:155px;
+  height:155px;
+  right:-86px;
+  top:23px;
+  border:23px solid rgba(7,135,133,.045);
+  border-radius:50%;
+  pointer-events:none;
+}
+.pethead,.pet-actions-v2{position:relative;z-index:1}
+.pethead{gap:17px;padding:5px 1px 17px;align-items:center}
+.avatar{
+  width:108px;
+  height:108px;
+  flex-basis:108px;
+  border-radius:30px;
+  border:4px solid rgba(255,255,255,.92);
+  outline:1px solid rgba(7,135,133,.10);
+  box-shadow:0 14px 30px rgba(29,69,65,.18);
+}
+.petname{font-size:32px;line-height:.96;font-weight:900;letter-spacing:-.055em;margin-bottom:8px}
+.meta{font-size:13px;line-height:1.4;color:#69635d!important}
+.pill{
+  margin-top:10px!important;
+  padding:7px 10px;
+  background:#dff4e8;
+  color:#126b43;
+  font-size:10px;
+  letter-spacing:.025em;
+  box-shadow:inset 0 0 0 1px rgba(18,107,67,.10),0 4px 12px rgba(18,107,67,.06);
+}
+.pill.lost{background:#ffe8eb;color:#ab2b3a}
+.tag-code{margin-top:7px;font-size:10px;color:#777069!important;font-weight:650}
+.pet-actions-v2{gap:10px;margin-top:2px}
+.pet-secondary-grid{order:1;gap:9px}
+.pet-more,.pet-recovery-grid{order:2}
+.pet-primary-action{order:3;min-height:46px!important;margin-top:2px;font-size:12px!important}
+.pet-secondary-grid>.btn:first-child{
+  background:linear-gradient(135deg,var(--owner-orange),#ff8455)!important;
+  color:#fff!important;
+  border-color:transparent!important;
+  box-shadow:0 10px 20px rgba(255,103,43,.18)!important;
+}
+.pet-secondary-grid>.btn:last-child{
+  background:var(--owner-teal-soft)!important;
+  color:var(--owner-teal-dark)!important;
+  border-color:rgba(7,135,133,.12)!important;
+}
+.pet-more summary{
+  min-height:43px;
+  background:rgba(247,240,231,.68);
+  color:#5e5750!important;
+}
+.pet-more[open] summary{background:transparent}
+.pet-primary-action.red{
+  background:rgba(216,63,80,.055)!important;
+  color:#b13241!important;
+  border-color:rgba(216,63,80,.16)!important;
+}
+.pet-primary-action.green{
+  background:rgba(23,115,70,.08)!important;
+  color:#176b45!important;
+  border-color:rgba(23,115,70,.16)!important;
+}
+.pet-recovery-grid{gap:9px}
+.recovery{background:var(--owner-teal-soft)!important;color:var(--owner-teal-dark)!important;border-color:rgba(7,135,133,.12)!important}
+.quick-access-card{
+  padding:19px!important;
+  border-color:rgba(7,135,133,.10)!important;
+  background:rgba(255,255,255,.64)!important;
+  box-shadow:0 9px 26px rgba(53,38,25,.045)!important;
+}
+.quick-access-card .dark{background:var(--owner-teal-dark)!important}
+@media(max-width:560px){
+  .topline{flex-direction:row;align-items:flex-start}
+  .install{width:auto;min-height:46px;padding-left:13px;padding-right:13px}
+  .pet .actions,.pet .pet-actions-v2{grid-template-columns:1fr}
+}
+@media(max-width:430px){
+  .account-overview{padding:21px!important}
+  .account-overview h1{font-size:31px!important}
+  .topline{gap:9px}
+  .install span{max-width:105px;line-height:1.12}
+  .avatar{width:96px;height:96px;flex-basis:96px;border-radius:27px}
+  .petname{font-size:29px}
+}
+@media(max-width:360px){
+  .topline{flex-direction:column}
+  .install{width:100%}
+  .pethead{gap:13px}
+  .avatar{width:84px;height:84px;flex-basis:84px}
+  .pet-secondary-grid{grid-template-columns:1fr}
+}
+</style>
 <link rel="stylesheet" href="/geist.css">
 </head>
 <body>
