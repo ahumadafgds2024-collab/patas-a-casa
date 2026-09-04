@@ -336,6 +336,159 @@ header{margin-bottom:20px;padding:2px 1px}
   .pet-secondary-grid{grid-template-columns:1fr}
 }
 </style>
+<style id="pac-owner-visual-v3">
+.app{max-width:520px}
+.logo{
+  width:51px!important;
+  height:51px!important;
+  background-size:89px 89px!important;
+  background-position:center -5px!important;
+  border-radius:16px!important;
+}
+header{margin-bottom:15px}
+.account-overview{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  gap:10px;
+  padding:17px!important;
+  color:var(--owner-ink);
+  border:1px solid rgba(7,135,133,.11)!important;
+  background:
+    radial-gradient(circle at 100% 0,rgba(7,135,133,.11),transparent 9rem),
+    rgba(255,255,255,.82)!important;
+  box-shadow:0 10px 28px rgba(49,37,26,.07)!important;
+  backdrop-filter:blur(12px);
+}
+.account-overview::before{display:none}
+.account-overview .topline{display:contents!important}
+.account-overview .topline>div{grid-column:1/-1}
+.account-overview .kicker{color:var(--owner-teal-dark)!important;font-size:9px}
+.account-overview h1{
+  margin:5px 0 4px!important;
+  color:var(--owner-ink);
+  font-size:24px!important;
+  line-height:1;
+  letter-spacing:-.045em;
+}
+.account-overview .account-email{color:#787069;font-size:10px}
+.account-overview .install,
+.account-overview .add-tag-btn{
+  width:100%;
+  min-height:42px!important;
+  margin:0;
+  padding:9px 10px;
+  border-radius:13px;
+  font-size:11px;
+  box-shadow:none!important;
+}
+.account-overview .install{
+  grid-column:1;
+  background:#fff0e7!important;
+  color:#be451a!important;
+  border:1px solid rgba(255,103,43,.13)!important;
+}
+.account-overview .add-tag-btn{
+  grid-column:2;
+  background:var(--owner-teal-soft)!important;
+  color:var(--owner-teal-dark)!important;
+  border:1px solid rgba(7,135,133,.12)!important;
+}
+.account-overview .install span{max-width:none;line-height:1.1}
+.community-card{
+  margin:0 3px 17px;
+  border:0!important;
+  border-radius:13px;
+  background:transparent!important;
+  box-shadow:none!important;
+  backdrop-filter:none;
+}
+.community-link{
+  min-height:42px;
+  padding:0 5px;
+  gap:9px;
+  font-size:13px;
+}
+.community-link .ui-icon{width:18px;height:18px}
+.community-arrow{font-size:16px}
+.pets-card{padding-top:0!important}
+.pets-card>h2{margin:0 4px 12px;font-size:22px}
+.pet{
+  padding:13px 13px 17px!important;
+  border-radius:27px!important;
+  background:#fff!important;
+  box-shadow:0 17px 38px rgba(49,37,26,.10)!important;
+}
+.pet::before{height:4px}
+.pet::after{display:none}
+.pethead{
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
+  gap:0;
+  padding:0;
+}
+.avatar{
+  width:100%;
+  height:auto;
+  max-height:238px;
+  aspect-ratio:16/9;
+  flex-basis:auto;
+  border:0;
+  outline:0;
+  border-radius:20px;
+  box-shadow:none;
+  background:#e9f4f1;
+}
+.avatar img{object-position:center 42%}
+.petidentity{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:center;
+  column-gap:12px;
+  padding:16px 3px 8px;
+}
+.petname{grid-column:1;grid-row:1;font-size:31px;margin:0 0 6px}
+.meta{grid-column:1;grid-row:2;font-size:12px}
+.pill{
+  grid-column:2;
+  grid-row:1 / span 2;
+  align-self:center;
+  margin:0!important;
+  white-space:nowrap;
+}
+.tag-code{grid-column:1/-1;grid-row:3;margin-top:10px}
+.pet-actions-v2{gap:8px;margin-top:2px}
+.pet-secondary-grid{gap:8px}
+.pet-secondary-grid>.btn{min-height:48px;border-radius:15px;font-size:13px}
+.pet-more summary{
+  min-height:40px;
+  background:transparent;
+  border-top:1px solid rgba(58,46,37,.07);
+  border-radius:0;
+}
+.pet-primary-action{min-height:43px!important;margin-top:0;font-size:11px!important}
+.quick-access-card{
+  padding:16px!important;
+  border-radius:20px!important;
+  box-shadow:none!important;
+}
+.quick-access-card h2{font-size:17px;margin-bottom:6px}
+.quick-access-card p{margin:0 0 11px;line-height:1.4}
+.quick-access-card .btn{min-height:44px;font-size:12px}
+@media(max-width:430px){
+  .account-overview{padding:15px!important}
+  .account-overview h1{font-size:22px!important}
+  .account-overview .install,.account-overview .add-tag-btn{font-size:10.5px;padding-left:7px;padding-right:7px}
+  .avatar{max-height:210px}
+  .petname{font-size:29px}
+}
+@media(max-width:360px){
+  .account-overview{grid-template-columns:1fr}
+  .account-overview .install,.account-overview .add-tag-btn{grid-column:1}
+  .petidentity{grid-template-columns:1fr}
+  .pill{grid-column:1;grid-row:3;justify-self:start;margin-top:9px!important}
+  .tag-code{grid-row:4}
+}
+</style>
 <link rel="stylesheet" href="/geist.css">
 </head>
 <body>
