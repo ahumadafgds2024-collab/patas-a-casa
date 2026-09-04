@@ -429,16 +429,34 @@ header{margin-bottom:15px}
 .avatar{
   width:100%;
   height:auto;
-  max-height:238px;
-  aspect-ratio:16/9;
+  max-height:none;
+  aspect-ratio:4/3;
   flex-basis:auto;
   border:0;
   outline:0;
   border-radius:20px;
   box-shadow:none;
-  background:#e9f4f1;
+  background:#25211f;
+  position:relative;
+  display:block;
+  isolation:isolate;
 }
-.avatar img{object-position:center 42%}
+.avatar .avatar-backdrop,
+.avatar>.avatar-photo{position:absolute;inset:0;width:100%;height:100%}
+.avatar .avatar-backdrop{display:block;overflow:hidden;z-index:0}
+.avatar .avatar-backdrop img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  filter:blur(18px) brightness(.68) saturate(.92);
+  transform:scale(1.14);
+}
+.avatar>.avatar-photo{
+  z-index:1;
+  object-fit:contain;
+  transform:none;
+}
+.avatar:active>.avatar-photo{transform:scale(1.012)}
 .petidentity{
   display:grid;
   grid-template-columns:minmax(0,1fr) auto;
@@ -478,7 +496,7 @@ header{margin-bottom:15px}
   .account-overview{padding:15px!important}
   .account-overview h1{font-size:22px!important}
   .account-overview .install,.account-overview .add-tag-btn{font-size:10.5px;padding-left:7px;padding-right:7px}
-  .avatar{max-height:210px}
+  .avatar{max-height:none}
   .petname{font-size:29px}
 }
 @media(max-width:360px){
@@ -746,7 +764,7 @@ function showActivationProfile(c){
 }
 function petCard(p){
  const lost=p.status==="perdido";
- const avatar=p.photo_url?`<button type="button" class="avatar pet-photo-btn" onclick="openPetPhoto('${esc(p.public_code)}')" aria-label="Agrandar foto de ${esc(p.name)}"><img src="${esc(p.photo_url)}" alt="Foto de ${esc(p.name)}"></button>`:`<div class="avatar">${p.species==="Gato"?"🐱":"🐶"}</div>`;
+ const avatar=p.photo_url?`<button type="button" class="avatar pet-photo-btn" onclick="openPetPhoto('${esc(p.public_code)}')" aria-label="Agrandar foto de ${esc(p.name)}"><span class="avatar-backdrop" aria-hidden="true"><img src="${esc(p.photo_url)}" alt=""></span><img class="avatar-photo" src="${esc(p.photo_url)}" alt="Foto de ${esc(p.name)}"></button>`:`<div class="avatar">${p.species==="Gato"?"🐱":"🐶"}</div>`;
  const primary=`<button class="btn ${lost?"green":"red"} pet-primary-action" onclick="toggleLost('${esc(p.public_code)}','${lost?"normal":"perdido"}')">${uiIcon(lost?"home":"alert")}<span>${lost?"Ya volvió a casa":"Marcar como perdido"}</span></button>`;
  const core=`<div class="pet-secondary-grid"><button class="btn quiet" onclick="editPet('${esc(p.public_code)}')">${uiIcon("pencil")}<span>Editar perfil</span></button><a class="btn quiet" href="/mi-cuenta/publico?tag=${encodeURIComponent(p.public_code)}">${uiIcon("eye")}<span>Ver perfil público</span></a></div>`;
  const recoveryTools=lost?`<div class="pet-recovery-grid"><button class="btn recovery" onclick="openFlyer('${esc(p.public_code)}')">${uiIcon("image")}<span>Crear flyer</span></button><button class="btn recovery" onclick="showSightings('${esc(p.public_code)}')">${uiIcon("pin")}<span>Avistamientos</span></button></div>`:`<details class="pet-more"><summary>${uiIcon("more")}<span>Más opciones</span></summary><div class="pet-more-grid"><button class="btn quiet" onclick="openFlyer('${esc(p.public_code)}')">${uiIcon("image")}<span>Crear flyer</span></button><button class="btn quiet" onclick="showSightings('${esc(p.public_code)}')">${uiIcon("pin")}<span>Avistamientos</span></button></div></details>`;
