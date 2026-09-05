@@ -110,6 +110,9 @@ body.landing-view #root{min-height:100vh}
   align-items:center;
   gap:11px;
   text-decoration:none;
+  padding:7px 12px;
+  border-radius:18px;
+  background:#fffaf5;
 }
 .site-brand-mark{
   display:block;
@@ -156,7 +159,7 @@ body.landing-view #root{min-height:100vh}
 }
 .landing-hero{
   position:relative;
-  min-height:760px;
+  min-height:720px;
   display:flex;
   align-items:center;
   background:#008b86;
@@ -206,9 +209,9 @@ body.landing-view #root{min-height:100vh}
   max-width:680px;
   margin:0;
   color:#fff;
-  font-size:clamp(56px,7.3vw,102px);
-  line-height:.88;
-  letter-spacing:-.072em;
+  font-size:clamp(56px,6.5vw,86px);
+  line-height:.98;
+  letter-spacing:-.045em;
   font-weight:900;
 }
 .hero-copy p{
@@ -234,14 +237,14 @@ body.landing-view #root{min-height:100vh}
 .cta-main{background:#0a0a0b;color:#fff!important;box-shadow:0 15px 34px rgba(0,0,0,.2)}
 .cta-secondary{border:1px solid rgba(255,255,255,.5);color:#fff!important;background:rgba(255,255,255,.08);backdrop-filter:blur(10px)}
 .cta-main:hover,.cta-secondary:hover{transform:translateY(-2px)}
-.hero-art{position:relative;min-height:540px}
+.hero-art{position:relative;min-height:0;aspect-ratio:1;width:100%;max-width:620px;justify-self:center}
 .hero-photo{
   position:absolute;
   inset:0;
   width:100%;
   height:100%;
-  object-fit:cover;
-  object-position:62% 50%;
+  object-fit:contain;
+  object-position:center;
   border-radius:44px;
   box-shadow:0 40px 90px rgba(0,50,80,.28);
 }
@@ -255,8 +258,8 @@ body.landing-view #root{min-height:100vh}
 .scan-pill{
   position:absolute;
   z-index:3;
-  right:-20px;
-  top:28px;
+  right:18px;
+  top:18px;
   padding:13px 17px;
   border-radius:999px;
   background:#fff;
@@ -334,10 +337,10 @@ body.landing-view #root{min-height:100vh}
 .demo-pet-card{padding:19px}
 .demo-status{display:inline-flex;align-items:center;gap:6px;padding:7px 9px;border-radius:999px;background:#e6f6f4;color:#006d69;font-size:10px;font-weight:900;letter-spacing:.04em}
 .demo-pet-row{display:flex;align-items:center;gap:14px;margin-top:15px}
-.demo-avatar{width:92px;height:92px;flex:0 0 92px;border-radius:50%;object-fit:cover;object-position:70% 50%}
+.demo-avatar{width:92px;height:92px;flex:0 0 92px;border-radius:50%;object-fit:cover;object-position:center}
 .demo-pet-name{font-size:34px;line-height:1;font-weight:900;letter-spacing:-.045em}
 .demo-pet-meta{margin-top:7px;color:#68706f;font-size:13px;font-weight:650}
-.demo-chips{display:flex;gap:6px;margin-top:9px}
+.demo-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
 .demo-chip{padding:6px 8px;border-radius:999px;background:#fff0e6;color:#6b4935;font-size:10px;font-weight:850}
 .demo-guide{margin-top:16px;padding-top:14px;border-top:1px solid #e6edef;font-size:13px;font-weight:800;color:#32454e}
 .demo-contact-card{padding:18px;margin-top:10px}
@@ -454,7 +457,7 @@ body.landing-view #root{min-height:100vh}
   .site-links{display:none}
   .hero-grid{grid-template-columns:1fr;gap:48px;padding-top:126px}
   .hero-copy{max-width:780px}
-  .hero-art{min-height:560px}
+  .hero-art{min-height:0}
   .section-heading{grid-template-columns:1fr;gap:16px}
   .profile-grid,.location-grid,.tag-grid{grid-template-columns:1fr;gap:55px}
   .profile-copy{max-width:720px}
@@ -464,20 +467,21 @@ body.landing-view #root{min-height:100vh}
 }
 
 @media(max-width:720px){
-  .site-shell{width:min(100% - 28px,1180px)}
+  .site-shell{width:min(100% - 40px,1180px)}
   .site-nav{padding:14px 0}
   .site-brand-mark{width:38px;height:38px}
   .site-brand-wordmark{width:122px}
-  .nav-account{display:none}
+  .nav-account{display:inline-flex;min-height:44px;padding:0 14px;font-size:13px}
+  .nav-buy{display:none}
   .nav-buy{min-height:40px;padding:0 15px;font-size:12px}
   .landing-hero{min-height:auto}
-  .hero-grid{padding:104px 0 55px;gap:38px}
-  .hero-copy h1{font-size:clamp(54px,17vw,76px)}
+  .hero-grid{padding:116px 0 42px;gap:28px}
+  .hero-copy h1{font-size:clamp(42px,12.5vw,64px)}
   .hero-copy p{margin:22px 0 25px;font-size:17px}
   .hero-actions{display:grid}
   .hero-actions a{width:100%}
-  .hero-art{min-height:430px;margin-left:0}
-  .hero-photo{border-radius:30px;object-position:65% 50%}
+  .hero-art{min-height:0;margin-left:0}
+  .hero-photo{border-radius:30px;object-position:center}
   .hero-art::after{border-radius:30px}
   .scan-pill{right:8px;top:16px}
   .trust-row{grid-template-columns:1fr}
@@ -487,12 +491,12 @@ body.landing-view #root{min-height:100vh}
   .section-heading{margin-bottom:34px}
   .section-title{font-size:48px}
   .steps-grid{grid-template-columns:1fr}
-  .step-card{min-height:240px}
+  .step-card{min-height:190px;padding:24px;gap:28px}
   .profile-grid{gap:34px}
   .profile-copy h2,.location-copy h2,.tag-copy h2,.faq-intro h2{font-size:50px}
-  .phone-stage{min-height:590px;margin:0 -2px}
+  .phone-stage{min-height:0;padding:24px 0;margin:0}
   .phone-stage::before{width:360px;height:360px}
-  .phone-mock{width:360px;transform:none}
+  .phone-mock{width:min(360px,100%);transform:none}
   .location-grid{gap:36px}
   .location-flyer{padding:18px;border-radius:30px}
   .location-flyer-body{padding:20px;border-radius:23px}
@@ -515,13 +519,51 @@ body.landing-view #root{min-height:100vh}
   .phone-mock{width:100%}
   .phone-screen{padding:16px 12px 18px}
   .demo-actions{grid-template-columns:1fr}
-  .phone-stage{min-height:640px}
+  .phone-stage{min-height:0}
   .location-flyer-head{align-items:flex-start}
   .location-live-dot{margin-top:-2px}
   body.app-view .pet-hero .avatar{border-radius:50%}
 }
 
 @media(prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
   .landing *{scroll-behavior:auto!important;transition:none!important}
+}
+
+/* Keep the existing visual identity with more readable type and calmer spacing. */
+.landing .section-title,.landing .profile-copy h2,.landing .location-copy h2,
+.landing .tag-copy h2,.landing .faq-intro h2,.landing .final-panel h2{
+  line-height:1.04;
+  letter-spacing:-.04em;
+}
+.landing .cta-main,.landing .cta-secondary{gap:10px}
+.landing .feature-check{flex:0 0 27px}
+.landing .demo-pet-row>div{min-width:0}
+.landing .section-label,.landing .quick-fact span{color:#bd4100}
+.landing a:focus-visible,.landing button:focus-visible,.landing summary:focus-visible{
+  outline:3px solid #ff9b61;
+  outline-offset:5px;
+}
+@media(max-width:720px){
+  .site-nav-inner{gap:12px}
+  .site-brand{gap:7px;padding:6px 9px}
+  .site-brand-wordmark{width:112px}
+  .hero-copy .eyebrow{font-size:10px;margin-bottom:18px}
+  .hero-copy p{margin:20px 0 24px}
+  .landing .section,.landing .faq-section{padding:64px 0}
+  .landing .section-title,.landing .profile-copy h2,.landing .location-copy h2,
+  .landing .tag-copy h2,.landing .faq-intro h2{font-size:clamp(36px,10.5vw,50px)}
+  .landing .final-panel h2{font-size:clamp(36px,11vw,54px)}
+  .feature-line{align-items:flex-start;font-size:15px;line-height:1.45}
+  .scan-pill{font-size:11px;padding:10px 13px;right:12px;top:12px}
+}
+@media(max-width:360px){
+  .site-brand-mark{width:30px;height:30px}
+  .site-brand-wordmark{width:98px}
+  .nav-account{padding:0 11px;font-size:12px}
+  .demo-pet-row{align-items:flex-start}
+  .demo-avatar{width:64px;height:64px;flex-basis:64px}
+  .location-flyer{padding:14px}
+  .location-flyer-body{padding:16px}
 }
 
