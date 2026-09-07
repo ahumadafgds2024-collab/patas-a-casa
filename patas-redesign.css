@@ -72,8 +72,8 @@ body.app-view .status.lost{
   box-shadow:inset 0 0 0 1px rgba(223,49,81,.14);
 }
 body.app-view .pet-hero .avatar{
-  border-radius:50%;
-  box-shadow:0 12px 30px rgba(5,55,78,.16);
+  border-radius:0;
+  box-shadow:none;
 }
 body.app-view .pet-hero .chip{background:#fff0e6;color:#7d360e}
 body.app-view .profile-guide{color:#263e48}
@@ -522,7 +522,7 @@ body.landing-view #root{min-height:100vh}
   .phone-stage{min-height:0}
   .location-flyer-head{align-items:flex-start}
   .location-live-dot{margin-top:-2px}
-  body.app-view .pet-hero .avatar{border-radius:50%}
+  body.app-view .pet-hero .avatar{border-radius:0}
 }
 
 @media(prefers-reduced-motion:reduce){
