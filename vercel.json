@@ -2,6 +2,18 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "redirects": [
     {
+      "source": "/",
+      "has": [
+        {
+          "type": "query",
+          "key": "tag",
+          "value": "(?<tag>[A-Za-z0-9]+)"
+        }
+      ],
+      "destination": "/tag.html?tag=:tag",
+      "permanent": false
+    },
+    {
       "source": "/m/:code",
       "destination": "/tag.html?tag=:code",
       "permanent": false
@@ -18,16 +30,6 @@
     }
   ],
   "rewrites": [
-    {
-      "source": "/",
-      "has": [
-        {
-          "type": "query",
-          "key": "tag"
-        }
-      ],
-      "destination": "/tag.html"
-    },
     {
       "source": "/mi-cuenta/privacidad",
       "destination": "/privacidad.html"
