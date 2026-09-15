@@ -227,7 +227,8 @@ function home(){
 
 function unactivated(c,activationMode="pin"){
  document.title="Activar chapita · Patas a Casa";
- if(activationMode==="shared"){
+ if(activationMode==="shared"){location.replace("/mi-cuenta/shared-activate.html?tag="+encodeURIComponent(c));return}
+ if(false){
   root.innerHTML=`<section class="card hero">
     <div class="kicker">CHAPITA NUEVA</div>
     <h1>Activá tu chapita 🐾</h1>
