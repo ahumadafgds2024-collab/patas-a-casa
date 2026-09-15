@@ -2,9 +2,9 @@ name: Fix shared activation account choice
 
 on:
   push:
+    branches: [main]
     paths:
       - '.github/workflows/fix-shared-account-choice-20260915.yml'
-  workflow_dispatch:
 
 permissions:
   contents: write
@@ -15,10 +15,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: main
+          fetch-depth: 0
+
       - name: Add account choice before linking shared tag
-        shell: python
+        shell: bash
         run: |
+          python - <<'PY'
           from pathlib import Path
 
           path = Path('mi-cuenta/index.html')
@@ -42,6 +44,8 @@ jobs:
 }'''
 
           path.write_text(text[:start] + new_block + text[end:], encoding='utf-8')
+          PY
+
       - name: Commit fix
         run: |
           if git diff --quiet; then
