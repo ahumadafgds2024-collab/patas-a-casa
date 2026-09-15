@@ -2,6 +2,7 @@ import { next } from '@vercel/functions';
 
 export const config = {
   matcher: '/mi-cuenta/',
+  runtime: 'nodejs',
 };
 
 export default function middleware(request) {
