@@ -1,0 +1,47 @@
+name: Fix shared second tag flow
+
+on:
+  push:
+    paths:
+      - '.github/workflows/fix-shared-second-tag-flow.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch-shared-flow:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Route shared activation to robust flow
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('tag.html')
+          text = p.read_text(encoding='utf-8')
+          old = 'location.assign("/mi-cuenta/?activar="+encodeURIComponent(c))'
+          new = 'location.assign("/mi-cuenta/shared-activate.html?tag="+encodeURIComponent(c))'
+          if new in text:
+              print('Shared flow already corrected.')
+          else:
+              assert old in text, 'Expected shared activation redirect not found'
+              text = text.replace(old, new, 1)
+              p.write_text(text, encoding='utf-8')
+              print('Shared activation redirect corrected.')
+          PY
+      - name: Validate
+        run: |
+          grep -F 'location.assign("/mi-cuenta/shared-activate.html?tag="+encodeURIComponent(c))' tag.html
+      - name: Commit correction
+        run: |
+          if git diff --quiet; then
+            echo 'No changes needed.'
+            exit 0
+          fi
+          git config user.name 'patas-a-casa-bot'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add tag.html
+          git commit -m 'Corregir flujo al agregar una segunda chapita'
+          git push
