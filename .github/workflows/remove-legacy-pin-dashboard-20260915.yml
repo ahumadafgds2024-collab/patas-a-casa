@@ -1,0 +1,40 @@
+name: Remove legacy PIN dashboard option
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Remove legacy PIN dashboard prompt
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('mi-cuenta/index.html')
+          s = p.read_text(encoding='utf-8')
+          old = '''<details class="optional"><summary>¿Tenés una chapita anterior con PIN?</summary><p class="small muted">Las chapitas anteriores siguen funcionando con su PIN privado de 8 números.</p><button class="btn soft wide" type="button" onclick="openPinClaim()">Vincular chapita anterior</button></details>'''
+          if old in s:
+              s = s.replace(old, '', 1)
+              p.write_text(s, encoding='utf-8')
+              print('Removed legacy PIN dashboard prompt')
+          else:
+              print('Legacy PIN dashboard prompt already absent')
+          PY
+      - name: Commit change
+        run: |
+          if git diff --quiet; then
+            echo "No changes"
+            exit 0
+          fi
+          git config user.name "patas-a-casa-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add mi-cuenta/index.html
+          git commit -m "Quitar opcion visible de chapita anterior con PIN"
+          git push
