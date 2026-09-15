@@ -770,7 +770,7 @@ function showActivationProfile(c){
  document.getElementById("activationProfileForm").addEventListener("submit",async e=>{
   e.preventDefault();const form=e.currentTarget,f=new FormData(form),o=Object.fromEntries(f.entries()),button=document.getElementById("createPetButton"),photo=photoInput.files?.[0];
   o.action="complete_activation";o.public_code=c;o.contact_phone=o.contact_whatsapp;o.public_health=f.get("public_health")==="on";o.public_contact=true;o.status="normal";button.disabled=true;
-  try{if(photo){button.textContent="Preparando foto…";o.photo_data=await compressPhoto(photo)}button.textContent="Creando mascota…";await accountPost(o);history.replaceState({},document.title,"/mi-cuenta/");setInstallPending(true);if(isiOS())writeIosSessionBridge();showInstallFinish();toast("Mascota creada y vinculada ✅")}
+  try{if(photo){button.textContent="Preparando foto…";o.photo_data=await compressPhoto(photo)}button.textContent="Creando mascota…";await accountPost(o);history.replaceState({},document.title,"/mi-cuenta/");let accountPetCount=0;try{const d=await accountPost({action:"list_my_pets"});pets=d.pets||[];currentUser=d.user;accountPetCount=pets.length}catch{}if(accountPetCount>1){setInstallPending(false);clearIosSessionBridge();renderDashboard();toast("Mascota creada y vinculada ✅");return}setInstallPending(true);if(isiOS())writeIosSessionBridge();showInstallFinish();toast("Mascota creada y vinculada ✅")}
   catch(err){toast(err.message);button.disabled=false;button.textContent="Crear mascota y entrar a Mi cuenta"}
  });
 }
