@@ -243,7 +243,7 @@ function unactivated(c,activationMode="pin"){
    </section>`;
   document.getElementById("sharedActivationForm").addEventListener("submit",async e=>{
    e.preventDefault();const activationCode=String(new FormData(e.currentTarget).get("activation_code")||"").trim().toUpperCase().replace(/\s+/g,"");const b=document.getElementById("sharedContinue");b.disabled=true;b.textContent="Verificando…";
-   try{await sharedPost({action:"validate_code",public_code:c,activation_code:activationCode});sessionStorage.setItem(GOOGLE_PENDING_KEY,JSON.stringify({public_code:c,activation_code:activationCode,activation_method:"shared",created_at:Date.now()}));location.assign("/mi-cuenta/?activar="+encodeURIComponent(c))}
+   try{await sharedPost({action:"validate_code",public_code:c,activation_code:activationCode});sessionStorage.setItem(GOOGLE_PENDING_KEY,JSON.stringify({public_code:c,activation_code:activationCode,activation_method:"shared",created_at:Date.now()}));location.assign("/mi-cuenta/shared-activate.html?tag="+encodeURIComponent(c))}
    catch(err){toast(err.message);b.disabled=false;b.textContent="Continuar"}
   });
   return;
