@@ -1,0 +1,143 @@
+name: Fix PWA install flow iPhone Android
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fix-pwa-install-ios-android-20260915.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Make install onboarding first-use only and cross-platform safe
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          p = Path('mi-cuenta/index.html')
+          s = p.read_text(encoding='utf-8')
+
+          def replace_block(text, start_marker, end_marker, replacement, label):
+              start = text.find(start_marker)
+              if start < 0:
+                  raise SystemExit(f'No se encontró inicio: {label}')
+              end = text.find(end_marker, start)
+              if end < 0:
+                  raise SystemExit(f'No se encontró fin: {label}')
+              return text[:start] + replacement + text[end:]
+
+          # Menú: la instalación queda como ayuda manual, nunca como CTA persistente del dashboard.
+          s = replace_block(
+              s,
+              'function openAccountMenu(){',
+              'function openPasswordSettings',
+              '''function openAccountMenu(){
+ const installHelp=isStandalone()?"":`<button class="btn soft wide" type="button" onclick="closeModal();setTimeout(()=>installApp(),0)">📱 Cómo agregar Patas a Casa al inicio</button>`;
+ openModal(`<div class="sheethead"><div><div class="kicker">MI CUENTA</div><h2>Seguridad y cuenta</h2></div><button class="x" onclick="closeModal()">×</button></div><p class="muted small" style="margin-top:-4px">${esc(currentUser?.email||"")}</p><div class="stack" style="display:grid;gap:9px">${installHelp}<button class="btn soft wide" type="button" onclick="openPasswordSettings()">🔐 Crear o cambiar contraseña</button><button class="btn soft wide account-logout" type="button" onclick="closeModal();logout()">${uiIcon("logout")} Cerrar sesión</button></div><div style="height:1px;background:var(--line);margin:18px 0 14px"></div><div class="small muted" style="margin-bottom:8px;font-weight:850">ZONA SENSIBLE</div><button class="btn red wide" type="button" onclick="openDeleteAccount()">🗑️ Eliminar cuenta</button>`);
+}
+''',
+              'openAccountMenu'
+          )
+
+          # iPhone/Android: no volver a mostrar instalación por eventos del navegador.
+          old_events = '''window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;const b=document.getElementById("installBtn");if(b&&!isStandalone())b.classList.remove("hidden")});
+window.addEventListener("appinstalled",()=>{deferredInstall=null;document.getElementById("installBtn")?.classList.add("hidden");if(installPending()){setInstallPending(false);showInstallFinish(true)}else toast("Patas a Casa quedó instalada ✅")});'''
+          new_events = '''window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e});
+window.addEventListener("appinstalled",()=>{deferredInstall=null;setInstallPending(false);clearIosSessionBridge();toast("Patas a Casa quedó instalada ✅");if(document.getElementById("installOnboarding"))loadDashboard()});'''
+          if old_events not in s:
+              raise SystemExit('No se encontró bloque beforeinstallprompt/appinstalled esperado')
+          s = s.replace(old_events, new_events, 1)
+
+          # Instalar manualmente: en iOS preparar el puente de sesión antes de abrir la guía.
+          s = replace_block(
+              s,
+              'async function installApp(){',
+              'function showInstallFinish',
+              '''async function installApp(){
+ if(isStandalone()){toast("Patas a Casa ya está abierta como app en este dispositivo.");return}
+ if(isiOS()){writeIosSessionBridge();openIosInstallGuide();return}
+ if(deferredInstall){deferredInstall.prompt();const choice=await deferredInstall.userChoice;deferredInstall=null;if(choice?.outcome==="accepted")setInstallPending(false);return}
+ openModal(`<div class="sheethead"><h2>Agregar Patas a Casa al inicio</h2><button class="x" onclick="closeModal()">×</button></div><p class="muted">En Android, abrí el menú del navegador y elegí <b>Instalar aplicación</b> o <b>Agregar a pantalla principal</b>.</p><div class="step">En Chrome suele estar en el menú <b>⋮</b>. Si el navegador ofrece “Instalar”, usá esa opción.</div>`);
+}
+''',
+              'installApp'
+          )
+
+          # Onboarding de instalación: solo se invoca después de la PRIMERA mascota y permite omitirlo.
+          s = replace_block(
+              s,
+              'function showInstallFinish(installed=false){',
+              'function showAuth',
+              '''function showInstallFinish(installed=false){
+ if(isStandalone()){setInstallPending(false);clearIosSessionBridge();loadDashboard();return}
+ setInstallPending(false);
+ if(isiOS())writeIosSessionBridge();
+ const ios=isiOS();
+ root.innerHTML=`<section class="card hero" id="installOnboarding"><div class="kicker">ACCESO RÁPIDO</div><h1>${installed?"Patas a Casa ya está agregada ✅":"¿Querés tener Patas a Casa en el inicio?"}</h1><p class="muted">Tu cuenta y los datos de tu mascota ya quedaron guardados. Esto es opcional y se muestra solamente al configurar tu primera mascota.</p></section>
+ <section class="card">${installed?`<div class="status ok"><b>Instalación completada.</b><br>Podés abrir Patas a Casa desde su ícono.</div>`:ios?`<h2>Agregarla en iPhone</h2><p class="muted">Tocá el botón y te mostramos dónde tocar en Safari.</p><div class="note" style="margin-bottom:12px">En iOS 26 o posterior, al elegir <b>Añadir a pantalla de inicio</b>, dejá activado <b>Abrir como app web</b> antes de tocar Agregar.</div><button class="btn primary wide" onclick="installApp()">📱 Ver cómo agregarla</button>`:`<h2>Agregarla en Android</h2><p class="muted small">Si Chrome permite instalarla, vas a ver el cuadro del sistema. Si no aparece, te indicamos la opción del menú.</p><button class="btn primary wide" onclick="installApp()">📲 Agregar Patas a Casa al inicio</button>`}<button class="btn soft wide" id="skipInstallOnboarding" type="button" style="margin-top:9px">Ahora no, ir a Mi cuenta</button></section>`;
+ document.getElementById("skipInstallOnboarding")?.addEventListener("click",()=>{setInstallPending(false);clearIosSessionBridge();loadDashboard()});
+}
+''',
+              'showInstallFinish'
+          )
+
+          # La instalación automática nunca se decide DESPUÉS de crear la mascota.
+          # Se consulta cuántas mascotas había ANTES. Si la consulta falla, no forzamos onboarding.
+          old_submit = 'try{if(photo){button.textContent="Preparando foto…";o.photo_data=await compressPhoto(photo)}button.textContent="Creando mascota…";await accountPost(o);history.replaceState({},document.title,"/mi-cuenta/");let accountPetCount=0;try{const d=await accountPost({action:"list_my_pets"});pets=d.pets||[];currentUser=d.user;accountPetCount=pets.length}catch{}if(accountPetCount>1){setInstallPending(false);clearIosSessionBridge();renderDashboard();toast("Mascota creada y vinculada ✅");return}setInstallPending(true);if(isiOS())writeIosSessionBridge();showInstallFinish();toast("Mascota creada y vinculada ✅")}'
+          new_submit = 'try{let hadPetsBefore=null;try{const before=await accountPost({action:"list_my_pets"});pets=before.pets||[];currentUser=before.user;hadPetsBefore=pets.length>0}catch{}if(photo){button.textContent="Preparando foto…";o.photo_data=await compressPhoto(photo)}button.textContent="Creando mascota…";await accountPost(o);history.replaceState({},document.title,"/mi-cuenta/");if(hadPetsBefore===false){setInstallPending(false);if(isiOS())writeIosSessionBridge();showInstallFinish();toast("Mascota creada y vinculada ✅");return}setInstallPending(false);clearIosSessionBridge();await loadDashboard();toast("Mascota creada y vinculada ✅")}'
+          if old_submit not in s:
+              raise SystemExit('No se encontró el submit actual de activationProfileForm')
+          s = s.replace(old_submit, new_submit, 1)
+
+          # Dashboard limpio: nunca mostrar “Añadir al inicio” solo porque Safari/Chrome no está en standalone.
+          s = replace_block(
+              s,
+              'function renderDashboard(){',
+              'async function resolveTagCodeByPin',
+              '''function renderDashboard(){
+ document.getElementById("accountMenuBtn")?.classList.remove("hidden");
+ const addGuide=`<section class="card"><div class="kicker">NUEVA CHAPITA</div><h2 style="margin-top:7px">¿Querés agregar otra chapita?</h2><p class="muted">Abrí la <b>cámara de tu celular</b> y escaneá el QR de la nueva chapita. Ingresá el código de activación del envoltorio y vas a poder vincularla a esta misma cuenta.</p><div class="note"><b>Usá esta misma cuenta:</b> ${esc(currentUser?.email||"")}</div><details class="optional"><summary>¿Tenés una chapita anterior con PIN?</summary><p class="small muted">Las chapitas anteriores siguen funcionando con su PIN privado de 8 números.</p><button class="btn soft wide" type="button" onclick="openPinClaim()">Vincular chapita anterior</button></details></section>`;
+ root.innerHTML=`<section class="card account-overview"><div class="topline"><div><div class="kicker">MI CUENTA</div><h1 style="font-size:31px;margin-bottom:6px">Tus mascotas.</h1><div class="account-email">${esc(currentUser?.email||"")}</div></div></div></section>
+ <section class="community-card"><a class="community-link" href="/mi-cuenta/perdidas/">${uiIcon("users")}<span>Mascotas perdidas</span><span class="community-arrow" aria-hidden="true">→</span></a></section>
+ <section class="card pets-card"><h2>Mis mascotas</h2><div class="pets">${pets.length?pets.map(petCard).join(""):`<div class="empty">Todavía no hay mascotas vinculadas.<br><span class="small muted">Para agregar una nueva, escaneá su QR físico con la cámara del celular.</span></div>`}</div></section>
+ ${addGuide}
+ <div class="small muted" style="text-align:center;padding:8px 4px 2px"><a href="/mi-cuenta/privacidad" style="color:inherit;font-weight:850">Privacidad</a> · <a href="/mi-cuenta/terminos" style="color:inherit;font-weight:850">Condiciones de uso</a></div>`;
+}
+''',
+              'renderDashboard'
+          )
+
+          # Un estado viejo de instalación nunca debe secuestrar una visita normal a Mi cuenta.
+          old_boot = 'history.replaceState({},document.title,"/mi-cuenta/");if(isStandalone()){setInstallPending(false);clearIosSessionBridge()}else if(installPending()){showInstallFinish();return}await loadDashboard();setTimeout(()=>maybeOfferGooglePasswordBackup(),80);'
+          new_boot = 'history.replaceState({},document.title,"/mi-cuenta/");setInstallPending(false);if(isStandalone())clearIosSessionBridge();await loadDashboard();setTimeout(()=>maybeOfferGooglePasswordBackup(),80);'
+          if old_boot not in s:
+              raise SystemExit('No se encontró final de boot esperado')
+          s = s.replace(old_boot, new_boot, 1)
+
+          p.write_text(s, encoding='utf-8')
+
+          # Forzar refresco limpio del service worker/cache para PWA ya instalada.
+          sw = Path('mi-cuenta/sw.js')
+          w = sw.read_text(encoding='utf-8')
+          if 'const CACHE="pac-owner-v7";' in w:
+              w = w.replace('const CACHE="pac-owner-v7";', 'const CACHE="pac-owner-v8";', 1)
+          elif 'const CACHE="pac-owner-v8";' not in w:
+              raise SystemExit('Versión de cache inesperada en mi-cuenta/sw.js')
+          sw.write_text(w, encoding='utf-8')
+          PY
+
+      - name: Commit PWA fixes
+        run: |
+          git config user.name "patas-a-casa-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add mi-cuenta/index.html mi-cuenta/sw.js
+          git commit -m "Dejar instalación PWA limpia en iPhone y Android"
+          git push origin main
