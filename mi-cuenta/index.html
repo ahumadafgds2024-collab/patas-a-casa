@@ -531,6 +531,7 @@ const GOOGLE_PENDING_KEY="pac_google_activation_v1";
 const GOOGLE_JUST_SIGNED_IN_KEY="pac_google_just_signed_in_v1";
 const INSTALL_PENDING_KEY="pac_install_pending_v1";
 const IOS_SESSION_BRIDGE_COOKIE="pac_ios_session_bridge";
+const INSTALL_DONE_COOKIE="pac_install_done_v1";
 const GOOGLE_REDIRECT_URL=location.origin+"/mi-cuenta/?google=1";
 const googleAuthClient=window.supabase?.createClient?window.supabase.createClient(SUPABASE_URL,PUBLISHABLE_KEY,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:true,flowType:"implicit"}}):null;
 const root=document.getElementById("root"),modal=document.getElementById("modal");
@@ -587,6 +588,8 @@ function setSession(s){if(!s){localStorage.removeItem(SESSION_KEY);return}if(!s.
 function getSession(){try{return JSON.parse(localStorage.getItem(SESSION_KEY)||"null")}catch{return null}}
 function setInstallPending(on){try{on?localStorage.setItem(INSTALL_PENDING_KEY,"1"):localStorage.removeItem(INSTALL_PENDING_KEY)}catch{}}
 function installPending(){try{return localStorage.getItem(INSTALL_PENDING_KEY)==="1"}catch{return false}}
+function installDone(){try{return document.cookie.split(";").some(part=>part.trim()===`${INSTALL_DONE_COOKIE}=1`)}catch{return false}}
+function markInstallDone(){setInstallPending(false);try{document.cookie=`${INSTALL_DONE_COOKIE}=1; Max-Age=31536000; Path=/mi-cuenta/; SameSite=Lax; Secure`}catch{}}
 function clearIosSessionBridge(){document.cookie=`${IOS_SESSION_BRIDGE_COOKIE}=; Max-Age=0; Path=/mi-cuenta/; SameSite=Lax; Secure`}
 function writeIosSessionBridge(){
  if(!isiOS()||isStandalone())return;const s=getSession();if(!s?.access_token||!s?.refresh_token)return;
@@ -693,7 +696,7 @@ function renderIosGuide(step){
  if(!img||!label||!prev||!next)return;
  img.src=current.src;img.alt=current.alt;label.textContent=`Paso ${iosGuideStep+1} de ${IOS_INSTALL_GUIDE.length}`;
  document.querySelectorAll(".ios-guide-dot").forEach((dot,index)=>dot.classList.toggle("on",index===iosGuideStep));
- prev.classList.toggle("hidden",iosGuideStep===0);prev.disabled=iosGuideStep===0;prev.parentElement.classList.toggle("first",iosGuideStep===0);next.textContent=iosGuideStep===IOS_INSTALL_GUIDE.length-1?"Cerrar y hacerlo ahora":"Siguiente paso →";
+ prev.classList.toggle("hidden",iosGuideStep===0);prev.disabled=iosGuideStep===0;prev.parentElement.classList.toggle("first",iosGuideStep===0);next.textContent=iosGuideStep===IOS_INSTALL_GUIDE.length-1?"Listo, voy a agregarla":"Siguiente paso →";
  const upcoming=IOS_INSTALL_GUIDE[iosGuideStep+1];if(upcoming){const preload=new Image();preload.src=upcoming.src}
 }
 function moveIosGuide(delta){if(iosGuideStep===IOS_INSTALL_GUIDE.length-1&&delta>0){closeModal();return}renderIosGuide(iosGuideStep+delta)}
@@ -703,7 +706,7 @@ function openIosInstallGuide(){
  renderIosGuide(0);
 }
 window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e});
-window.addEventListener("appinstalled",()=>{deferredInstall=null;setInstallPending(false);clearIosSessionBridge();toast("Patas a Casa quedó instalada ✅");if(document.getElementById("installOnboarding"))loadDashboard()});
+window.addEventListener("appinstalled",()=>{deferredInstall=null;markInstallDone();clearIosSessionBridge();toast("Patas a Casa quedó instalada ✅");if(document.getElementById("installOnboarding"))loadDashboard()});
 async function installApp(){
  if(isStandalone()){toast("Patas a Casa ya está abierta como app en este dispositivo.");return}
  if(isiOS()){writeIosSessionBridge();openIosInstallGuide();return}
@@ -717,12 +720,12 @@ async function installApp(){
  openModal(`<div class="sheethead"><h2>Agregar Patas a Casa al inicio</h2><button class="x" onclick="closeModal()">×</button></div><p class="muted">En Android, abrí el menú del navegador y elegí <b>Instalar aplicación</b> o <b>Agregar a pantalla principal</b>.</p><div class="step">En Chrome suele estar en el menú <b>⋮</b>. Si el navegador ofrece “Instalar”, usá esa opción.</div>`);
 }
 function showInstallFinish(installed=false){
- if(isStandalone()){setInstallPending(false);clearIosSessionBridge();loadDashboard();return}
- setInstallPending(false);
+ if(isStandalone()){markInstallDone();clearIosSessionBridge();loadDashboard();return}
+ setInstallPending(true);
  if(isiOS())writeIosSessionBridge();
  const ios=isiOS();
  root.innerHTML=`<section class="card hero" id="installOnboarding"><div class="kicker">ÚLTIMO PASO</div><h1>${installed?"Patas a Casa ya está agregada ✅":"Agregá Patas a Casa al inicio."}</h1><p class="muted">Tu cuenta y los datos de tu mascota ya quedaron guardados. Para terminar la configuración, agregá Patas a Casa a la pantalla de inicio.</p></section>
- <section class="card">${installed?`<div class="status ok"><b>Instalación completada.</b><br>Podés abrir Patas a Casa desde su ícono.</div>`:ios?`<h2>Agregarla en iPhone</h2><p class="muted">Te mostramos exactamente dónde tocar en Safari. Son los mismos cuatro pasos con imágenes que ya tenías.</p><div class="note" style="margin-bottom:12px">Al elegir <b>Agregar a Inicio</b>, dejá activado <b>Abrir como app web</b> antes de tocar Agregar.</div><button class="btn primary wide" onclick="installApp()">📱 Ver los 4 pasos</button><p class="small muted" style="margin:12px 0 0;text-align:center">Después abrí Patas a Casa desde el ícono de la pantalla de inicio para continuar.</p>`:`<h2>Instalar en Android</h2><p class="muted small">Tocá el botón y confirmá la instalación de Patas a Casa. Si Chrome no muestra el cuadro automático, te indicamos la opción del menú.</p><button class="btn primary wide" onclick="installApp()">📲 Instalar Patas a Casa</button><p class="small muted" style="margin:12px 0 0;text-align:center">Para terminar la configuración, completá la instalación y abrí Patas a Casa desde su ícono.</p>`}</section>`;
+ <section class="card">${installed?`<div class="status ok"><b>Instalación completada.</b><br>Podés abrir Patas a Casa desde su ícono.</div>`:ios?`<h2>Agregarla en iPhone</h2><p class="muted">Te mostramos exactamente dónde tocar en Safari. Son los mismos cuatro pasos con imágenes que ya tenías.</p><div class="note" style="margin-bottom:12px">Al elegir <b>Agregar a Inicio</b>, dejá activado <b>Abrir como app web</b> antes de tocar Agregar.</div><button class="btn primary wide" onclick="installApp()">📱 Ver los 4 pasos</button><p class="small muted" style="margin:12px 0 0;text-align:center">Después abrí Patas a Casa desde el ícono de la pantalla de inicio para continuar.</p><p class="small muted" style="margin:9px 0 0;text-align:center">Si estas opciones no coinciden con tu navegador, abrí esta página en <b>Safari</b> y seguí los 4 pasos.</p>`:`<h2>Instalar en Android</h2><p class="muted small">Tocá el botón y confirmá la instalación de Patas a Casa. Si Chrome no muestra el cuadro automático, te indicamos la opción del menú.</p><button class="btn primary wide" onclick="installApp()">📲 Instalar Patas a Casa</button><p class="small muted" style="margin:12px 0 0;text-align:center">Para terminar la configuración, completá la instalación y abrí Patas a Casa desde su ícono.</p>`}</section>`;
 }
 function showAuth(message=""){
  document.getElementById("accountMenuBtn")?.classList.add("hidden");
@@ -779,7 +782,7 @@ function showActivationProfile(c){
  document.getElementById("activationProfileForm").addEventListener("submit",async e=>{
   e.preventDefault();const form=e.currentTarget,f=new FormData(form),o=Object.fromEntries(f.entries()),button=document.getElementById("createPetButton"),photo=photoInput.files?.[0];
   o.action="complete_activation";o.public_code=c;o.contact_phone=o.contact_whatsapp;o.public_health=f.get("public_health")==="on";o.public_contact=true;o.status="normal";button.disabled=true;
-  try{let hadPetsBefore=null;try{const before=await accountPost({action:"list_my_pets"});pets=before.pets||[];currentUser=before.user;hadPetsBefore=pets.length>0}catch{}if(photo){button.textContent="Preparando foto…";o.photo_data=await compressPhoto(photo)}button.textContent="Creando mascota…";await accountPost(o);history.replaceState({},document.title,"/mi-cuenta/");if(hadPetsBefore===false){setInstallPending(false);if(isiOS())writeIosSessionBridge();showInstallFinish();toast("Mascota creada y vinculada ✅");return}setInstallPending(false);clearIosSessionBridge();await loadDashboard();toast("Mascota creada y vinculada ✅")}
+  try{let hadPetsBefore=null;try{const before=await accountPost({action:"list_my_pets"});pets=before.pets||[];currentUser=before.user;hadPetsBefore=pets.length>0}catch{}if(photo){button.textContent="Preparando foto…";o.photo_data=await compressPhoto(photo)}button.textContent="Creando mascota…";await accountPost(o);history.replaceState({},document.title,"/mi-cuenta/");if(hadPetsBefore===false){setInstallPending(true);if(isiOS())writeIosSessionBridge();showInstallFinish();toast("Mascota creada y vinculada ✅");return}if(installPending()&&!isStandalone()&&!installDone()){if(isiOS())writeIosSessionBridge();showInstallFinish();toast("Mascota creada y vinculada ✅");return}setInstallPending(false);clearIosSessionBridge();await loadDashboard();toast("Mascota creada y vinculada ✅")}
   catch(err){toast(err.message);button.disabled=false;button.textContent="Crear mascota y entrar a Mi cuenta"}
  });
 }
@@ -935,7 +938,7 @@ async function boot(){
  }
  let fin=null;try{fin=await registerPost({action:"finalize_registration"},true)}catch(err){console.warn("finalize_registration",err)}
  if(fin?.profile_required&&fin?.public_code){history.replaceState({},document.title,"/mi-cuenta/?completar="+encodeURIComponent(fin.public_code));showActivationProfile(fin.public_code);return}
- history.replaceState({},document.title,"/mi-cuenta/");setInstallPending(false);if(isStandalone())clearIosSessionBridge();await loadDashboard();setTimeout(()=>maybeOfferGooglePasswordBackup(),80);
+ history.replaceState({},document.title,"/mi-cuenta/");if(isStandalone()){markInstallDone();clearIosSessionBridge()}else if(installPending()&&!installDone()){if(isiOS())writeIosSessionBridge();showInstallFinish();return}else if(installDone()){setInstallPending(false)}await loadDashboard();setTimeout(()=>maybeOfferGooglePasswordBackup(),80);
 }
 boot();
 </script>

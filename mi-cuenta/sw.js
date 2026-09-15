@@ -1,4 +1,4 @@
-const CACHE="pac-owner-v9";
+const CACHE="pac-owner-v10";
 const ASSETS=["/mi-cuenta/","/mi-cuenta/manifest.webmanifest","/mi-cuenta/icons/icon-192.png","/mi-cuenta/icons/icon-512.png"];
 const OPTIONAL_ASSETS=["/mi-cuenta/ios-guia/paso-1.jpg","/mi-cuenta/ios-guia/paso-2.jpg","/mi-cuenta/ios-guia/paso-3.jpg","/mi-cuenta/ios-guia/paso-4.jpg"];
 self.addEventListener("install",event=>{event.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS).then(()=>Promise.allSettled(OPTIONAL_ASSETS.map(asset=>c.add(asset))))).then(()=>self.skipWaiting()))});
