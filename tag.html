@@ -109,6 +109,7 @@ const SUPABASE_URL="https://cgciwutqwnssdphugupq.supabase.co";
 const PUBLISHABLE_KEY="sb_publishable_oozsLV8QMoy_ooLIqgh_qg_vvjV6IY5";
 const API="https://cgciwutqwnssdphugupq.supabase.co/functions/v1/patas-api";
 const REGISTER_API=SUPABASE_URL+"/functions/v1/patas-register-v2";
+const SHARED_API=SUPABASE_URL+"/functions/v1/patas-shared-activation";
 const LOST_API="https://cgciwutqwnssdphugupq.supabase.co/functions/v1/patas-lost";
 const GOOGLE_PENDING_KEY="pac_google_activation_v1";
 const root=document.getElementById("root");
@@ -216,6 +217,8 @@ async function getTag(c){const r=await fetch(API+"?action=tag&code="+encodeURICo
 async function getLostInfo(c){const r=await fetch(LOST_API+"?code="+encodeURIComponent(c),{cache:"no-store"});const j=await r.json();if(!r.ok)throw new Error(j.error||"No pudimos cargar los datos de pérdida");return j}
 async function post(data){const r=await fetch(API,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});const j=await r.json();if(!r.ok)throw new Error(j.error||"Ocurrió un error");return j}
 async function registerPost(data){const r=await fetch(REGISTER_API,{method:"POST",headers:{"Content-Type":"application/json","apikey":PUBLISHABLE_KEY},body:JSON.stringify(data)});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||"No pudimos configurar el correo");return j}
+async function sharedGet(c){const r=await fetch(SHARED_API+"?action=is_shared&code="+encodeURIComponent(c),{cache:"no-store"});const j=await r.json().catch(()=>({}));return r.ok&&j.shared===true}
+async function sharedPost(data){const r=await fetch(SHARED_API,{method:"POST",headers:{"Content-Type":"application/json","apikey":PUBLISHABLE_KEY},body:JSON.stringify(data)});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||"No pudimos validar la chapita");return j}
 
 function home(){
  document.title="Patas a Casa";
@@ -224,18 +227,25 @@ function home(){
 
 function unactivated(c,activationMode="pin"){
  document.title="Activar chapita · Patas a Casa";
- if(activationMode==="qr"){
+ if(activationMode==="shared"){
   root.innerHTML=`<section class="card hero">
     <div class="kicker">CHAPITA NUEVA</div>
     <h1>Activá tu chapita 🐾</h1>
-    <p class="muted">Esta versión se activa directamente desde su QR. No necesitás ningún PIN.</p>
+    <p class="muted">Escaneaste el QR correcto. Ahora ingresá el código de activación que vino con el producto.</p>
     <div class="stepbar"><div class="step on"></div><div class="step"></div><div class="step"></div><div class="step"></div></div>
    </section>
    <section class="card">
-    <div class="note"><b>Chapita ${esc(c)} detectada ✅</b><br>Entrá a tu cuenta o creá una para vincularla.</div>
-    <a class="btn primary" style="margin-top:12px" href="/mi-cuenta/?qr=${encodeURIComponent(c)}">Continuar sin PIN</a>
-    <p class="small muted" style="text-align:center;margin-bottom:0">La chapita se agregará solamente después de verificar tu cuenta.</p>
+    <div class="note"><b>Chapita ${esc(c)} detectada ✅</b><br>El QR identifica esta chapita de forma única.</div>
+    <form id="sharedActivationForm" method="post" style="margin-top:14px">
+      <div class="field"><label>Código de activación</label><input name="activation_code" autocomplete="off" autocapitalize="characters" maxlength="16" placeholder="Ingresá el código" required><div class="small muted" style="margin-top:6px">Encontralo en el envoltorio de tu chapita.</div></div>
+      <button class="btn primary" id="sharedContinue" type="submit">Continuar</button>
+    </form>
    </section>`;
+  document.getElementById("sharedActivationForm").addEventListener("submit",async e=>{
+   e.preventDefault();const activationCode=String(new FormData(e.currentTarget).get("activation_code")||"").trim().toUpperCase().replace(/\s+/g,"");const b=document.getElementById("sharedContinue");b.disabled=true;b.textContent="Verificando…";
+   try{await sharedPost({action:"validate_code",public_code:c,activation_code:activationCode});sessionStorage.setItem(GOOGLE_PENDING_KEY,JSON.stringify({public_code:c,activation_code:activationCode,activation_method:"shared",created_at:Date.now()}));location.assign("/mi-cuenta/?activar="+encodeURIComponent(c))}
+   catch(err){toast(err.message);b.disabled=false;b.textContent="Continuar"}
+  });
   return;
  }
  root.innerHTML=`<section class="card hero">
@@ -399,7 +409,7 @@ function ownerEdit(c,p){
 async function boot(){
  if(!code){home();return}
  root.innerHTML='<section class="card loading">Leyendo chapita…</section>';
- try{const data=await getTag(code);if(data.state==="unactivated"){unactivated(code,data.activation_mode)}else{const lostInfo=await getLostInfo(code).catch(()=>null);active(code,{...data.pet,...(lostInfo||{})})}}
+ try{const data=await getTag(code);if(data.state==="unactivated"){let mode=data.activation_mode;if(await sharedGet(code).catch(()=>false))mode="shared";unactivated(code,mode)}else{const lostInfo=await getLostInfo(code).catch(()=>null);active(code,{...data.pet,...(lostInfo||{})})}}
  catch(err){root.innerHTML=`<section class="card"><h2>No pudimos abrir esta chapita</h2><p class="muted">${esc(err.message)}</p></section>`}
 }
 boot();
