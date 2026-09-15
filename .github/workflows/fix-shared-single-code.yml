@@ -1,0 +1,38 @@
+name: Fix shared activation single code
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fix-shared-single-code.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Redirect shared tags directly to shared activation page
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('tag.html')
+          s = p.read_text(encoding='utf-8')
+          old = 'function unactivated(c,activationMode="pin"){\n document.title="Activar chapita · Patas a Casa";\n if(activationMode==="shared"){'
+          new = 'function unactivated(c,activationMode="pin"){\n document.title="Activar chapita · Patas a Casa";\n if(activationMode==="shared"){location.replace("/mi-cuenta/shared-activate.html?tag="+encodeURIComponent(c));return}\n if(false){'
+          if old not in s:
+              raise SystemExit('No se encontró el bloque esperado en tag.html')
+          s = s.replace(old, new, 1)
+          p.write_text(s, encoding='utf-8')
+          PY
+      - name: Commit fix
+        run: |
+          git config user.name "patas-a-casa-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tag.html
+          git commit -m "Evitar pedir dos veces el codigo compartido"
+          git push origin main
