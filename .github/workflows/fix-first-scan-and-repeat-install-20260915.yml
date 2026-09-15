@@ -1,0 +1,60 @@
+name: Fix first scan and repeated install
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fix-first-scan-and-repeat-install-20260915.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fix first scan copy and avoid install onboarding on additional pets
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          # 1) Primera pantalla al escanear una chapita nueva: recuperar el tono/jerarquia original.
+          p = Path('mi-cuenta/shared-activate.html')
+          s = p.read_text(encoding='utf-8')
+
+          old_css = '.small{font-size:12px}.hidden{display:none!important}'
+          new_css = '.small{font-size:12px}.stepbar{display:flex;gap:6px;margin:15px 0 2px}.step{height:5px;flex:1;border-radius:99px;background:#e9e8e4}.step.on{background:var(--orange)}.hidden{display:none!important}'
+          if old_css not in s:
+              raise SystemExit('No se encontró el bloque CSS esperado en shared-activate.html')
+          s = s.replace(old_css, new_css, 1)
+
+          old_screen = '<div class="kicker">CHAPITA NUEVA</div><h1>Retomemos la activación.</h1><p class="muted">Detectamos la chapita <b>${esc(tag)}</b>. Ingresá el código que vino con el producto.</p></section>'
+          new_screen = '<div class="kicker">CHAPITA NUEVA</div><h1>Activá tu chapita 🐾</h1><p class="muted">Te va a llevar menos de un minuto. Ingresá el código de activación que vino con la chapita para comprobar que es tuya.</p><div class="stepbar"><div class="step on"></div><div class="step"></div><div class="step"></div><div class="step"></div></div></section>'
+          if old_screen not in s:
+              raise SystemExit('No se encontró la pantalla inicial esperada en shared-activate.html')
+          s = s.replace(old_screen, new_screen, 1)
+          p.write_text(s, encoding='utf-8')
+
+          # 2) El paso "Agregar a inicio" pertenece al alta de la PRIMERA mascota.
+          # Al crear una mascota adicional, volver directo al panel sin repetir onboarding.
+          p = Path('mi-cuenta/index.html')
+          s = p.read_text(encoding='utf-8')
+          old = 'await accountPost(o);history.replaceState({},document.title,"/mi-cuenta/");setInstallPending(true);if(isiOS())writeIosSessionBridge();showInstallFinish();toast("Mascota creada y vinculada ✅")'
+          new = 'await accountPost(o);history.replaceState({},document.title,"/mi-cuenta/");let accountPetCount=0;try{const d=await accountPost({action:"list_my_pets"});pets=d.pets||[];currentUser=d.user;accountPetCount=pets.length}catch{}if(accountPetCount>1){setInstallPending(false);clearIosSessionBridge();renderDashboard();toast("Mascota creada y vinculada ✅");return}setInstallPending(true);if(isiOS())writeIosSessionBridge();showInstallFinish();toast("Mascota creada y vinculada ✅")'
+          if old not in s:
+              raise SystemExit('No se encontró el final del formulario esperado en mi-cuenta/index.html')
+          s = s.replace(old, new, 1)
+          p.write_text(s, encoding='utf-8')
+          PY
+
+      - name: Commit fixes
+        run: |
+          git config user.name "patas-a-casa-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add mi-cuenta/shared-activate.html mi-cuenta/index.html
+          git commit -m "Corregir primera activacion y no repetir instalacion"
+          git push origin main
