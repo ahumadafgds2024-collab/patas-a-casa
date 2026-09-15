@@ -3,17 +3,17 @@
   "redirects": [
     {
       "source": "/m/:code",
-      "destination": "/?tag=:code",
+      "destination": "/tag.html?tag=:code",
       "permanent": false
     },
     {
       "source": "/t/:code",
-      "destination": "/?tag=:code",
+      "destination": "/tag.html?tag=:code",
       "permanent": false
     },
     {
       "source": "/S/:code",
-      "destination": "/?tag=:code",
+      "destination": "/tag.html?tag=:code",
       "permanent": false
     }
   ],
