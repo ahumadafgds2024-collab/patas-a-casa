@@ -361,8 +361,22 @@ function home(){
  }));
 }
 
-function unactivated(c){
+function unactivated(c,activationMode="pin"){
  document.title="Activar chapita · Patas a Casa";
+ if(activationMode==="qr"){
+  root.innerHTML=`<section class="card hero">
+    <div class="kicker">CHAPITA NUEVA</div>
+    <h1>Activá tu chapita 🐾</h1>
+    <p class="muted">Esta versión se activa directamente desde su QR. No necesitás ningún PIN.</p>
+    <div class="stepbar"><div class="step on"></div><div class="step"></div><div class="step"></div><div class="step"></div></div>
+   </section>
+   <section class="card">
+    <div class="note"><b>Chapita ${esc(c)} detectada ✅</b><br>Entrá a tu cuenta o creá una para vincularla.</div>
+    <a class="btn primary" style="margin-top:12px" href="/mi-cuenta/?qr=${encodeURIComponent(c)}">Continuar sin PIN</a>
+    <p class="small muted" style="text-align:center;margin-bottom:0">La chapita se agregará solamente después de verificar tu cuenta.</p>
+   </section>`;
+  return;
+ }
  root.innerHTML=`<section class="card hero">
    <div class="kicker">CHAPITA NUEVA</div>
    <h1>Activá tu chapita 🐾</h1>
@@ -524,7 +538,7 @@ function ownerEdit(c,p){
 async function boot(){
  if(!code){home();return}
  root.innerHTML='<section class="card loading">Leyendo chapita…</section>';
- try{const data=await getTag(code);if(data.state==="unactivated"){unactivated(code)}else{const lostInfo=await getLostInfo(code).catch(()=>null);active(code,{...data.pet,...(lostInfo||{})})}}
+ try{const data=await getTag(code);if(data.state==="unactivated"){unactivated(code,data.activation_mode)}else{const lostInfo=await getLostInfo(code).catch(()=>null);active(code,{...data.pet,...(lostInfo||{})})}}
  catch(err){root.innerHTML=`<section class="card"><h2>No pudimos abrir esta chapita</h2><p class="muted">${esc(err.message)}</p></section>`}
 }
 boot();

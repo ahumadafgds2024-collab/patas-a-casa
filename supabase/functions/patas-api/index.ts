@@ -49,7 +49,7 @@ const petCols = [
 
 async function tagByCode(c: string) {
   const r = await fetch(
-    `${SUPABASE_URL}/rest/v1/tags?public_code=eq.${encodeURIComponent(c)}&select=id,public_code,pet_id,activated_at,blocked_at&limit=1`,
+    `${SUPABASE_URL}/rest/v1/tags?public_code=eq.${encodeURIComponent(c)}&select=id,public_code,pet_id,activated_at,blocked_at,activation_mode&limit=1`,
     { headers: dbHeaders },
   );
   if (!r.ok) throw new Error(`tag_lookup_${r.status}`);
@@ -184,7 +184,7 @@ Deno.serve(async (req) => {
       if (!c) return json({ error: "Código inválido" }, 400);
       const { tag, pet } = await petForTag(c);
       if (!tag || tag.blocked_at) return json({ error: "Chapita no encontrada o bloqueada" }, 404);
-      if (!tag.activated_at || !tag.pet_id || !pet) return json({ state: "unactivated", public_code: c });
+      if (!tag.activated_at || !tag.pet_id || !pet) return json({ state: "unactivated", public_code: c, activation_mode: tag.activation_mode === "qr" ? "qr" : "pin" });
       return json({ state: "active", public_code: c, pet: publicPet(pet) });
     }
 

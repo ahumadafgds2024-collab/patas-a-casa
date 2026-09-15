@@ -39,7 +39,7 @@ function txt(v: unknown, max = 500) {
 }
 
 async function tagByCode(c: string) {
-  const r = await fetch(`${SUPABASE_URL}/rest/v1/tags?public_code=eq.${encodeURIComponent(c)}&select=id,public_code,pet_id,activated_at,blocked_at&limit=1`, { headers: serviceHeaders });
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/tags?public_code=eq.${encodeURIComponent(c)}&select=id,public_code,pet_id,activated_at,blocked_at,activation_mode&limit=1`, { headers: serviceHeaders });
   if (!r.ok) throw new Error(`tag_lookup_${r.status}`);
   const rows = await r.json();
   return rows?.[0] ?? null;
@@ -88,6 +88,49 @@ async function pendingForUser(userId: string, c: string) {
   return rows?.[0] ?? null;
 }
 
+async function activePendingForTag(tagId: string) {
+  const now = new Date().toISOString();
+  const r = await fetch(
+    `${SUPABASE_URL}/rest/v1/pending_owner_claims?tag_id=eq.${encodeURIComponent(tagId)}&consumed_at=is.null&expires_at=gt.${encodeURIComponent(now)}&select=id,auth_user_id,public_code,expires_at&order=created_at.desc&limit=1`,
+    { headers: serviceHeaders },
+  );
+  if (!r.ok) throw new Error(`pending_tag_lookup_${r.status}`);
+  const rows = await r.json();
+  return rows?.[0] ?? null;
+}
+
+async function expireTagClaims(tagId: string) {
+  const now = new Date().toISOString();
+  const r = await fetch(
+    `${SUPABASE_URL}/rest/v1/pending_owner_claims?tag_id=eq.${encodeURIComponent(tagId)}&consumed_at=is.null&expires_at=lt.${encodeURIComponent(now)}`,
+    {
+      method: "PATCH",
+      headers: { ...serviceHeaders, Prefer: "return=minimal" },
+      body: JSON.stringify({ consumed_at: now }),
+    },
+  );
+  if (!r.ok) throw new Error(`expire_tag_claims_${r.status}`);
+}
+
+async function registerQrAttempt(userId: string, c: string) {
+  const since = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+  const lookup = await fetch(
+    `${SUPABASE_URL}/rest/v1/qr_activation_attempts?auth_user_id=eq.${encodeURIComponent(userId)}&created_at=gte.${encodeURIComponent(since)}&select=id&limit=6`,
+    { headers: serviceHeaders },
+  );
+  if (!lookup.ok) throw new Error(`qr_attempt_lookup_${lookup.status}`);
+  const recent = await lookup.json();
+  if (Array.isArray(recent) && recent.length >= 5) return false;
+
+  const insert = await fetch(`${SUPABASE_URL}/rest/v1/qr_activation_attempts`, {
+    method: "POST",
+    headers: { ...serviceHeaders, Prefer: "return=minimal" },
+    body: JSON.stringify({ auth_user_id: userId, public_code: c }),
+  });
+  if (!insert.ok) throw new Error(`qr_attempt_insert_${insert.status}`);
+  return true;
+}
+
 async function completePending(id: string, userId: string, petId: string) {
   const r = await fetch(
     `${SUPABASE_URL}/rest/v1/pending_owner_claims?id=eq.${encodeURIComponent(id)}&auth_user_id=eq.${encodeURIComponent(userId)}&consumed_at=is.null`,
@@ -100,7 +143,7 @@ async function completePending(id: string, userId: string, petId: string) {
   if (!r.ok) console.error("complete_pending", r.status, await r.text());
 }
 
-async function createPending(user: any, tag: any, petId: string | null, c: string) {
+async function createPending(user: any, tag: any, petId: string | null, c: string, ttlMs = 24 * 60 * 60 * 1000) {
   const r = await fetch(`${SUPABASE_URL}/rest/v1/pending_owner_claims`, {
     method: "POST",
     headers: { ...serviceHeaders, Prefer: "return=representation" },
@@ -110,7 +153,7 @@ async function createPending(user: any, tag: any, petId: string | null, c: strin
       pet_id: petId,
       public_code: c,
       email: String(user.email || "").trim().toLowerCase(),
-      expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      expires_at: new Date(Date.now() + ttlMs).toISOString(),
     }),
   });
   const rows = r.ok ? await r.json() : [];
@@ -193,6 +236,51 @@ Deno.serve(async (req) => {
 
     const user = await currentUser(req);
     if (!user?.id) return json({ error: "Sesión vencida. Volvé a ingresar." }, 401);
+
+    if (b.action === "prepare_qr_activation") {
+      if (!user.email || (!user.email_confirmed_at && !user.confirmed_at)) {
+        return json({ error: "Primero verificá el correo de tu cuenta." }, 403);
+      }
+
+      const c = code(b.public_code);
+      if (!c) return json({ error: "No pudimos leer el código de la chapita." }, 400);
+      if (!(await registerQrAttempt(user.id, c))) {
+        return json({ error: "Hiciste varios intentos. Esperá 10 minutos y volvé a probar." }, 429);
+      }
+
+      const tag = await tagByCode(c);
+      if (!tag || tag.blocked_at) return json({ error: "Chapita no encontrada o bloqueada." }, 404);
+
+      const freshTag = !tag.pet_id && !tag.activated_at;
+      const activeTag = Boolean(tag.pet_id && tag.activated_at);
+      if (!freshTag && !activeTag) return json({ error: "La chapita tiene un estado incompleto. Contactanos para revisarla." }, 409);
+
+      if (activeTag) {
+        const pet = await petById(tag.pet_id);
+        if (!pet) return json({ error: "No encontramos el perfil de esta mascota." }, 404);
+        if (pet.owner_id === user.id) return json({ ok: true, linked: true, already: true, public_code: c });
+        return json({ error: "Esta chapita ya pertenece a otra cuenta." }, 409);
+      }
+
+      if (tag.activation_mode !== "qr") {
+        return json({ error: "Esta chapita es de la versión con PIN. Elegí ‘Chapita anterior’ e ingresalo." }, 409);
+      }
+
+      await expireTagClaims(tag.id);
+      const existing = await pendingForUser(user.id, c);
+      if (existing && new Date(existing.expires_at).getTime() >= Date.now()) {
+        return json({ ok: true, profile_required: true, public_code: c });
+      }
+
+      const otherPending = await activePendingForTag(tag.id);
+      if (otherPending && otherPending.auth_user_id !== user.id) {
+        return json({ error: "Esta chapita tiene una activación en curso. Probá nuevamente en unos minutos." }, 409);
+      }
+
+      const pending = await createPending(user, tag, null, c, 15 * 60 * 1000);
+      if (!pending) return json({ error: "No pudimos preparar la activación. Volvé a intentarlo." }, 409);
+      return json({ ok: true, profile_required: true, public_code: c });
+    }
 
     if (b.action === "prepare_activation") {
       if (!user.email || (!user.email_confirmed_at && !user.confirmed_at)) {

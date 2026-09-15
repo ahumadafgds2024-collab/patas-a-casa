@@ -40,10 +40,12 @@
 const SUPABASE_URL="https://cgciwutqwnssdphugupq.supabase.co";
 const PUBLISHABLE_KEY="sb_publishable_oozsLV8QMoy_ooLIqgh_qg_vvjV6IY5";
 const REGISTER_API=SUPABASE_URL+"/functions/v1/patas-register-v2";
+const ACCOUNT_API=SUPABASE_URL+"/functions/v1/patas-account";
 const SESSION_KEY="pac_owner_session_v1";
 const params=new URLSearchParams(location.hash.replace(/^#/,""));
 const query=new URLSearchParams(location.search);
 const tagCode=String(query.get("chapita")||"").replace(/[^A-Z0-9]/gi,"").slice(0,12);
+const qrMode=query.get("modo")==="qr";
 const title=document.getElementById("title"),copy=document.getElementById("text"),status=document.getElementById("status"),continueLink=document.getElementById("continueLink");
 
 async function finishConfirmation(){
@@ -52,11 +54,11 @@ async function finishConfirmation(){
   title.textContent="No pudimos confirmar el correo";
   copy.textContent="El enlace puede haber vencido, ya haber sido usado o ser inválido.";
   status.className="status err";status.textContent=params.get("error_description")||"Pedí un nuevo correo de verificación.";
-  continueLink.href=tagCode?"/mi-cuenta/?vincular="+encodeURIComponent(tagCode):"/mi-cuenta/";
+  continueLink.href=tagCode?(qrMode?"/mi-cuenta/?qr=":"/mi-cuenta/?vincular=")+encodeURIComponent(tagCode):"/mi-cuenta/";
   continueLink.textContent=tagCode?"Reenviar correo":"Ir a Mi cuenta";return
  }
  const accessToken=params.get("access_token"),refreshToken=params.get("refresh_token");
- if(!accessToken){status.textContent="El correo quedó confirmado. Ingresá a Mi cuenta para continuar.";continueLink.textContent="Ir a Mi cuenta";return}
+ if(!accessToken){status.textContent="El correo quedó confirmado. Ingresá a Mi cuenta para continuar.";continueLink.href=tagCode&&qrMode?"/mi-cuenta/?qr="+encodeURIComponent(tagCode):"/mi-cuenta/";continueLink.textContent="Ir a Mi cuenta";return}
  const expiresIn=Number(params.get("expires_in")||3600);
  localStorage.setItem(SESSION_KEY,JSON.stringify({access_token:accessToken,refresh_token:refreshToken||"",expires_in:expiresIn,expires_at:Math.floor(Date.now()/1000)+expiresIn,token_type:params.get("token_type")||"bearer"}));
  history.replaceState({},document.title,location.pathname+location.search);
@@ -66,6 +68,11 @@ async function finishConfirmation(){
   const result=await response.json().catch(()=>({}));if(!response.ok)throw new Error(result.error||"No pudimos continuar automáticamente.");
   if(result.profile_required&&result.public_code){
    const next="/mi-cuenta/?completar="+encodeURIComponent(result.public_code);continueLink.href=next;continueLink.textContent="Cargar datos de mi mascota";status.textContent="Ahora vas a cargar los datos de tu mascota. No te pediremos nuevamente el código ni el PIN.";setTimeout(()=>location.replace(next),700);return
+  }
+  if(qrMode&&tagCode){
+   const claimResponse=await fetch(ACCOUNT_API,{method:"POST",headers:{"Content-Type":"application/json","apikey":PUBLISHABLE_KEY,"Authorization":"Bearer "+accessToken},body:JSON.stringify({action:"prepare_qr_activation",public_code:tagCode})});
+   const claim=await claimResponse.json().catch(()=>({}));if(!claimResponse.ok)throw new Error(claim.error||"No pudimos preparar la chapita.");
+   if(claim.profile_required&&claim.public_code){const next="/mi-cuenta/?completar="+encodeURIComponent(claim.public_code);continueLink.href=next;continueLink.textContent="Cargar datos de mi mascota";status.textContent="Ahora vas a cargar los datos de tu mascota. No te pediremos ningún PIN.";setTimeout(()=>location.replace(next),700);return}
   }
   continueLink.href="/mi-cuenta/";continueLink.textContent="Entrar a Mi cuenta";status.textContent="Listo. Entrando a Mi cuenta…";setTimeout(()=>location.replace("/mi-cuenta/"),700);
  }catch(err){

@@ -60,9 +60,10 @@ function appOrigin(req: Request) {
   return ALLOWED_APP_ORIGINS.has(origin) ? origin : DEFAULT_APP_ORIGIN;
 }
 
-function confirmUrl(req: Request, publicCode = "") {
+function confirmUrl(req: Request, publicCode = "", activationMethod = "pin") {
   const url = new URL("/mi-cuenta/confirmar/", appOrigin(req));
   if (publicCode) url.searchParams.set("chapita", code(publicCode));
+  if (activationMethod === "qr") url.searchParams.set("modo", "qr");
   return url.toString();
 }
 
@@ -137,7 +138,7 @@ function email(v: unknown) {
 
 async function tagByCode(ctx: RequestContext, c: string) {
   const r = await fetchWithTimeout(
-    `${SUPABASE_URL}/rest/v1/tags?public_code=eq.${encodeURIComponent(c)}&select=id,public_code,pet_id,activated_at,blocked_at&limit=1`,
+    `${SUPABASE_URL}/rest/v1/tags?public_code=eq.${encodeURIComponent(c)}&select=id,public_code,pet_id,activated_at,blocked_at,activation_mode&limit=1`,
     { headers: serviceHeaders },
   );
   if (!r.ok) {
@@ -231,9 +232,9 @@ async function extendClaim(ctx: RequestContext, claimId: string) {
   return Boolean(rows?.length);
 }
 
-async function resendConfirmation(ctx: RequestContext, req: Request, mail: string, publicCode: string) {
+async function resendConfirmation(ctx: RequestContext, req: Request, mail: string, publicCode: string, activationMethod = "pin") {
   const r = await fetchWithTimeout(
-    `${SUPABASE_URL}/auth/v1/resend?redirect_to=${encodeURIComponent(confirmUrl(req, publicCode))}`,
+    `${SUPABASE_URL}/auth/v1/resend?redirect_to=${encodeURIComponent(confirmUrl(req, publicCode, activationMethod))}`,
     {
       method: "POST",
       headers: { apikey: PUBLISHABLE_KEY, "Content-Type": "application/json" },
@@ -329,13 +330,14 @@ Deno.serve(async (req) => {
       }
       const tag = await tagByCode(ctx, c);
       const pending = tag && !tag.blocked_at ? await pendingForTag(ctx, tag.id) : null;
-      if (!pending || String(pending.email || "").toLowerCase() !== mail) {
+      const qrRegistration = Boolean(tag && !tag.blocked_at && tag.activation_mode === "qr" && !pending);
+      if (!qrRegistration && (!pending || String(pending.email || "").toLowerCase() !== mail)) {
         return json(ctx, { error: "No encontramos una verificación pendiente con esos datos." }, 404);
       }
-      if (!(await extendClaim(ctx, pending.id))) {
+      if (pending && !(await extendClaim(ctx, pending.id))) {
         return json(ctx, { error: "No pudimos renovar la verificación. Probá nuevamente." }, 502);
       }
-      const sent = await resendConfirmation(ctx, req, mail, c);
+      const sent = await resendConfirmation(ctx, req, mail, c, qrRegistration ? "qr" : "pin");
       if (!sent.ok) return json(ctx, { error: sent.error }, sent.status);
       return json(ctx, { ok: true, resent: true, email: mail, public_code: c });
     }
@@ -343,17 +345,27 @@ Deno.serve(async (req) => {
     if (ctx.action === "start_registration") {
       const c = code(body.public_code);
       const pin = String(body.activation_code ?? "").trim().slice(0, 50);
+      const activationMethod = body.activation_method === "qr" ? "qr" : "pin";
       const mail = email(body.email);
       const password = String(body.password ?? "");
 
-      if (!c || !pin || !mail || password.length < 8) {
-        return json(ctx, { error: "Completá código, PIN, email y una contraseña de al menos 8 caracteres." }, 400);
+      if (!c || (activationMethod === "pin" && !pin) || !mail || password.length < 8) {
+        const message = activationMethod === "qr"
+          ? "Completá el email y una contraseña de al menos 8 caracteres."
+          : "Completá código, PIN, email y una contraseña de al menos 8 caracteres.";
+        return json(ctx, { error: message }, 400);
       }
       if (!/^\S+@\S+\.\S+$/.test(mail)) return json(ctx, { error: "Ingresá un email válido." }, 400);
 
       const tag = await tagByCode(ctx, c);
       if (!tag || tag.blocked_at) return json(ctx, { error: "Chapita no encontrada o bloqueada." }, 404);
-      if (!(await verifyPin(ctx, c, pin))) return json(ctx, { error: "PIN incorrecto." }, 403);
+      if (activationMethod === "qr") {
+        if (tag.activation_mode !== "qr") {
+          return json(ctx, { error: "Esta chapita es de la versión con PIN." }, 409);
+        }
+      } else if (!(await verifyPin(ctx, c, pin))) {
+        return json(ctx, { error: "PIN incorrecto." }, 403);
+      }
 
       const freshTag = !tag.pet_id && !tag.activated_at;
       const activeTag = Boolean(tag.pet_id && tag.activated_at);
@@ -370,21 +382,23 @@ Deno.serve(async (req) => {
         }
       }
 
-      await expireTagClaims(ctx, tag.id);
-      const existingPending = await pendingForTag(ctx, tag.id);
-      if (existingPending) {
-        if (String(existingPending.email || "").toLowerCase() !== mail) {
-          return json(ctx, { error: "Esta chapita ya tiene una activación pendiente con otro correo. Contactanos para revisarla." }, 409);
+      if (activationMethod === "pin") {
+        await expireTagClaims(ctx, tag.id);
+        const existingPending = await pendingForTag(ctx, tag.id);
+        if (existingPending) {
+          if (String(existingPending.email || "").toLowerCase() !== mail) {
+            return json(ctx, { error: "Esta chapita ya tiene una activación pendiente con otro correo. Contactanos para revisarla." }, 409);
+          }
+          if (!(await extendClaim(ctx, existingPending.id))) {
+            return json(ctx, { error: "No pudimos renovar la verificación. Probá nuevamente." }, 502);
+          }
+          const sent = await resendConfirmation(ctx, req, mail, c);
+          if (!sent.ok) return json(ctx, { error: sent.error }, sent.status);
+          return json(ctx, { ok: true, verification_required: true, resent: true, email: mail, public_code: c });
         }
-        if (!(await extendClaim(ctx, existingPending.id))) {
-          return json(ctx, { error: "No pudimos renovar la verificación. Probá nuevamente." }, 502);
-        }
-        const sent = await resendConfirmation(ctx, req, mail, c);
-        if (!sent.ok) return json(ctx, { error: sent.error }, sent.status);
-        return json(ctx, { ok: true, verification_required: true, resent: true, email: mail, public_code: c });
       }
       const signup = await fetchWithTimeout(
-        `${SUPABASE_URL}/auth/v1/signup?redirect_to=${encodeURIComponent(confirmUrl(req, c))}`,
+        `${SUPABASE_URL}/auth/v1/signup?redirect_to=${encodeURIComponent(confirmUrl(req, c, activationMethod))}`,
         {
           method: "POST",
           headers: { apikey: PUBLISHABLE_KEY, "Content-Type": "application/json" },
@@ -409,6 +423,10 @@ Deno.serve(async (req) => {
 
       if (!created?.id || (Array.isArray(created?.identities) && created.identities.length === 0)) {
         return json(ctx, { error: "Ese email ya tiene una cuenta. Iniciá sesión o recuperá tu contraseña." }, 409);
+      }
+
+      if (activationMethod === "qr") {
+        return json(ctx, { ok: true, verification_required: true, email: mail, public_code: c });
       }
 
       const pending = await fetchWithTimeout(`${SUPABASE_URL}/rest/v1/pending_owner_claims`, {
