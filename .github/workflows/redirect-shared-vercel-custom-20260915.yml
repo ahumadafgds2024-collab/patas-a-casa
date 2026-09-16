@@ -1,0 +1,27 @@
+name: Redirect shared tags from Vercel to custom domain
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/redirect-shared-vercel-custom-20260915.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Apply redirect patch
+        run: python .github/scripts/redirect_shared_vercel_to_custom_20260915.py
+      - name: Commit redirect
+        run: |
+          git config user.name "patas-a-casa-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tag.html
+          git commit -m "Redirigir chapitas PAC2011 de Vercel al dominio nuevo"
+          git push origin main
