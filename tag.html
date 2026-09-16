@@ -227,7 +227,7 @@ function home(){
 
 function unactivated(c,activationMode="pin"){
  document.title="Activar chapita · Patas a Casa";
- if(activationMode==="shared"){location.replace("/mi-cuenta/shared-activate.html?tag="+encodeURIComponent(c));return}
+ if(activationMode==="shared"){const base=/vercel\.app$/i.test(location.hostname)?"https://patasacasa.com.ar":"";location.replace(base+"/mi-cuenta/shared-activate.html?tag="+encodeURIComponent(c));return}
  if(false){
   root.innerHTML=`<section class="card hero">
     <div class="kicker">CHAPITA NUEVA</div>
