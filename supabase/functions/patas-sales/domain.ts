@@ -7,7 +7,7 @@ export const models=['Circular grande · 31 mm','Circular chica · 25 mm','Cara 
 const short=z.string().trim().max(300);const note=z.string().trim().max(3000);const id=z.string().min(1).max(100);const date=z.string().refine(s=>s===''||(/^\d{4}-\d{2}-\d{2}$/.test(s)&&!Number.isNaN(Date.parse(s))),'Fecha inválida');
 const url=z.string().trim().max(1500).refine(s=>!s||(()=>{try{const u=new URL(s);return u.protocol==='https:'}catch{return false}})(),'Usá un enlace https válido');
 export const sellerSchema=z.object({id:id.optional(),name:short.min(2),email:z.string().trim().email().transform(s=>s.toLowerCase()),phone:short,zone:short,map_url:url,active:z.number().int().min(0).max(1)});
-export const shopSchema=z.object({id:id.optional(),name:short.min(2),address:short.min(3),zone:short,contact:short,phone:short,seller_id:short,status:z.enum(shopStates),next_visit:date,map_url:url,notes:note});
+export const shopSchema=z.object({id:id.optional(),name:short.min(2),address:short,zone:short,contact:short,phone:short,seller_id:short,status:z.enum(shopStates),next_visit:date,map_url:url,notes:note});
 export const visitSchema=z.object({id:id,shop_id:id,result:z.enum(visitResults),notes:note,next_visit:date});
 export const itemSchema=z.object({model:z.enum(['Circular grande · 31 mm','Circular chica · 25 mm','Cara de gato']),color:z.enum(['Naranja','Celeste','Rosado','Negro','Blanco','Verde','Morado','Amarillo']),quantity:z.number().int().min(1).max(10000),price:z.number().int().min(1).max(10000000)});
 export const orderSchema=z.object({id:id,shop_id:id,items:z.array(itemSchema).min(1).max(60),delivery:date,notes:note});
