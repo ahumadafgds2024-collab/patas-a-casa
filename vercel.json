@@ -31,6 +31,10 @@
   ],
   "rewrites": [
     {
+      "source": "/ventas",
+      "destination": "/ventas/index.html"
+    },
+    {
       "source": "/mi-cuenta/privacidad",
       "destination": "/privacidad.html"
     },
@@ -75,6 +79,23 @@
         {
           "key": "Cache-Control",
           "value": "no-store, max-age=0"
+        }
+      ]
+    },
+    {
+      "source": "/ventas(.*)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow, noarchive"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "no-store, max-age=0"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "no-referrer"
         }
       ]
     }
