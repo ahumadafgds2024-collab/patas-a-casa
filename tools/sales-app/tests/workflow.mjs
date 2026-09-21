@@ -17,6 +17,8 @@ act('seller',{id:'s2',name:'Vendedor Dos',email:other.email,phone:'',zone:'Mendo
 const shop={name:'Comercio de prueba',address:'Dirección de prueba',zone:'',contact:'',phone:'',status:'Pendiente',next_visit:'',map_url:'',notes:''};
 act('shop',{...shop,id:'c1',seller_id:'s1'});act('shop',{...shop,id:'c2',seller_id:'s2'});
 assert.equal(visible(state,seller).shops.length,1);
+const quick=act('quickShop',{name:'Local espontáneo',address:'',zone:'Centro'},seller);assert.equal(state.shops.find(s=>s.id===quick.id)?.seller_id,'s1');assert.equal(visible(state,seller).shops.length,2);
+act('shop',{...shop,id:'c3',seller_id:'s2'},seller);assert.equal(state.shops.find(s=>s.id==='c3')?.seller_id,'s1');
 assert.throws(()=>act('seller',{...state.sellers[0],email:'hijack@example.test'},seller));
 assert.throws(()=>act('visit',{id:'v1',shop_id:'c2',result:'Interesado',notes:'',next_visit:''},seller));
 act('visit',{id:'v1',shop_id:'c1',result:'Interesado',notes:'Visita',next_visit:''},seller);
