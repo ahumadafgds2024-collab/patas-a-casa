@@ -13,3 +13,33 @@ self.addEventListener('fetch',event=>{
   }
   event.respondWith(fetch(event.request));
 });
+
+self.addEventListener('push',event=>{
+  let data={};
+  try{data=event.data?event.data.json():{}}catch{}
+  const title=data.title||'Patas a Casa';
+  const options={
+    body:data.body||'Tenés una novedad en Ventas.',
+    icon:'/ventas/icon-192.svg',
+    badge:'/ventas/icon-192.svg',
+    tag:data.tag||'patas-ventas',
+    renotify:true,
+    data:{url:data.url||'/ventas/',orderId:data.orderId||''}
+  };
+  event.waitUntil(self.registration.showNotification(title,options));
+});
+self.addEventListener('notificationclick',event=>{
+  event.notification.close();
+  const target=new URL(event.notification.data?.url||'/ventas/',self.location.origin).href;
+  event.waitUntil((async()=>{
+    const list=await self.clients.matchAll({type:'window',includeUncontrolled:true});
+    for(const client of list){
+      if(client.url.startsWith(self.location.origin+'/ventas/')){
+        await client.focus();
+        if('navigate'in client&&client.url!==target)await client.navigate(target);
+        return;
+      }
+    }
+    await self.clients.openWindow(target);
+  })());
+});
