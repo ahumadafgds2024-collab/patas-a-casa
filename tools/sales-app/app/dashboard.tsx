@@ -18,7 +18,7 @@ const money=(n:number)=>new Intl.NumberFormat('es-AR',{style:'currency',currency
 const date=(s:string)=>s?new Date(s.includes('T')?s:s+'T12:00:00').toLocaleDateString('es-AR',{day:'2-digit',month:'short'}):'Sin fecha';
 const today=()=>new Date().toLocaleDateString('sv-SE',{timeZone:'America/Argentina/Mendoza'});
 const id=(prefix='')=>prefix+Array.from(crypto.getRandomValues(new Uint8Array(8)),b=>b.toString(16).padStart(2,'0')).join('').toUpperCase();
-const directions=(s:Row)=>'https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(s.address);
+const directions=(s:Row)=>s.map_url||'https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(s.address);
 const phone=(s:string)=>'https://wa.me/'+s.replace(/\D/g,'');
 const colorHex:Row={Naranja:'#ff8700',Celeste:'#78c9ef',Rosado:'#f2a5c2',Negro:'#1f2937',Blanco:'#ffffff',Verde:'#55b86d',Morado:'#8b5cf6',Amarillo:'#f4cf42'};
 function Badge({value}:{value:string}){const green=['Cliente','Entregado','Cobrado','Abonada','Hizo pedido','Activo'];const amber=['Interesado','Preparado','Parcial','Por abonar','Volver a visitar'];return <span className={'badge '+(green.includes(value)?'green':amber.includes(value)?'amber':value==='Cancelado'||value==='No interesado'?'gray':'blue')}>{value}</span>}
