@@ -59,6 +59,8 @@
     const {data:{session}}=await supabase.auth.getSession();
     if(!session){
       supabase.auth.onAuthStateChange((event,next)=>{if(next&&event==='SIGNED_IN')setTimeout(()=>location.reload(),120)});
+      const loginWatch=setInterval(()=>{try{const raw=localStorage.getItem(STORAGE_KEY)||'';if(raw.includes('access_token')){clearInterval(loginWatch);location.reload()}}catch{}},900);
+      setTimeout(()=>clearInterval(loginWatch),15*60*1000);
       loadReact();return;
     }
     try{
@@ -347,6 +349,7 @@
       if(target.dataset.qty){const idx=Number(target.dataset.index),delta=Number(target.dataset.qty);if(state.items[idx]){state.items[idx].quantity+=delta;if(state.items[idx].quantity<=0)state.items.splice(idx,1)}render();return}
       const action=target.dataset.action;
       if(!action)return;
+      if((target.classList.contains('sp-modal-backdrop')||target.classList.contains('sp-drawer-backdrop'))&&e.target!==target)return;
       if(action==='drawer'){state.drawer=true;render()}
       else if(action==='close-drawer'){state.drawer=false;render()}
       else if(action==='close-modal'){state.modal=null;state.busy=false;render()}
