@@ -17,7 +17,7 @@
       .pac-install-num{width:25px;height:25px;flex:0 0 25px;border-radius:50%;background:#e6effa;color:#285d91;display:grid;place-items:center;font-weight:800}
       .pac-install-actions{display:flex;gap:10px}.pac-install-actions button{min-height:44px;border-radius:11px;padding:0 15px;font-weight:700;cursor:pointer}
       .pac-install-close{border:1px solid #dce5ef;background:#fff;color:#49637f}.pac-install-native{border:0;background:#183f6b;color:#fff;flex:1}
-      @media(min-width:900px){.pac-install-launcher{bottom:22px}} @media(max-width:600px){.pac-install-launcher{left:16px;right:16px;justify-content:center;bottom:calc(14px + env(safe-area-inset-bottom));font-size:14px}}
+      @media(min-width:900px){.pac-install-launcher{bottom:22px}} @media(max-width:600px){.pac-install-launcher{left:16px;right:16px;justify-content:center;bottom:calc(82px + env(safe-area-inset-bottom));font-size:14px}}
     `;
     document.head.appendChild(s);
   }
