@@ -103,11 +103,7 @@
     const matchingShops=()=>{
       const q=state.query.trim().toLowerCase();
       const arr=shops().filter(s=>(!state.filter||s.status===state.filter)&&(!q||(s.name+' '+s.address+' '+s.zone+' '+s.contact).toLowerCase().includes(q)));
-      return arr.sort((a,b)=>{
-        if(state.geo){const da=shopDistance(a),db=shopDistance(b);if(da!=null&&db!=null)return da-db;if(da!=null)return-1;if(db!=null)return 1}
-        const ad=a.next_visit&&a.next_visit<=today()?0:1,bd=b.next_visit&&b.next_visit<=today()?0:1;
-        return ad-bd||String(a.next_visit||'9999').localeCompare(String(b.next_visit||'9999'))||String(a.name).localeCompare(String(b.name));
-      });
+      return arr.sort((a,b)=>{const ad=a.next_visit&&a.next_visit<=today()?0:1,bd=b.next_visit&&b.next_visit<=today()?0:1;return ad-bd||String(a.next_visit||'9999').localeCompare(String(b.next_visit||'9999'))||String(a.name).localeCompare(String(b.name));});
     };
     const matchingOrders=()=>{
       const q=state.query.trim().toLowerCase();
@@ -148,18 +144,18 @@
       const meta=pageMeta();
       return '<div class="sp-app">'+
         '<aside class="sp-sidebar"><div class="sp-brand"><img src="/ventas/logo.svg" alt="Patas a Casa"><div><strong>Patas a Casa</strong><span>VENTAS</span></div></div><nav>'+
-        navButton('home','Inicio','home')+navButton('shops','Comercios','store')+navButton('routes','Recorrido','map')+navButton('visits','Visitas','clip')+navButton('orders','Pedidos','bag')+navButton('money','Cobros','wallet')+navButton('material','Material','box')+
+        navButton('home','Inicio','home')+navButton('shops','Comercios','store')+navButton('routes','Recorrido','map')+navButton('visits','Visitas','clip')+navButton('orders','Pedidos','bag')+
         '</nav><div class="sp-sidebar-foot"><div class="sp-user"><span>'+esc((state.data.viewer.name||'V').slice(0,2).toUpperCase())+'</span><div><strong>'+esc(state.data.viewer.name||'Vendedor')+'</strong><small>Vendedor</small></div></div><button data-action="logout" class="sp-icon-btn" title="Cerrar sesión">'+icon('logout',18)+'</button></div></aside>'+
         '<main class="sp-main"><header class="sp-top"><button class="sp-mobile-menu" data-action="drawer">'+icon('menu',20)+'</button><div class="sp-top-title"><span>GESTIÓN COMERCIAL</span><strong>'+esc(meta[0])+'</strong></div><div class="sp-top-actions"><button class="sp-icon-btn" data-action="refresh" title="Actualizar">'+icon('refresh',18)+'</button><span class="sp-private">● Privado</span></div></header>'+
         '<div class="sp-content"><div class="sp-page-head"><div><span class="sp-eyebrow">PATAS A CASA · VENTAS</span><h1>'+esc(meta[0])+'</h1><p>'+esc(meta[1])+'</p></div><button class="sp-btn primary sp-desktop-cta" data-action="new-order">'+icon('plus',17)+' Nuevo pedido</button></div>'+content+'</div></main>'+
         renderBottom()+renderDrawer()+renderModal()+'</div>';
     }
     function renderBottom(){
-      return '<nav class="sp-bottom"><button class="'+(state.section==='home'?'active':'')+'" data-nav="home">'+icon('home',19)+'<span>Inicio</span></button><button class="'+(state.section==='shops'?'active':'')+'" data-nav="shops">'+icon('store',19)+'<span>Locales</span></button><button class="sp-bottom-primary" data-action="new-order">'+icon('plus',23)+'<span>Pedido</span></button><button class="'+(state.section==='routes'?'active':'')+'" data-nav="routes">'+icon('map',19)+'<span>Recorrido</span></button><button data-action="drawer">'+icon('more',20)+'<span>Más</span></button></nav>';
+      return '<nav class="sp-bottom"><button class="'+(state.section==='home'?'active':'')+'" data-nav="home">'+icon('home',19)+'<span>Inicio</span></button><button class="'+(state.section==='shops'?'active':'')+'" data-nav="shops">'+icon('store',19)+'<span>Locales</span></button><button class="sp-bottom-primary" data-action="new-order">'+icon('plus',23)+'<span>Pedido</span></button><button class="'+(state.section==='routes'?'active':'')+'" data-nav="routes">'+icon('map',19)+'<span>Recorrido</span></button><button class="'+(state.section==='orders'?'active':'')+'" data-nav="orders">'+icon('bag',19)+'<span>Pedidos</span></button></nav>';
     }
     function renderDrawer(){
       if(!state.drawer)return '';
-      return '<div class="sp-drawer-backdrop" data-action="close-drawer"><aside class="sp-drawer" data-stop><div class="sp-drawer-head"><div class="sp-user"><span>'+esc((state.data.viewer.name||'V').slice(0,2).toUpperCase())+'</span><div><strong>'+esc(state.data.viewer.name||'Vendedor')+'</strong><small>Mi espacio de ventas</small></div></div><button class="sp-icon-btn" data-action="close-drawer">'+icon('x',20)+'</button></div><div class="sp-drawer-nav">'+navButton('home','Inicio','home')+navButton('shops','Comercios','store')+navButton('routes','Recorrido','map')+navButton('visits','Visitas','clip')+navButton('orders','Pedidos','bag')+navButton('money','Cobros y comisión','wallet')+navButton('material','Material','box')+'</div><button class="sp-logout" data-action="logout">'+icon('logout',18)+' Cerrar sesión</button></aside></div>';
+      return '<div class="sp-drawer-backdrop" data-action="close-drawer"><aside class="sp-drawer" data-stop><div class="sp-drawer-head"><div class="sp-user"><span>'+esc((state.data.viewer.name||'V').slice(0,2).toUpperCase())+'</span><div><strong>'+esc(state.data.viewer.name||'Vendedor')+'</strong><small>Mi espacio de ventas</small></div></div><button class="sp-icon-btn" data-action="close-drawer">'+icon('x',20)+'</button></div><div class="sp-drawer-nav">'+navButton('visits','Historial de visitas','clip')+'</div><button class="sp-logout" data-action="logout">'+icon('logout',18)+' Cerrar sesión</button></aside></div>';
     }
     function kpi(title,value,detail,ico,tone){
       return '<article class="sp-kpi '+tone+'"><div class="sp-kpi-top"><span>'+esc(title)+'</span><i>'+icon(ico,18)+'</i></div><strong>'+esc(value)+'</strong><small>'+esc(detail)+'</small></article>';
@@ -183,20 +179,20 @@
         }).join('')+'</div>';
       }else html+='<div class="sp-good">'+icon('check',21)+'<div><strong>Todo al día</strong><span>No tenés seguimientos pendientes inmediatos.</span></div></div>';
       html+='</section>';
-      html+='<section class="sp-quick-panel"><div class="sp-panel-head"><div><span class="sp-tag">ACCESOS RÁPIDOS</span><h2>Resolver en pocos toques</h2><p>Pensado para usar parado en el comercio.</p></div></div><div class="sp-quick-grid">'+quick('new-shop','Nuevo comercio','Guardá el local donde estás.','store',false)+quick('new-visit','Registrar visita','Qué pasó y cuándo volver.','clip',!shops().length)+quick('new-order','Nuevo pedido','Tipo, color y cantidad.','bag',!shops().length)+quick('nearby',state.geo?'Cercanía activada':'Locales cerca mío',state.geo?'Ordenados por distancia.':'Usá GPS para el recorrido.','map',state.geoLoading)+'</div></section>';
+      html+='<section class="sp-quick-panel"><div class="sp-panel-head"><div><span class="sp-tag">ACCESOS RÁPIDOS</span><h2>Resolver en pocos toques</h2><p>Solo las acciones que más usa un vendedor en la calle.</p></div></div><div class="sp-quick-grid">'+quick('new-shop','Nuevo comercio','Guardá el local donde estás.','store',false)+quick('new-visit','Registrar visita','Qué pasó y cuándo volver.','clip',!shops().length)+quick('new-order','Nuevo pedido','Tipo, color y cantidad.','bag',!shops().length)+'</div></section>';
       const recent=matchingShops().slice(0,4);
       html+='<section class="sp-section"><div class="sp-section-head"><div><h2>Mis comercios</h2><p>Acceso rápido a tu cartera.</p></div><button class="sp-link" data-nav="shops">Ver todos '+icon('chevron',15)+'</button></div>'+renderShopCards(recent,true)+'</section>';
       return html;
     }
     function filters(kind){
       const statuses=kind==='orders'?orderStates:shopStates;
-      return '<div class="sp-tools"><label class="sp-search">'+icon('search',17)+'<input data-search placeholder="'+(kind==='orders'?'Buscar pedido o comercio…':'Buscar comercio, zona o contacto…')+'" value="'+esc(state.query)+'"></label>'+(kind!=='orders'?'<button class="sp-btn secondary '+(state.geo?'active':'')+'" data-action="nearby">'+icon('map',16)+(state.geoLoading?' Ubicando…':state.geo?' Cercanía activa':' Cerca de mí')+'</button>':'')+'</div><div class="sp-chips"><button class="'+(!state.filter?'active':'')+'" data-filter="">Todos</button>'+statuses.filter(x=>x!=='Cerrado'&&x!=='Cancelado'&&x!=='No interesado').map(x=>'<button class="'+(state.filter===x?'active':'')+'" data-filter="'+esc(x)+'">'+esc(x==='Volver a visitar'?'Volver':x)+'</button>').join('')+'</div>';
+      return '<div class="sp-tools"><label class="sp-search">'+icon('search',17)+'<input data-search placeholder="'+(kind==='orders'?'Buscar pedido o comercio…':'Buscar comercio, zona o contacto…')+'" value="'+esc(state.query)+'"></label></div><div class="sp-chips"><button class="'+(!state.filter?'active':'')+'" data-filter="">Todos</button>'+statuses.filter(x=>x!=='Cerrado'&&x!=='Cancelado'&&x!=='No interesado').map(x=>'<button class="'+(state.filter===x?'active':'')+'" data-filter="'+esc(x)+'">'+esc(x==='Volver a visitar'?'Volver':x)+'</button>').join('')+'</div>';
     }
     function renderShopCards(list,compact=false){
       if(!list.length)return '<div class="sp-empty">'+icon('store',28)+'<h3>No hay comercios para mostrar</h3><p>Cambiá los filtros o cargá un comercio nuevo.</p><button class="sp-btn primary" data-action="new-shop">'+icon('plus',16)+' Nuevo comercio</button></div>';
       return '<div class="sp-shop-grid '+(compact?'compact':'')+'">'+list.map(s=>{
-        const st=shopStats(s.id),last=lastVisit(s.id),dist=shopDistance(s),overdue=!!s.next_visit&&s.next_visit<=today();
-        return '<article class="sp-shop-card"><div class="sp-shop-head"><div class="sp-shop-title"><i>'+icon('store',19)+'</i><div><button data-action="shop-detail" data-id="'+esc(s.id)+'">'+esc(s.name)+'</button><small>'+icon('pin',12)+esc(s.zone||s.address||'Ubicación pendiente')+(dist!=null?' · '+(dist<1?Math.round(dist*1000)+' m':dist.toFixed(1)+' km'):'')+'</small></div></div>'+badge(s.status)+'</div><div class="sp-shop-metrics"><span><strong>'+st.orders+'</strong> pedidos</span><span><strong>'+st.units+'</strong> chapitas</span><span><strong>'+money(st.sales)+'</strong> vendido</span></div>'+(s.next_visit?'<div class="sp-next '+(overdue?'overdue':'')+'">'+icon('calendar',15)+'<span>'+(overdue?'Seguimiento pendiente':'Próxima visita')+' <strong>'+date(s.next_visit)+'</strong></span></div>':'<div class="sp-next neutral">'+icon('calendar',15)+'<span>Sin próxima visita</span></div>')+(last?'<div class="sp-last">'+icon('clock',13)+' Última visita: '+date(last.created)+' · '+esc(last.result)+'</div>':'')+(s.notes?'<p class="sp-note">'+esc(s.notes)+'</p>':'')+'<div class="sp-card-actions">'+((s.map_url||s.address)?'<a class="sp-btn secondary" href="'+esc(directions(s))+'" target="_blank" rel="noreferrer">'+icon('nav',15)+' Llegar</a>':'')+(s.phone?'<a class="sp-btn secondary" href="'+esc(whatsapp(s))+'" target="_blank" rel="noreferrer">'+icon('phone',15)+' WhatsApp</a>':'')+'<button class="sp-btn secondary" data-action="new-visit" data-id="'+esc(s.id)+'">'+icon('clip',15)+' Visita</button><button class="sp-btn primary" data-action="new-order" data-id="'+esc(s.id)+'">'+icon('bag',15)+' Pedido</button></div><button class="sp-card-foot" data-action="shop-detail" data-id="'+esc(s.id)+'">Ver ficha completa '+icon('chevron',15)+'</button></article>';
+        const st=shopStats(s.id),last=lastVisit(s.id),overdue=!!s.next_visit&&s.next_visit<=today();
+        return '<article class="sp-shop-card"><div class="sp-shop-head"><div class="sp-shop-title"><i>'+icon('store',19)+'</i><div><button data-action="shop-detail" data-id="'+esc(s.id)+'">'+esc(s.name)+'</button><small>'+icon('pin',12)+esc(s.zone||s.address||'Ubicación pendiente')+'</small></div></div>'+badge(s.status)+'</div><div class="sp-shop-metrics"><span><strong>'+st.orders+'</strong> pedidos</span><span><strong>'+st.units+'</strong> chapitas</span></div>'+(s.next_visit?'<div class="sp-next '+(overdue?'overdue':'')+'">'+icon('calendar',15)+'<span>'+(overdue?'Seguimiento pendiente':'Próxima visita')+' <strong>'+date(s.next_visit)+'</strong></span></div>':'<div class="sp-next neutral">'+icon('calendar',15)+'<span>Sin próxima visita</span></div>')+(last?'<div class="sp-last">'+icon('clock',13)+' Última visita: '+date(last.created)+' · '+esc(last.result)+'</div>':'')+(s.notes?'<p class="sp-note">'+esc(s.notes)+'</p>':'')+'<div class="sp-card-actions">'+((s.map_url||s.address)?'<a class="sp-btn secondary" href="'+esc(directions(s))+'" target="_blank" rel="noreferrer">'+icon('nav',15)+' Llegar</a>':'')+'<button class="sp-btn secondary" data-action="new-visit" data-id="'+esc(s.id)+'">'+icon('clip',15)+' Visita</button><button class="sp-btn primary" data-action="new-order" data-id="'+esc(s.id)+'">'+icon('bag',15)+' Pedido</button></div><button class="sp-card-foot" data-action="shop-detail" data-id="'+esc(s.id)+'">Ver ficha completa '+icon('chevron',15)+'</button></article>';
       }).join('')+'</div>';
     }
     function renderShops(){
@@ -204,11 +200,11 @@
     }
     function renderRoutes(){
       const list=matchingShops();
-      let html='<section class="sp-route-hero"><div><span class="sp-eyebrow light">MI RECORRIDO</span><h2>'+(state.geo?'Locales ordenados por cercanía':'Organizá la calle sin perder tiempo')+'</h2><p>'+(state.geo?'Primero aparecen los puntos con ubicación guardada más próximos a vos.':'Activá Cerca de mí o seguí el orden de próximas visitas.')+'</p></div><button class="sp-btn '+(state.geo?'white':'orange')+'" data-action="nearby">'+icon('map',17)+(state.geoLoading?' Buscando…':state.geo?' Actualizar ubicación':' Cerca de mí')+'</button></section>'+filters('shops');
+      let html='<section class="sp-route-hero"><div><span class="sp-eyebrow light">MI RECORRIDO</span><h2>Abrí el recorrido directamente en Google Maps</h2><p>Usamos tu ubicación y los comercios guardados para armarte un recorrido. La lista de abajo queda solo como referencia.</p></div><button class="sp-btn orange" data-action="maps-route">'+icon('map',17)+' Abrir recorrido en Maps</button></section>'+filters('shops');
       if(!list.length)return html+'<div class="sp-empty">'+icon('map',28)+'<h3>No hay comercios para mostrar</h3><p>Cargá un local o cambiá los filtros.</p></div>';
       html+='<div class="sp-route-list">'+list.map((s,i)=>{
-        const dist=shopDistance(s),st=shopStats(s.id),overdue=!!s.next_visit&&s.next_visit<=today();
-        return '<article class="sp-route-card"><span class="sp-seq">'+(i+1)+'</span><div class="sp-route-main"><div class="sp-route-title"><div><button data-action="shop-detail" data-id="'+esc(s.id)+'">'+esc(s.name)+'</button><small>'+icon('pin',12)+esc(s.zone||s.address||'Ubicación pendiente')+(dist!=null?' · '+(dist<1?Math.round(dist*1000)+' m':dist.toFixed(1)+' km'):'')+'</small></div>'+badge(s.status)+'</div><div class="sp-pills">'+(s.next_visit?'<span class="'+(overdue?'overdue':'')+'">'+icon('calendar',13)+(overdue?' Pendiente ':' Visita ')+date(s.next_visit)+'</span>':'')+'<span>'+icon('bag',13)+' '+st.orders+' pedidos</span>'+(st.units?'<span>'+st.units+' chapitas</span>':'')+'</div>'+(s.notes?'<p>'+esc(s.notes)+'</p>':'')+'</div><div class="sp-route-actions">'+((s.map_url||s.address)?'<a class="sp-btn primary" href="'+esc(directions(s))+'" target="_blank" rel="noreferrer">'+icon('nav',16)+' Cómo llegar</a>':'<button class="sp-btn secondary" data-action="edit-shop" data-id="'+esc(s.id)+'">'+icon('pin',16)+' Ubicación</button>')+'<button class="sp-btn secondary" data-action="new-visit" data-id="'+esc(s.id)+'">'+icon('clip',16)+' Visita</button><button class="sp-btn secondary" data-action="new-order" data-id="'+esc(s.id)+'">'+icon('bag',16)+' Pedido</button></div></article>';
+        const st=shopStats(s.id),overdue=!!s.next_visit&&s.next_visit<=today();
+        return '<article class="sp-route-card"><span class="sp-seq">'+(i+1)+'</span><div class="sp-route-main"><div class="sp-route-title"><div><button data-action="shop-detail" data-id="'+esc(s.id)+'">'+esc(s.name)+'</button><small>'+icon('pin',12)+esc(s.zone||s.address||'Ubicación pendiente')+'</small></div>'+badge(s.status)+'</div><div class="sp-pills">'+(s.next_visit?'<span class="'+(overdue?'overdue':'')+'">'+icon('calendar',13)+(overdue?' Pendiente ':' Visita ')+date(s.next_visit)+'</span>':'')+'<span>'+icon('bag',13)+' '+st.orders+' pedidos</span>'+(st.units?'<span>'+st.units+' chapitas</span>':'')+'</div>'+(s.notes?'<p>'+esc(s.notes)+'</p>':'')+'</div><div class="sp-route-actions">'+((s.map_url||s.address)?'<a class="sp-btn primary" href="'+esc(directions(s))+'" target="_blank" rel="noreferrer">'+icon('nav',16)+' Cómo llegar</a>':'<button class="sp-btn secondary" data-action="edit-shop" data-id="'+esc(s.id)+'">'+icon('pin',16)+' Ubicación</button>')+'<button class="sp-btn secondary" data-action="new-visit" data-id="'+esc(s.id)+'">'+icon('clip',16)+' Visita</button><button class="sp-btn secondary" data-action="new-order" data-id="'+esc(s.id)+'">'+icon('bag',16)+' Pedido</button></div></article>';
       }).join('')+'</div>';
       return html;
     }
@@ -297,10 +293,21 @@
       if(!navigator.geolocation){toast('Este dispositivo no permite obtener la ubicación.','err');return}
       navigator.geolocation.getCurrentPosition(pos=>{state.form[field]='https://maps.google.com/?q='+pos.coords.latitude.toFixed(6)+','+pos.coords.longitude.toFixed(6);toast('Ubicación guardada');render()},err=>toast(err.code===1?'Dale permiso de ubicación para continuar.':'No pudimos obtener tu ubicación.','err'),{enableHighAccuracy:true,timeout:12000,maximumAge:0});
     }
-    function locateNearby(){
-      if(!navigator.geolocation){toast('Este dispositivo no permite usar ubicación.','err');return}
-      state.geoLoading=true;render();
-      navigator.geolocation.getCurrentPosition(pos=>{state.geo={lat:pos.coords.latitude,lng:pos.coords.longitude};state.geoLoading=false;toast('Locales ordenados por cercanía');render()},err=>{state.geoLoading=false;toast(err.code===1?'Dale permiso de ubicación para ordenar los locales.':'No pudimos obtener tu ubicación.','err');render()},{enableHighAccuracy:true,timeout:12000,maximumAge:30000});
+    function openRouteInMaps(){
+      const candidates=matchingShops().map(s=>{const p=mapCoords(s);return{s,point:p?(p.lat+','+p.lng):(s.address||'')}}).filter(x=>x.point);
+      if(!candidates.length){toast('Guardá la ubicación o dirección de algún comercio para abrir el recorrido.','err');return}
+      const tab=window.open('about:blank','_blank');
+      const launch=origin=>{
+        let list=candidates.slice();
+        if(origin)list.sort((a,b)=>{const pa=mapCoords(a.s),pb=mapCoords(b.s);if(pa&&pb)return distanceKm(origin,pa)-distanceKm(origin,pb);if(pa)return-1;if(pb)return 1;return 0});
+        list=list.slice(0,8);
+        const destination=list[list.length-1].point;
+        const waypoints=list.slice(0,-1).map(x=>x.point).join('|');
+        const url='https://www.google.com/maps/dir/?api=1'+(origin?'&origin='+encodeURIComponent(origin.lat+','+origin.lng):'')+'&destination='+encodeURIComponent(destination)+(waypoints?'&waypoints='+encodeURIComponent(waypoints):'')+'&travelmode=driving';
+        if(tab)tab.location.href=url;else location.href=url;
+      };
+      if(navigator.geolocation)navigator.geolocation.getCurrentPosition(pos=>launch({lat:pos.coords.latitude,lng:pos.coords.longitude}),()=>launch(null),{enableHighAccuracy:true,timeout:10000,maximumAge:30000});
+      else launch(null);
     }
     async function submitForm(form){
       if(state.busy)return;
@@ -362,7 +369,7 @@
       else if(action==='toggle-new-shop'){state.newShop=!state.newShop;if(state.newShop)state.form.shop_id='';render()}
       else if(action==='capture-shop-location')useCurrentLocation('map_url');
       else if(action==='capture-new-location')useCurrentLocation('new_shop_map_url');
-      else if(action==='nearby')locateNearby();
+      else if(action==='maps-route')openRouteInMaps();
       else if(action==='refresh'){try{await reload();toast('Datos actualizados');render()}catch(err){toast(err.message,'err')}}
       else if(action==='logout'){await supabase.auth.signOut();location.reload()}
     });
