@@ -296,20 +296,13 @@
       navigator.geolocation.getCurrentPosition(pos=>{state.form[field]='https://maps.google.com/?q='+pos.coords.latitude.toFixed(6)+','+pos.coords.longitude.toFixed(6);toast('Ubicación guardada');render()},err=>toast(err.code===1?'Dale permiso de ubicación para continuar.':'No pudimos obtener tu ubicación.','err'),{enableHighAccuracy:true,timeout:12000,maximumAge:0});
     }
     function openRouteInMaps(){
-      const candidates=matchingShops().map(s=>{const p=mapCoords(s);return{s,point:p?(p.lat+','+p.lng):(s.address||'')}}).filter(x=>x.point);
-      if(!candidates.length){toast('Guardá la ubicación o dirección de algún comercio para abrir el recorrido.','err');return}
-      const tab=window.open('about:blank','_blank');
-      const launch=origin=>{
-        let list=candidates.slice();
-        if(origin)list.sort((a,b)=>{const pa=mapCoords(a.s),pb=mapCoords(b.s);if(pa&&pb)return distanceKm(origin,pa)-distanceKm(origin,pb);if(pa)return-1;if(pb)return 1;return 0});
-        list=list.slice(0,8);
-        const destination=list[list.length-1].point;
-        const waypoints=list.slice(0,-1).map(x=>x.point).join('|');
-        const url='https://www.google.com/maps/dir/?api=1'+(origin?'&origin='+encodeURIComponent(origin.lat+','+origin.lng):'')+'&destination='+encodeURIComponent(destination)+(waypoints?'&waypoints='+encodeURIComponent(waypoints):'')+'&travelmode=driving';
-        if(tab)tab.location.href=url;else location.href=url;
-      };
-      if(navigator.geolocation)navigator.geolocation.getCurrentPosition(pos=>launch({lat:pos.coords.latitude,lng:pos.coords.longitude}),()=>launch(null),{enableHighAccuracy:true,timeout:10000,maximumAge:30000});
-      else launch(null);
+      const list=matchingShops().map(s=>{const p=mapCoords(s);return{s,point:p?(p.lat+','+p.lng):(s.address||'')}}).filter(x=>x.point).slice(0,8);
+      if(!list.length){toast('Guardá la ubicación o dirección de algún local para abrir el recorrido.','err');return}
+      const destination=list[list.length-1].point;
+      const waypoints=list.slice(0,-1).map(x=>x.point).join('|');
+      const url='https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(destination)+(waypoints?'&waypoints='+encodeURIComponent(waypoints):'')+'&travelmode=driving&dir_action=navigate';
+      const opened=window.open(url,'_blank','noopener,noreferrer');
+      if(!opened)location.href=url;
     }
     async function submitForm(form){
       if(state.busy)return;
