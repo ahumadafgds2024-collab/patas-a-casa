@@ -158,3 +158,50 @@ html.sp-seller-mode,html.sp-seller-mode body{background:#f6f8fb}
   .sp-status-choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.sp-status-choices label>span{width:100%;min-height:41px;padding:0 8px;font-size:.71rem}
   .sp-attention-row .sp-row-actions{display:grid;grid-template-columns:auto 1fr 1fr;width:100%}.sp-attention-row .sp-row-actions .sp-btn{min-width:0;width:100%;padding:0 8px}
 }
+
+/* 2026-09-22 unified local + order flow */
+.sp-shop-flow{width:min(760px,calc(100vw - 28px));max-height:min(92vh,960px);overflow:auto}
+.sp-shop-flow.has-order{width:min(900px,calc(100vw - 28px))}
+.sp-flow-step{padding:18px 20px;border-top:1px solid #f0f3f6}
+.sp-flow-step:first-of-type{border-top:0}
+.sp-flow-title{display:flex;align-items:flex-start;gap:10px;margin-bottom:13px}
+.sp-flow-title>b{width:28px;height:28px;flex:0 0 28px;border-radius:50%;display:grid;place-items:center;background:#eaf3fb;color:#205d8c;font-size:.72rem}
+.sp-flow-title>div{display:flex;flex-direction:column;gap:2px}
+.sp-flow-title strong{font-size:.88rem;color:#244c70}
+.sp-flow-title small{font-size:.7rem;color:#8797a6;line-height:1.4}
+.sp-follow-date{display:flex;align-items:center;gap:12px;margin-top:12px;padding:11px 12px;border:1px solid #e8edf2;background:#fafcfd;border-radius:12px}
+.sp-follow-date>span{font-size:.74rem;font-weight:740;color:#4c667d}
+.sp-follow-date input{margin-left:auto;min-height:38px;border:1px solid #e1e8ee;border-radius:9px;padding:0 10px;background:#fff}
+.sp-sale-step{background:#fcfdfe}
+.sp-order-choice{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sp-order-choice button{min-height:44px;border:1px solid #e2e9ef;background:#fff;border-radius:12px;color:#60758a;font-size:.76rem;font-weight:760;display:flex;align-items:center;justify-content:center;gap:7px;cursor:pointer}
+.sp-order-choice button.active{background:#eef5fb;border-color:#cfdfea;color:#174f7c}
+.sp-order-choice button.active.sale{background:#fff3e8;border-color:#ffd4aa;color:#b85e00}
+.sp-embedded-order{margin-top:12px;border:1px solid #e5ebf0;background:#fff;border-radius:16px;padding:15px}
+.sp-embedded-order .sp-picker-head{margin-bottom:12px}
+.sp-embedded-cart{margin-top:13px;border-top:1px solid #eef2f5;padding-top:13px}
+.sp-order-extra{margin-top:13px}
+.sp-order-empty{padding:12px;border-radius:10px;background:#fafbfc;color:#8494a3;font-size:.72rem;text-align:center}
+.sp-optional{border-top:1px solid #f0f3f6}
+.sp-optional summary{list-style:none;cursor:pointer;padding:15px 20px;color:#46637d;font-size:.76rem;font-weight:760;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.sp-optional summary::-webkit-details-marker{display:none}
+.sp-optional summary:after{content:"+";font-size:1rem;color:#8194a5}
+.sp-optional[open] summary:after{content:"−"}
+.sp-optional summary span{margin-left:auto;margin-right:8px;color:#94a0ac;font-size:.65rem;font-weight:650}
+.sp-optional>.sp-form-grid{padding:0 20px 18px}
+.sp-flow-actions{border-top:1px solid #eef2f5;padding-top:15px}
+@media(max-width:760px){
+  .sp-shop-flow,.sp-shop-flow.has-order{width:calc(100vw - 14px);max-height:94vh;border-radius:18px}
+  .sp-flow-step{padding:15px 14px}
+  .sp-flow-title{margin-bottom:11px}
+  .sp-flow-title strong{font-size:.84rem}
+  .sp-order-choice{grid-template-columns:1fr}
+  .sp-order-choice button{min-height:43px}
+  .sp-embedded-order{padding:12px;border-radius:14px}
+  .sp-follow-date{align-items:flex-start;flex-direction:column;gap:7px}
+  .sp-follow-date input{width:100%;margin:0}
+  .sp-optional summary{padding:14px}
+  .sp-optional>.sp-form-grid{padding:0 14px 15px}
+  .sp-flow-actions{position:sticky;bottom:0;background:rgba(255,255,255,.97);backdrop-filter:blur(12px);padding:12px 14px calc(12px + env(safe-area-inset-bottom));margin:0 -14px -14px;z-index:3}
+  .sp-flow-actions .sp-btn{flex:1}
+}
