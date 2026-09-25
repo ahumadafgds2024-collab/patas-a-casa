@@ -132,7 +132,7 @@
       return{
         home:['Mi jornada','Todo lo importante para vender hoy.'],
         shops:['Mis locales','Tu cartera, contactos, seguimientos y ventas en un solo lugar.'],
-        routes:['Mi recorrido','Ordená visitas y llegá rápido a cada local.'],
+        routes:['Mi mapa','El mapa que Patas a Casa te asignó para trabajar.'],
         visits:['Mis visitas','Historial de conversaciones y próximos pasos.'],
         orders:['Mis pedidos','Estado, cobro y detalle de cada venta.'],
         money:['Mis números','Ventas, cobros y comisión sin cuentas manuales.'],
