@@ -75,6 +75,8 @@
     const root=document.getElementById('root');
     const state={data:initial,section:'home',query:'',filter:'',geo:null,geoLoading:false,drawer:false,modal:null,form:{},items:[],orderModel:models[0],newShop:false,shopOrder:false,busy:false};
     const shops=()=>state.data.shops||[];
+    const sellers=()=>state.data.sellers||[];
+    const sellerProfile=()=>sellers().find(x=>x.id===state.data.viewer.sellerId)||sellers()[0]||null;
     const visits=()=>state.data.visits||[];
     const orders=()=>state.data.orders||[];
     const payments=()=>state.data.payments||[];
@@ -144,14 +146,14 @@
       const meta=pageMeta();
       return '<div class="sp-app">'+
         '<aside class="sp-sidebar"><div class="sp-brand"><img src="/ventas/logo.svg" alt="Patas a Casa"><div><strong>Patas a Casa</strong><span>VENTAS</span></div></div><nav>'+
-        navButton('home','Inicio','home')+navButton('shops','Locales','store')+navButton('routes','Recorrido','map')+navButton('visits','Visitas','clip')+navButton('orders','Pedidos','bag')+
+        navButton('home','Inicio','home')+navButton('shops','Locales','store')+navButton('routes','Mapa','map')+navButton('visits','Visitas','clip')+navButton('orders','Pedidos','bag')+
         '</nav><div class="sp-sidebar-foot"><div class="sp-user"><span>'+esc((state.data.viewer.name||'V').slice(0,2).toUpperCase())+'</span><div><strong>'+esc(state.data.viewer.name||'Vendedor')+'</strong><small>Vendedor</small></div></div><button data-action="logout" class="sp-icon-btn" title="Cerrar sesión">'+icon('logout',18)+'</button></div></aside>'+
         '<main class="sp-main"><header class="sp-top"><button class="sp-mobile-menu" data-action="drawer">'+icon('menu',20)+'</button><div class="sp-top-title"><span>GESTIÓN COMERCIAL</span><strong>'+esc(meta[0])+'</strong></div><div class="sp-top-actions"><button class="sp-icon-btn" data-action="refresh" title="Actualizar">'+icon('refresh',18)+'</button><span class="sp-private">● Privado</span></div></header>'+
         '<div class="sp-content"><div class="sp-page-head"><div><span class="sp-eyebrow">PATAS A CASA · VENTAS</span><h1>'+esc(meta[0])+'</h1><p>'+esc(meta[1])+'</p></div><button class="sp-btn primary sp-desktop-cta" data-action="new-order">'+icon('plus',17)+' Nuevo pedido</button></div>'+content+'</div></main>'+
         renderBottom()+renderDrawer()+renderModal()+'</div>';
     }
     function renderBottom(){
-      return '<nav class="sp-bottom"><button class="'+(state.section==='home'?'active':'')+'" data-nav="home">'+icon('home',19)+'<span>Inicio</span></button><button class="'+(state.section==='shops'?'active':'')+'" data-nav="shops">'+icon('store',19)+'<span>Locales</span></button><button class="sp-bottom-primary" data-action="new-order">'+icon('plus',23)+'<span>Pedido</span></button><button class="'+(state.section==='routes'?'active':'')+'" data-nav="routes">'+icon('map',19)+'<span>Recorrido</span></button><button class="'+(state.section==='orders'?'active':'')+'" data-nav="orders">'+icon('bag',19)+'<span>Pedidos</span></button></nav>';
+      return '<nav class="sp-bottom"><button class="'+(state.section==='home'?'active':'')+'" data-nav="home">'+icon('home',19)+'<span>Inicio</span></button><button class="'+(state.section==='shops'?'active':'')+'" data-nav="shops">'+icon('store',19)+'<span>Locales</span></button><button class="sp-bottom-primary" data-action="new-order">'+icon('plus',23)+'<span>Pedido</span></button><button class="'+(state.section==='routes'?'active':'')+'" data-nav="routes">'+icon('map',19)+'<span>Mapa</span></button><button class="'+(state.section==='orders'?'active':'')+'" data-nav="orders">'+icon('bag',19)+'<span>Pedidos</span></button></nav>';
     }
     function renderDrawer(){
       if(!state.drawer)return '';
@@ -201,14 +203,12 @@
       return filters('shops')+renderShopCards(matchingShops(),false);
     }
     function renderRoutes(){
-      const list=matchingShops();
-      let html='<section class="sp-route-hero"><div><span class="sp-eyebrow light">MI RECORRIDO</span><h2>Abrí el recorrido directamente en Google Maps</h2><p>Usamos tu ubicación y los locales guardados para armarte un recorrido. La lista de abajo queda solo como referencia.</p></div><button class="sp-btn orange" data-action="maps-route">'+icon('map',17)+' Abrir recorrido en Maps</button></section>'+filters('shops');
-      if(!list.length)return html+'<div class="sp-empty">'+icon('map',28)+'<h3>No hay locales para mostrar</h3><p>Cargá un local o cambiá los filtros.</p></div>';
-      html+='<div class="sp-route-list">'+list.map((s,i)=>{
-        const st=shopStats(s.id),overdue=!!s.next_visit&&s.next_visit<=today();
-        return '<article class="sp-route-card"><span class="sp-seq">'+(i+1)+'</span><div class="sp-route-main"><div class="sp-route-title"><div><button data-action="shop-detail" data-id="'+esc(s.id)+'">'+esc(s.name)+'</button><small>'+icon('pin',12)+esc(s.zone||s.address||'Ubicación pendiente')+'</small></div>'+badge(s.status)+'</div><div class="sp-pills">'+(s.next_visit?'<span class="'+(overdue?'overdue':'')+'">'+icon('calendar',13)+(overdue?' Pendiente ':' Visita ')+date(s.next_visit)+'</span>':'')+'<span>'+icon('bag',13)+' '+st.orders+' pedidos</span>'+(st.units?'<span>'+st.units+' chapitas</span>':'')+'</div>'+(s.notes?'<p>'+esc(s.notes)+'</p>':'')+'</div><div class="sp-route-actions">'+((s.map_url||s.address)?'<a class="sp-btn primary" href="'+esc(directions(s))+'" target="_blank" rel="noreferrer">'+icon('nav',16)+' Cómo llegar</a>':'<button class="sp-btn secondary" data-action="edit-shop" data-id="'+esc(s.id)+'">'+icon('pin',16)+' Ubicación</button>')+'<button class="sp-btn secondary" data-action="new-visit" data-id="'+esc(s.id)+'">'+icon('clip',16)+' Visita</button><button class="sp-btn secondary" data-action="new-order" data-id="'+esc(s.id)+'">'+icon('bag',16)+' Pedido</button></div></article>';
-      }).join('')+'</div>';
-      return html;
+      const profile=sellerProfile();
+      const mapUrl=String(profile?.map_url||'').trim();
+      if(!mapUrl){
+        return '<section class="sp-map-assigned"><div class="sp-map-icon">'+icon('map',28)+'</div><span class="sp-tag">MAPA DEL VENDEDOR</span><h2>Todavía no tenés un mapa asignado</h2><p>Cuando administración cargue tu enlace de Google Maps o My Maps, va a aparecer acá.</p></section>';
+      }
+      return '<section class="sp-map-assigned has-map"><div class="sp-map-icon">'+icon('map',30)+'</div><span class="sp-tag">MAPA DEL VENDEDOR</span><h2>Tu mapa asignado</h2><p>Este es el mapa que Patas a Casa cargó en tu perfil para tu zona de trabajo.</p><a class="sp-btn primary sp-map-open" href="'+esc(mapUrl)+'" target="_blank" rel="noreferrer">'+icon('map',18)+' Abrir mi mapa</a></section>';
     }
     function renderVisits(){
       const q=state.query.trim().toLowerCase();
