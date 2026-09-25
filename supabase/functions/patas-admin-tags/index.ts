@@ -2,7 +2,12 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const APP_ORIGIN = "https://patas-a-casa.vercel.app";
+const DEFAULT_APP_ORIGIN = "https://patas-a-casa.vercel.app";
+const APP_ORIGINS = new Set([
+  DEFAULT_APP_ORIGIN,
+  "https://patasacasa.com.ar",
+  "https://www.patasacasa.com.ar",
+]);
 const FUNCTION_NAME = "patas-admin-tags";
 const MAX_BODY_BYTES = 16 * 1024;
 const FETCH_TIMEOUT_MS = 10_000;
@@ -22,8 +27,9 @@ function requestId(req: Request) {
 
 function cors(req: Request) {
   const origin = req.headers.get("origin") || "";
+  const allowedOrigin = APP_ORIGINS.has(origin) ? origin : DEFAULT_APP_ORIGIN;
   return {
-    "Access-Control-Allow-Origin": origin === APP_ORIGIN ? APP_ORIGIN : APP_ORIGIN,
+    "Access-Control-Allow-Origin": allowedOrigin,
     "Access-Control-Allow-Headers": "content-type, x-request-id",
     "Access-Control-Allow-Methods": "POST,OPTIONS",
     "Access-Control-Expose-Headers": "X-Request-Id",
@@ -108,7 +114,7 @@ Deno.serve(async (req) => {
     }
 
     const origin = req.headers.get("origin") || "";
-    if (origin && origin !== APP_ORIGIN) {
+    if (origin && !APP_ORIGINS.has(origin)) {
       status = 403;
       return json(req, id, { error: "Origen no permitido" }, status);
     }
