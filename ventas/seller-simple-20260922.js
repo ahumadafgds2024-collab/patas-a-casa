@@ -40,6 +40,8 @@
   const today=()=>new Date().toLocaleDateString('sv-SE',{timeZone:'America/Argentina/Mendoza'});
   const makeId=prefix=>prefix+Array.from(crypto.getRandomValues(new Uint8Array(8)),b=>b.toString(16).padStart(2,'0')).join('').toUpperCase();
   const mapCoords=s=>{const m=String(s?.map_url||'').match(/[?&]q=(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/);return m?{lat:Number(m[1]),lng:Number(m[2])}:null};
+  const normName=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+  const pointMeters=(a,b)=>distanceKm(a,b)*1000;
   const distanceKm=(a,b)=>{const R=6371,toRad=v=>v*Math.PI/180,dLat=toRad(b.lat-a.lat),dLng=toRad(b.lng-a.lng),x=Math.sin(dLat/2)**2+Math.cos(toRad(a.lat))*Math.cos(toRad(b.lat))*Math.sin(dLng/2)**2;return 2*R*Math.asin(Math.sqrt(x))};
   const supabase=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{storageKey:STORAGE_KEY,persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
   let reactLoaded=false;
@@ -202,10 +204,14 @@
     function renderShops(){
       return filters('shops')+renderShopCards(matchingShops(),false);
     }
+    function mappedShops(){
+      return shops().map(s=>({shop:s,point:mapCoords(s)})).filter(x=>x.point);
+    }
     function renderRoutes(){
-      const points=window.PAC_SELLER_MAP_POINTS||[];
+      const base=window.PAC_SELLER_MAP_POINTS||[];
+      const mapped=mappedShops();
       const located=!!state.geo;
-      return '<section class="sp-live-map"><div class="sp-live-map-head"><div><span class="sp-tag">MAPA DE VENTAS</span><h2>Petshops y veterinarias</h2><p>Ubicate en el mapa y tocá un comercio para abrirlo o navegar con Google Maps.</p></div><div class="sp-map-head-actions"><span class="sp-map-count">'+points.length+' puntos</span><button class="sp-btn '+(located?'secondary':'primary')+' sp-locate-btn" data-action="map-my-location">'+icon('nav',16)+' '+(located?'Centrar en mí':'Mostrar mi ubicación')+'</button></div></div><div id="sp-seller-map" class="sp-seller-map" aria-label="Mapa de petshops y veterinarias"></div><div class="sp-map-note">'+icon('map',15)+' Los puntos vienen del mapa importado. Google Maps se usa para abrir lugares y navegar.</div></section>';
+      return '<section class="sp-live-map"><div class="sp-live-map-head"><div><span class="sp-tag">MAPA DE VENTAS</span><h2>Petshops y veterinarias</h2><p>Los puntos del mapa y los locales que cargás trabajan juntos. Un local nuevo con ubicación aparece acá automáticamente.</p></div><div class="sp-map-head-actions"><span class="sp-map-count">'+base.length+' base · '+mapped.length+' registrados</span><button class="sp-btn '+(located?'secondary':'primary')+' sp-locate-btn" data-action="map-my-location">'+icon('nav',16)+' '+(located?'Centrar en mí':'Mostrar mi ubicación')+'</button></div></div><div class="sp-map-legend"><span><i class="opportunity"></i> Por visitar</span><span><i class="registered"></i> Local registrado</span></div><div id="sp-seller-map" class="sp-seller-map" aria-label="Mapa de petshops y veterinarias"></div><div class="sp-map-note">'+icon('map',15)+' Cuando cargues un local usando su ubicación, se sincroniza con este mapa sin duplicarlo si ya estaba marcado.</div></section>';
     }
     function addSellerLocation(map,geo,center=false){
       if(!map||!geo||!window.L)return;
@@ -218,21 +224,54 @@
     function initSellerMap(){
       if(state.section!=='routes')return;
       const el=document.getElementById('sp-seller-map');
-      const points=window.PAC_SELLER_MAP_POINTS||[];
-      if(!el||!points.length||!window.L)return;
+      const rawBase=window.PAC_SELLER_MAP_POINTS||[];
+      if(!el||!rawBase.length||!window.L)return;
       if(state.mapInstance){try{state.mapInstance.remove()}catch{}state.mapInstance=null}
       const map=L.map(el,{zoomControl:true,preferCanvas:true});
       state.mapInstance=map;
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
+
+      const mapped=mappedShops();
+      const matchedShopIds=new Set();
+      const seenBase=[];
+      const base=rawBase.filter(p=>{
+        if(!Number.isFinite(p.a)||!Number.isFinite(p.o))return false;
+        const key=normName(p.n);
+        const duplicate=seenBase.some(x=>x.key===key&&pointMeters({lat:p.a,lng:p.o},x.point)<35);
+        if(!duplicate)seenBase.push({key,point:{lat:p.a,lng:p.o}});
+        return !duplicate;
+      });
       const bounds=[];
-      points.forEach(p=>{
-        if(!Number.isFinite(p.a)||!Number.isFinite(p.o))return;
+
+      base.forEach(p=>{
+        const bp={lat:p.a,lng:p.o};
+        let match=null,best=Infinity;
+        mapped.forEach(x=>{
+          const meters=pointMeters(bp,x.point);
+          const sameName=normName(p.n)&&normName(p.n)===normName(x.shop.name);
+          if((meters<=80||sameName&&meters<=250)&&meters<best){match=x;best=meters}
+        });
+        const shopRow=match?.shop||null;
+        if(shopRow)matchedShopIds.add(shopRow.id);
         const placeUrl='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(p.a+','+p.o);
         const directionsUrl='https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(p.a+','+p.o)+'&travelmode=driving&dir_action=navigate';
-        const popup='<div class="sp-map-popup"><strong>'+esc(p.n||'Comercio')+'</strong><div class="sp-map-popup-actions"><a class="primary" href="'+directionsUrl+'" target="_blank" rel="noreferrer">Cómo llegar</a><a href="'+placeUrl+'" target="_blank" rel="noreferrer">Abrir en Maps</a></div></div>';
-        L.circleMarker([p.a,p.o],{radius:7,weight:2,fillOpacity:.82}).addTo(map).bindPopup(popup);
+        const title=shopRow?.name||p.n||'Comercio';
+        const meta=shopRow?'<span class="sp-map-popup-state">Local registrado · '+esc(shopRow.status||'Pendiente')+'</span>':'<span class="sp-map-popup-state muted">Todavía no cargado</span>';
+        const popup='<div class="sp-map-popup"><strong>'+esc(title)+'</strong>'+meta+'<div class="sp-map-popup-actions"><a class="primary" href="'+directionsUrl+'" target="_blank" rel="noreferrer">Cómo llegar</a><a href="'+placeUrl+'" target="_blank" rel="noreferrer">Abrir en Maps</a></div></div>';
+        const markerStyle=shopRow?{radius:8,weight:2,color:'#d96b13',fillColor:'#f28c28',fillOpacity:.9}:{radius:7,weight:2,color:'#205d8c',fillColor:'#65a7d7',fillOpacity:.78};
+        L.circleMarker([p.a,p.o],markerStyle).addTo(map).bindPopup(popup);
         bounds.push([p.a,p.o]);
       });
+
+      mapped.filter(x=>!matchedShopIds.has(x.shop.id)).forEach(x=>{
+        const p=x.point,s=x.shop;
+        const placeUrl='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(p.lat+','+p.lng);
+        const directionsUrl='https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(p.lat+','+p.lng)+'&travelmode=driving&dir_action=navigate';
+        const popup='<div class="sp-map-popup"><strong>'+esc(s.name||'Local')+'</strong><span class="sp-map-popup-state">Local registrado · '+esc(s.status||'Pendiente')+'</span><div class="sp-map-popup-actions"><a class="primary" href="'+directionsUrl+'" target="_blank" rel="noreferrer">Cómo llegar</a><a href="'+placeUrl+'" target="_blank" rel="noreferrer">Abrir en Maps</a></div></div>';
+        L.circleMarker([p.lat,p.lng],{radius:8,weight:2,color:'#d96b13',fillColor:'#f28c28',fillOpacity:.9}).addTo(map).bindPopup(popup);
+        bounds.push([p.lat,p.lng]);
+      });
+
       if(state.geo)addSellerLocation(map,state.geo,false);
       if(bounds.length)map.fitBounds(bounds,{padding:[24,24],maxZoom:13});
       setTimeout(()=>map.invalidateSize(),120);
@@ -316,7 +355,7 @@
         const f=state.form,total=state.items.reduce((a,i)=>a+i.quantity*i.price,0),units=state.items.reduce((a,i)=>a+i.quantity,0),isNew=!f.id;
         const resultChoices=shopStates.filter(x=>x!=='Cerrado'||f.id).map(x=>'<label class="'+((f.status||'Pendiente')===x?'selected':'')+'"><input type="radio" name="status" data-field="status" value="'+esc(x)+'" '+((f.status||'Pendiente')===x?'checked':'')+'><span>'+esc(x==='Pendiente'?'Solo cargado':x==='Volver a visitar'?'Volver a visitar':x)+'</span></label>').join('');
         const orderBuilder=state.shopOrder?'<section class="sp-embedded-order"><div class="sp-picker-head"><div><span class="sp-tag">PEDIDO</span><strong>¿Qué se lleva?</strong></div><small>Tocá los colores para sumar chapitas.</small></div><div class="sp-model-tabs">'+models.map(m=>'<button type="button" class="'+(state.orderModel===m?'active':'')+'" data-model="'+esc(m)+'">'+esc(m.startsWith('Circular grande')?'Grandes':m.startsWith('Circular chica')?'Chicas':'Gatos')+'</button>').join('')+'</div><div class="sp-color-grid">'+colors.map(col=>{const line=state.items.find(i=>i.model===state.orderModel&&i.color===col);return '<button type="button" class="'+(line?'selected':'')+'" data-color="'+esc(col)+'"><i style="background:'+esc(colorHex[col])+'"></i><span>'+esc(col)+'</span><b>'+(line?line.quantity:'+')+'</b></button>'}).join('')+'</div><div class="sp-cart sp-embedded-cart"><div class="sp-cart-head"><div><span class="sp-tag">RESUMEN</span><h3>'+units+' chapita'+(units===1?'':'s')+'</h3></div><strong>'+money(total)+'</strong></div>'+(state.items.length?'<div class="sp-cart-lines">'+state.items.map((i,n)=>'<div class="sp-cart-line"><span><i style="background:'+esc(colorHex[i.color])+'"></i><span><strong>'+esc(i.model.startsWith('Circular grande')?'Grande':i.model.startsWith('Circular chica')?'Chica':'Gato')+' · '+esc(i.color)+'</strong><small>'+money(i.price)+' c/u</small></span></span><div><button type="button" data-qty="-1" data-index="'+n+'">−</button><b>'+i.quantity+'</b><button type="button" data-qty="1" data-index="'+n+'">+</button></div></div>').join('')+'</div>':'<div class="sp-order-empty">Elegí arriba al menos una chapita.</div>')+'</div><div class="sp-form-grid sp-order-extra"><label><span>Entrega solicitada</span><input type="date" data-field="order_delivery" value="'+esc(f.order_delivery||'')+'"></label><label><span>Nota del pedido</span><input data-field="order_notes" value="'+esc(f.order_notes||'')+'" placeholder="Opcional"></label></div></section>':'';
-        return '<div class="sp-modal-backdrop"><div class="sp-modal sp-shop-flow '+(state.shopOrder?'has-order':'')+'" data-stop><div class="sp-modal-head"><div><span class="sp-tag">'+(isNew?'NUEVA VISITA':'LOCAL')+'</span><h2>'+(isNew?'Cargar local':'Editar local')+'</h2><p>'+(isNew?'Una sola pantalla: local, resultado y pedido si corresponde.':'Actualizá los datos del local.')+'</p></div>'+close+'</div><form class="sp-form" data-form="shop"><section class="sp-flow-step"><div class="sp-flow-title"><b>1</b><div><strong>¿Dónde estás?</strong><small>Con el nombre alcanza para empezar.</small></div></div><div class="sp-form-grid"><label class="wide"><span>Nombre del local *</span><input required minlength="2" name="name" data-field="name" value="'+esc(f.name||'')+'" placeholder="Ej.: Mundo Mascota"></label><label><span>Zona o barrio</span><input name="zone" data-field="zone" value="'+esc(f.zone||'')+'" placeholder="Ej.: Godoy Cruz"></label><label><span>Dirección</span><input name="address" data-field="address" value="'+esc(f.address||'')+'" placeholder="Calle, número o referencia"></label><div class="sp-geo wide"><button type="button" class="sp-btn secondary" data-action="capture-shop-location">'+icon('pin',16)+(f.map_url?' Actualizar ubicación':' Usar mi ubicación actual')+'</button><small>'+(f.map_url?'✓ Ubicación guardada':'Si estás en el local, la guardamos con un toque.')+'</small></div></div></section><section class="sp-flow-step"><div class="sp-flow-title"><b>2</b><div><strong>¿Cómo quedó la visita?</strong><small>Esto define qué te aparecerá después para seguir.</small></div></div><div class="sp-status-choices">'+resultChoices+'</div>'+((f.status||'Pendiente')==='Volver a visitar'?'<label class="sp-follow-date"><span>¿Cuándo volvés?</span><input type="date" name="next_visit" data-field="next_visit" value="'+esc(f.next_visit||'')+'"></label>':'')+'</section>'+(isNew?'<section class="sp-flow-step sp-sale-step"><div class="sp-flow-title"><b>3</b><div><strong>¿Hizo un pedido ahora?</strong><small>Si compró, lo cargás sin salir de esta pantalla.</small></div></div><div class="sp-order-choice"><button type="button" class="'+(!state.shopOrder?'active':'')+'" data-action="shop-order-no">'+icon('check',16)+' No, guardar visita</button><button type="button" class="'+(state.shopOrder?'active sale':'')+'" data-action="shop-order-yes">'+icon('bag',16)+' Sí, cargar pedido</button></div>'+orderBuilder+'</section>':'')+'<details class="sp-optional"><summary>Agregar contacto y notas <span>Opcional</span></summary><div class="sp-form-grid"><label><span>Persona de contacto</span><input name="contact" data-field="contact" value="'+esc(f.contact||'')+'" placeholder="Nombre del encargado"></label><label><span>WhatsApp</span><input name="phone" data-field="phone" value="'+esc(f.phone||'')+'" inputmode="tel" placeholder="549261…"></label><label class="wide"><span>Notas del local</span><textarea name="notes" data-field="notes" rows="3" placeholder="Horario, qué le interesa, con quién hablar…">'+esc(f.notes||'')+'</textarea></label></div></details><div class="sp-form-actions sp-flow-actions"><button type="button" class="sp-btn secondary" data-action="close-modal">Cancelar</button><button class="sp-btn primary" type="submit" '+(state.busy?'disabled':'')+'>'+(state.busy?'Guardando…':state.shopOrder?'Guardar local y pedido':'Guardar local')+'</button></div></form></div></div>';
+        return '<div class="sp-modal-backdrop"><div class="sp-modal sp-shop-flow '+(state.shopOrder?'has-order':'')+'" data-stop><div class="sp-modal-head"><div><span class="sp-tag">'+(isNew?'NUEVA VISITA':'LOCAL')+'</span><h2>'+(isNew?'Cargar local':'Editar local')+'</h2><p>'+(isNew?'Una sola pantalla: local, resultado y pedido si corresponde.':'Actualizá los datos del local.')+'</p></div>'+close+'</div><form class="sp-form" data-form="shop"><section class="sp-flow-step"><div class="sp-flow-title"><b>1</b><div><strong>¿Dónde estás?</strong><small>Con el nombre alcanza para empezar.</small></div></div><div class="sp-form-grid"><label class="wide"><span>Nombre del local *</span><input required minlength="2" name="name" data-field="name" value="'+esc(f.name||'')+'" placeholder="Ej.: Mundo Mascota"></label><label><span>Zona o barrio</span><input name="zone" data-field="zone" value="'+esc(f.zone||'')+'" placeholder="Ej.: Godoy Cruz"></label><label><span>Dirección</span><input name="address" data-field="address" value="'+esc(f.address||'')+'" placeholder="Calle, número o referencia"></label><div class="sp-geo wide"><button type="button" class="sp-btn secondary" data-action="capture-shop-location">'+icon('pin',16)+(f.map_url?' Actualizar ubicación':' Usar mi ubicación actual')+'</button><small>'+(f.map_url?'✓ Ubicación guardada · aparecerá en el mapa':'Usá tu ubicación para que este local aparezca automáticamente en el mapa.')+'</small></div></div></section><section class="sp-flow-step"><div class="sp-flow-title"><b>2</b><div><strong>¿Cómo quedó la visita?</strong><small>Esto define qué te aparecerá después para seguir.</small></div></div><div class="sp-status-choices">'+resultChoices+'</div>'+((f.status||'Pendiente')==='Volver a visitar'?'<label class="sp-follow-date"><span>¿Cuándo volvés?</span><input type="date" name="next_visit" data-field="next_visit" value="'+esc(f.next_visit||'')+'"></label>':'')+'</section>'+(isNew?'<section class="sp-flow-step sp-sale-step"><div class="sp-flow-title"><b>3</b><div><strong>¿Hizo un pedido ahora?</strong><small>Si compró, lo cargás sin salir de esta pantalla.</small></div></div><div class="sp-order-choice"><button type="button" class="'+(!state.shopOrder?'active':'')+'" data-action="shop-order-no">'+icon('check',16)+' No, guardar visita</button><button type="button" class="'+(state.shopOrder?'active sale':'')+'" data-action="shop-order-yes">'+icon('bag',16)+' Sí, cargar pedido</button></div>'+orderBuilder+'</section>':'')+'<details class="sp-optional"><summary>Agregar contacto y notas <span>Opcional</span></summary><div class="sp-form-grid"><label><span>Persona de contacto</span><input name="contact" data-field="contact" value="'+esc(f.contact||'')+'" placeholder="Nombre del encargado"></label><label><span>WhatsApp</span><input name="phone" data-field="phone" value="'+esc(f.phone||'')+'" inputmode="tel" placeholder="549261…"></label><label class="wide"><span>Notas del local</span><textarea name="notes" data-field="notes" rows="3" placeholder="Horario, qué le interesa, con quién hablar…">'+esc(f.notes||'')+'</textarea></label></div></details><div class="sp-form-actions sp-flow-actions"><button type="button" class="sp-btn secondary" data-action="close-modal">Cancelar</button><button class="sp-btn primary" type="submit" '+(state.busy?'disabled':'')+'>'+(state.busy?'Guardando…':state.shopOrder?'Guardar local y pedido':'Guardar local')+'</button></div></form></div></div>';
       }
       if(state.modal==='visit'){
         const f=state.form;
@@ -366,8 +405,8 @@
           const shopId=saved?.id||d.id;
           if(state.shopOrder){
             await mutate('order',{id:makeId('PED-'),shop_id:shopId,items:state.items,delivery:state.form.order_delivery||'',notes:String(state.form.order_notes||'').trim()});
-            toast('Local y pedido guardados');
-          }else toast('Local guardado');
+            toast(d.map_url?'Local, pedido y mapa actualizados':'Local y pedido guardados · agregá ubicación para verlo en el mapa');
+          }else toast(d.map_url?'Local guardado y agregado al mapa':'Local guardado · agregá ubicación para verlo en el mapa');
         }else if(state.modal==='visit'){
           const d={id:state.form.id||makeId('VIS-'),shop_id:state.form.shop_id||'',result:state.form.result||'Interesado',notes:String(state.form.notes||'').trim(),next_visit:state.form.next_visit||''};
           if(!d.shop_id)throw new Error('Elegí un local.');
