@@ -87,10 +87,10 @@
     const payState=o=>o.status==='Cancelado'?'Cancelado':paid(o)>=o.total?'Cobrado':paid(o)>0?'Parcial':'Pendiente';
     const commission=()=>{
       const sellerId=state.data.viewer.sellerId;
-      const paidUnits=orders().filter(o=>o.seller_id===sellerId&&o.status!=='Cancelado'&&paid(o)>=o.total).reduce((a,o)=>a+Number(o.units||0),0);
-      const earned=Math.floor(paidUnits/4)*7000;
+      const units=orders().filter(o=>o.seller_id===sellerId&&!['Recibido','Cancelado'].includes(o.status)).reduce((a,o)=>a+Number(o.units||0),0);
+      const earned=units*1750;
       const already=commissions().filter(c=>c.seller_id===sellerId).reduce((a,c)=>a+Number(c.amount||0),0);
-      return{units:paidUnits,earned,paid:already,due:earned-already,remainder:paidUnits%4};
+      return{units,earned,paid:already,due:Math.max(0,earned-already),remainder:units%4};
     };
     const shopStats=id=>{
       const os=orders().filter(o=>o.shop_id===id&&o.status!=='Cancelado');
@@ -183,7 +183,7 @@
         if(att.length>3)html+='<button class="sp-home-more" data-nav="shops">Ver '+(att.length-3)+' seguimiento'+(att.length-3===1?'':'s')+' más '+icon('chevron',14)+'</button>';
       }else html+='<div class="sp-good">'+icon('check',21)+'<div><strong>Todo al día</strong><span>No tenés seguimientos pendientes ahora.</span></div></div>';
       html+='</section>';
-      html+='<section class="sp-home-summary"><button data-nav="shops"><span>'+icon('store',17)+' Locales</span><strong>'+shops().length+'</strong></button><button data-nav="orders"><span>'+icon('bag',17)+' Pedidos activos</span><strong>'+active.length+'</strong></button><button data-nav="money"><span>'+icon('user',17)+' Mi comisión</span><strong>'+money(c.due)+'</strong></button></section>';
+      html+='<section class="sp-home-summary"><button data-nav="shops"><span>'+icon('store',17)+' Locales</span><strong>'+shops().length+'</strong></button><button data-nav="orders"><span>'+icon('bag',17)+' Pedidos activos</span><strong>'+active.length+'</strong></button><button data-nav="money"><span>'+icon('user',17)+' Comisión por cobrar</span><strong>'+money(c.due)+'</strong></button></section>';
       return html;
     }
     function filters(kind){
@@ -227,8 +227,8 @@
     }
     function renderMoney(){
       const valid=orders().filter(o=>o.status!=='Cancelado'),sales=valid.reduce((a,o)=>a+Number(o.total||0),0),collected=payments().reduce((a,p)=>a+Number(p.amount||0),0),c=commission(),pending=orders().filter(o=>due(o)>0);
-      let html='<div class="sp-kpis">'+kpi('Vendido',money(sales),valid.length+' pedidos válidos','bag','blue')+kpi('Cobrado',money(collected),payments().length+' pagos registrados','check','teal')+kpi('Falta cobrar',money(pending.reduce((a,o)=>a+due(o),0)),pending.length+' pedidos con saldo','wallet','orange')+kpi('Mi comisión',money(c.due),'Pendiente de pago','user','purple')+'</div>';
-      html+='<section class="sp-panel sp-commission"><div class="sp-commission-main"><div><span class="sp-tag">MI COMISIÓN</span><h2>'+money(c.due)+' <small>pendiente</small></h2><p>Se generan $7.000 por cada 4 chapitas de pedidos cobrados por completo.</p></div><div class="sp-progress-box"><strong>'+c.remainder+'/4</strong><span>hacia el próximo grupo</span></div></div><div class="sp-progress"><span style="width:'+(c.remainder/4*100)+'%"></span></div><div class="sp-commission-grid"><span><small>Chapitas cobradas</small><strong>'+c.units+'</strong></span><span><small>Generado</small><strong>'+money(c.earned)+'</strong></span><span><small>Ya abonado</small><strong>'+money(c.paid)+'</strong></span><span><small>Faltan para otros $7.000</small><strong>'+(c.remainder===0?4:4-c.remainder)+'</strong></span></div></section>';
+      let html='<div class="sp-kpis">'+kpi('Vendido',money(sales),valid.length+' pedidos válidos','bag','blue')+kpi('Cobrado',money(collected),payments().length+' pagos registrados','check','teal')+kpi('Falta cobrar',money(pending.reduce((a,o)=>a+due(o),0)),pending.length+' pedidos con saldo','wallet','orange')+kpi('Comisión por cobrar',money(c.due),'$1.750 por chapita confirmada','user','purple')+'</div>';
+      html+='<section class="sp-panel sp-commission"><div class="sp-commission-main"><div><span class="sp-tag">MI COMISIÓN</span><h2>'+money(c.due)+' <small>por cobrar</small></h2><p><strong>$1.750 por cada chapita confirmada.</strong> Es lo mismo que $7.000 cada 4 chapitas, pero ahora ves cómo suma una por una.</p></div><div class="sp-progress-box"><strong>'+c.remainder+'/4</strong><span>en el grupo actual</span></div></div><div class="sp-progress"><span style="width:'+(c.remainder/4*100)+'%"></span></div><div class="sp-commission-grid"><span><small>Chapitas confirmadas</small><strong>'+c.units+'</strong></span><span><small>Comisión acumulada</small><strong>'+money(c.earned)+'</strong></span><span><small>Ya abonado</small><strong>'+money(c.paid)+'</strong></span><span><small>Valor por chapita</small><strong>$1.750</strong></span></div></section>';
       html+='<section class="sp-panel sp-spaced"><div class="sp-panel-head"><div><h2>Pedidos con saldo</h2><p>Lo que administración todavía tiene pendiente de registrar como cobrado.</p></div><span class="sp-count">'+pending.length+'</span></div>';
       if(pending.length)html+='<div class="sp-balance-list">'+pending.map(o=>'<button class="sp-balance" data-action="order-detail" data-id="'+esc(o.id)+'"><i>'+icon('wallet',17)+'</i><span class="grow"><strong>'+esc(shop(o.shop_id)?.name||o.shop_id)+'</strong><small>'+esc(o.id)+' · cobrado '+money(paid(o))+' de '+money(o.total)+'</small></span><span><small>Pendiente</small><strong>'+money(due(o))+'</strong></span>'+icon('chevron',15)+'</button>').join('')+'</div>';
       else html+='<div class="sp-good">'+icon('check',21)+'<div><strong>Todo cobrado</strong><span>No tenés pedidos con saldo pendiente.</span></div></div>';
