@@ -73,7 +73,7 @@
   }
   function startSeller(initial){
     const root=document.getElementById('root');
-    const state={data:initial,section:'home',query:'',filter:'',geo:null,geoLoading:false,drawer:false,modal:null,form:{},items:[],orderModel:models[0],newShop:false,shopOrder:false,busy:false};
+    const state={data:initial,section:'home',query:'',filter:'',geo:null,geoLoading:false,mapInstance:null,drawer:false,modal:null,form:{},items:[],orderModel:models[0],newShop:false,shopOrder:false,busy:false};
     const shops=()=>state.data.shops||[];
     const sellers=()=>state.data.sellers||[];
     const sellerProfile=()=>sellers().find(x=>x.id===state.data.viewer.sellerId)||sellers()[0]||null;
@@ -204,7 +204,16 @@
     }
     function renderRoutes(){
       const points=window.PAC_SELLER_MAP_POINTS||[];
-      return '<section class="sp-live-map"><div class="sp-live-map-head"><div><span class="sp-tag">MAPA DE VENTAS</span><h2>Petshops y veterinarias</h2><p>Tocá cualquier punto para ver el comercio y abrirlo en Google Maps.</p></div><span class="sp-map-count">'+points.length+' puntos</span></div><div id="sp-seller-map" class="sp-seller-map" aria-label="Mapa de petshops y veterinarias"></div><div class="sp-map-note">'+icon('map',15)+' Los puntos vienen del mapa que importaste a Patas a Casa.</div></section>';
+      const located=!!state.geo;
+      return '<section class="sp-live-map"><div class="sp-live-map-head"><div><span class="sp-tag">MAPA DE VENTAS</span><h2>Petshops y veterinarias</h2><p>Ubicate en el mapa y tocá un comercio para abrirlo o navegar con Google Maps.</p></div><div class="sp-map-head-actions"><span class="sp-map-count">'+points.length+' puntos</span><button class="sp-btn '+(located?'secondary':'primary')+' sp-locate-btn" data-action="map-my-location">'+icon('nav',16)+' '+(located?'Centrar en mí':'Mostrar mi ubicación')+'</button></div></div><div id="sp-seller-map" class="sp-seller-map" aria-label="Mapa de petshops y veterinarias"></div><div class="sp-map-note">'+icon('map',15)+' Los puntos vienen del mapa importado. Google Maps se usa para abrir lugares y navegar.</div></section>';
+    }
+    function addSellerLocation(map,geo,center=false){
+      if(!map||!geo||!window.L)return;
+      const lat=Number(geo.lat),lng=Number(geo.lng);
+      if(!Number.isFinite(lat)||!Number.isFinite(lng))return;
+      L.circle([lat,lng],{radius:Number(geo.accuracy||35),weight:1,fillOpacity:.08,interactive:false}).addTo(map);
+      L.circleMarker([lat,lng],{radius:10,weight:4,fillOpacity:1,className:'sp-user-location-marker'}).addTo(map).bindTooltip('Vos estás acá',{permanent:true,direction:'top',offset:[0,-8],className:'sp-user-location-label'});
+      if(center)map.setView([lat,lng],15,{animate:true});
     }
     function initSellerMap(){
       if(state.section!=='routes')return;
@@ -218,13 +227,34 @@
       const bounds=[];
       points.forEach(p=>{
         if(!Number.isFinite(p.a)||!Number.isFinite(p.o))return;
-        const url='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(p.a+','+p.o);
-        const popup='<div class="sp-map-popup"><strong>'+esc(p.n||'Comercio')+'</strong><a href="'+url+'" target="_blank" rel="noreferrer">Abrir en Google Maps</a></div>';
+        const placeUrl='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(p.a+','+p.o);
+        const directionsUrl='https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(p.a+','+p.o)+'&travelmode=driving&dir_action=navigate';
+        const popup='<div class="sp-map-popup"><strong>'+esc(p.n||'Comercio')+'</strong><div class="sp-map-popup-actions"><a class="primary" href="'+directionsUrl+'" target="_blank" rel="noreferrer">Cómo llegar</a><a href="'+placeUrl+'" target="_blank" rel="noreferrer">Abrir en Maps</a></div></div>';
         L.circleMarker([p.a,p.o],{radius:7,weight:2,fillOpacity:.82}).addTo(map).bindPopup(popup);
         bounds.push([p.a,p.o]);
       });
+      if(state.geo)addSellerLocation(map,state.geo,false);
       if(bounds.length)map.fitBounds(bounds,{padding:[24,24],maxZoom:13});
       setTimeout(()=>map.invalidateSize(),120);
+    }
+    function locateSellerOnMap(){
+      if(state.geo&&state.mapInstance){addSellerLocation(state.mapInstance,state.geo,true);return}
+      if(!navigator.geolocation){toast('Este dispositivo no permite obtener tu ubicación.','err');return}
+      state.geoLoading=true;
+      const btn=root.querySelector('[data-action="map-my-location"]');
+      if(btn){btn.disabled=true;btn.textContent='Buscando ubicación…'}
+      navigator.geolocation.getCurrentPosition(pos=>{
+        state.geo={lat:pos.coords.latitude,lng:pos.coords.longitude,accuracy:pos.coords.accuracy};
+        state.geoLoading=false;
+        if(state.mapInstance)addSellerLocation(state.mapInstance,state.geo,true);
+        const b=root.querySelector('[data-action="map-my-location"]');
+        if(b){b.disabled=false;b.innerHTML=icon('nav',16)+' Centrar en mí'}
+      },err=>{
+        state.geoLoading=false;
+        const b=root.querySelector('[data-action="map-my-location"]');
+        if(b){b.disabled=false;b.innerHTML=icon('nav',16)+' Mostrar mi ubicación'}
+        toast(err.code===1?'Necesitamos permiso de ubicación para mostrar dónde estás.':'No pudimos obtener tu ubicación. Probá de nuevo.','err');
+      },{enableHighAccuracy:true,timeout:10000,maximumAge:30000});
     }
     function renderVisits(){
       const q=state.query.trim().toLowerCase();
@@ -393,6 +423,7 @@
       else if(action==='toggle-new-shop'){state.newShop=!state.newShop;if(state.newShop)state.form.shop_id='';render()}
       else if(action==='capture-shop-location')useCurrentLocation('map_url');
       else if(action==='capture-new-location')useCurrentLocation('new_shop_map_url');
+      else if(action==='map-my-location')locateSellerOnMap();
       else if(action==='maps-route')openRouteInMaps();
       else if(action==='refresh'){try{await reload();toast('Datos actualizados');render()}catch(err){toast(err.message,'err')}}
       else if(action==='logout'){await supabase.auth.signOut();location.reload()}
