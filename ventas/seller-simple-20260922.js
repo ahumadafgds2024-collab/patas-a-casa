@@ -203,12 +203,28 @@
       return filters('shops')+renderShopCards(matchingShops(),false);
     }
     function renderRoutes(){
-      const profile=sellerProfile();
-      const mapUrl=String(profile?.map_url||'').trim();
-      if(!mapUrl){
-        return '<section class="sp-map-assigned"><div class="sp-map-icon">'+icon('map',28)+'</div><span class="sp-tag">MAPA DEL VENDEDOR</span><h2>Todavía no tenés un mapa asignado</h2><p>Cuando administración cargue tu enlace de Google Maps o My Maps, va a aparecer acá.</p></section>';
-      }
-      return '<section class="sp-map-assigned has-map"><div class="sp-map-icon">'+icon('map',30)+'</div><span class="sp-tag">MAPA DEL VENDEDOR</span><h2>Tu mapa asignado</h2><p>Este es el mapa que Patas a Casa cargó en tu perfil para tu zona de trabajo.</p><a class="sp-btn primary sp-map-open" href="'+esc(mapUrl)+'" target="_blank" rel="noreferrer">'+icon('map',18)+' Abrir mi mapa</a></section>';
+      const points=window.PAC_SELLER_MAP_POINTS||[];
+      return '<section class="sp-live-map"><div class="sp-live-map-head"><div><span class="sp-tag">MAPA DE VENTAS</span><h2>Petshops y veterinarias</h2><p>Tocá cualquier punto para ver el comercio y abrirlo en Google Maps.</p></div><span class="sp-map-count">'+points.length+' puntos</span></div><div id="sp-seller-map" class="sp-seller-map" aria-label="Mapa de petshops y veterinarias"></div><div class="sp-map-note">'+icon('map',15)+' Los puntos vienen del mapa que importaste a Patas a Casa.</div></section>';
+    }
+    function initSellerMap(){
+      if(state.section!=='routes')return;
+      const el=document.getElementById('sp-seller-map');
+      const points=window.PAC_SELLER_MAP_POINTS||[];
+      if(!el||!points.length||!window.L)return;
+      if(state.mapInstance){try{state.mapInstance.remove()}catch{}state.mapInstance=null}
+      const map=L.map(el,{zoomControl:true,preferCanvas:true});
+      state.mapInstance=map;
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
+      const bounds=[];
+      points.forEach(p=>{
+        if(!Number.isFinite(p.a)||!Number.isFinite(p.o))return;
+        const url='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(p.a+','+p.o);
+        const popup='<div class="sp-map-popup"><strong>'+esc(p.n||'Comercio')+'</strong><a href="'+url+'" target="_blank" rel="noreferrer">Abrir en Google Maps</a></div>';
+        L.circleMarker([p.a,p.o],{radius:7,weight:2,fillOpacity:.82}).addTo(map).bindPopup(popup);
+        bounds.push([p.a,p.o]);
+      });
+      if(bounds.length)map.fitBounds(bounds,{padding:[24,24],maxZoom:13});
+      setTimeout(()=>map.invalidateSize(),120);
     }
     function renderVisits(){
       const q=state.query.trim().toLowerCase();
@@ -342,6 +358,7 @@
     function render(){
       root.innerHTML=renderPage();
       document.body.classList.add('sp-body');
+      if(state.section==='routes')setTimeout(initSellerMap,0);
     }
     root.addEventListener('input',e=>{
       const field=e.target?.dataset?.field;if(field)state.form[field]=e.target.value;
