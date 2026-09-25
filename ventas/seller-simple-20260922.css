@@ -254,3 +254,15 @@ html.sp-seller-mode,html.sp-seller-mode body{background:#f6f8fb}
   .sp-locate-btn{flex:1}
   .sp-map-popup-actions{grid-template-columns:1fr}
 }
+
+/* 2026-09-25 map <-> CRM synchronization */
+.sp-map-legend{display:flex;align-items:center;gap:16px;padding:0 22px 12px;color:#6f8295;font-size:.7rem;font-weight:680}
+.sp-map-legend span{display:flex;align-items:center;gap:6px}
+.sp-map-legend i{width:10px;height:10px;border-radius:50%;display:inline-block;border:2px solid}
+.sp-map-legend i.opportunity{background:#65a7d7;border-color:#205d8c}
+.sp-map-legend i.registered{background:#f28c28;border-color:#d96b13}
+.sp-map-popup-state{display:block;margin-top:4px;color:#b85e00;font-size:.66rem;font-weight:760}
+.sp-map-popup-state.muted{color:#8294a4;font-weight:680}
+@media(max-width:760px){
+  .sp-map-legend{padding:0 14px 11px;gap:12px;flex-wrap:wrap}
+}
