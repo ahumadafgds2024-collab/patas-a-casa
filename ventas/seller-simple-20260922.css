@@ -205,3 +205,15 @@ html.sp-seller-mode,html.sp-seller-mode body{background:#f6f8fb}
   .sp-flow-actions{position:sticky;bottom:0;background:rgba(255,255,255,.97);backdrop-filter:blur(12px);padding:12px 14px calc(12px + env(safe-area-inset-bottom));margin:0 -14px -14px;z-index:3}
   .sp-flow-actions .sp-btn{flex:1}
 }
+
+/* 2026-09-25 seller assigned map */
+.sp-map-assigned{max-width:720px;margin:6px auto 0;background:#fff;border:1px solid #e8eef4;border-radius:20px;padding:34px;text-align:center;box-shadow:0 10px 28px rgba(31,68,99,.05)}
+.sp-map-assigned.has-map{background:linear-gradient(180deg,#fff 0%,#fbfdff 100%)}
+.sp-map-icon{width:58px;height:58px;margin:0 auto 14px;border-radius:18px;display:grid;place-items:center;background:#eaf3fb;color:#205d8c}
+.sp-map-assigned h2{margin:9px 0 7px;color:#173f66;font-size:1.28rem;letter-spacing:-.02em}
+.sp-map-assigned p{max-width:520px;margin:0 auto;color:#74889b;font-size:.84rem;line-height:1.6}
+.sp-map-open{margin-top:20px;min-height:46px;padding:0 20px;display:inline-flex}
+@media(max-width:760px){
+  .sp-map-assigned{margin-top:0;padding:27px 18px;border-radius:18px}
+  .sp-map-open{width:100%;justify-content:center}
+}
