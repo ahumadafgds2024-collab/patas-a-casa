@@ -115,9 +115,11 @@ function normalizeDomain(value: unknown) {
   if (!/^[a-z0-9-]+\.s\.gy$/.test(domain)) {
     throw new HttpError("Usá un subdominio gratuito de Short.io terminado en .s.gy", 400);
   }
-  const prefix = `HTTPS://${domain.toUpperCase()}/`;
-  const slugLength = Math.min(8, 25 - prefix.length);
-  if (slugLength < 5) throw new HttpError("Ese dominio es demasiado largo para mantener el QR en 21×21", 400);
+  // V2-L holds 32 bytes. Keep HTTPS lowercase and retain up to eight random
+  // characters instead of shortening aliases to squeeze into V1-L.
+  const prefix = `https://${domain}/`;
+  const slugLength = Math.min(8, 32 - prefix.length);
+  if (slugLength < 5) throw new HttpError("Ese dominio es demasiado largo para el QR compatible de 25×25", 400);
   return { domain, slugLength };
 }
 
@@ -195,6 +197,8 @@ async function createShortLink(
       if (
         parsed.protocol !== "https:" ||
         parsed.hostname.toLowerCase() !== domain ||
+        parsed.port !== "" || parsed.username !== "" || parsed.password !== "" ||
+        parsed.search !== "" || parsed.hash !== "" ||
         parsed.pathname.replace(/^\//, "") !== path ||
         (returnedPath && returnedPath !== path)
       ) {
@@ -205,13 +209,13 @@ async function createShortLink(
         if (externalId) await deleteShortLink(ctx, apiKey, externalId);
         throw new Error("Short.io devolvió un destino distinto al de la chapita");
       }
-      const qrPayload = `HTTPS://${domain.toUpperCase()}/${path}`;
-      if (qrPayload.length > 25 || !/^[0-9A-Z $%*+\-./:]+$/.test(qrPayload)) {
+      const qrPayload = `https://${domain}/${path}`;
+      if (new TextEncoder().encode(qrPayload).length > 32) {
         if (externalId) await deleteShortLink(ctx, apiKey, externalId);
-        throw new Error("El enlace corto no entra en QR 21×21");
+        throw new Error("El enlace corto no entra en QR 25×25");
       }
       return {
-        short_url: `https://${domain}/${path}`,
+        short_url: qrPayload,
         path,
         external_id: externalId,
         qr_payload: qrPayload,
@@ -392,7 +396,8 @@ Deno.serve(async (req) => {
         const short = await createShortLink(ctx, shortApiKey, domain, slugLength, originalUrl);
         madeLinks.push({ id: short.external_id, short_url: short.short_url });
 
-        const works = await verifyRedirect(ctx, short.short_url, originalUrl);
+        // Verify exactly the payload that will be printed.
+        const works = await verifyRedirect(ctx, short.qr_payload, originalUrl);
         if (!works) {
           throw new Error("El dominio Short.io todavía no redirige correctamente. Verificá que el subdominio esté activado por teléfono");
         }
