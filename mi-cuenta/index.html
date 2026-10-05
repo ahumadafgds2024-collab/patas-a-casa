@@ -909,6 +909,45 @@ async function shareFlyer(){
 }
 function downloadFlyer(){if(!flyerBlob)return;const a=document.createElement("a"),url=URL.createObjectURL(flyerBlob);a.href=url;a.download=flyerFileName||"flyer-patas-a-casa.png";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500)}
 function compressPhoto(file){return new Promise((resolve,reject)=>{if(!file){resolve(null);return}if(!file.type.startsWith("image/")){reject(new Error("Elegí una imagen válida."));return}if(file.size>12*1024*1024){reject(new Error("La foto es demasiado grande."));return}const reader=new FileReader();reader.onerror=()=>reject(new Error("No pudimos leer la foto."));reader.onload=()=>{const img=new Image();img.onerror=()=>reject(new Error("No pudimos procesar la foto."));img.onload=()=>{const max=900,scale=Math.min(1,max/Math.max(img.naturalWidth||img.width,img.naturalHeight||img.height)),w=Math.max(1,Math.round((img.naturalWidth||img.width)*scale)),h=Math.max(1,Math.round((img.naturalHeight||img.height)*scale)),canvas=document.createElement("canvas");canvas.width=w;canvas.height=h;const ctx=canvas.getContext("2d");ctx.fillStyle="#fff";ctx.fillRect(0,0,w,h);ctx.drawImage(img,0,0,w,h);resolve(canvas.toDataURL("image/jpeg",.82))};img.src=String(reader.result)};reader.readAsDataURL(file)})}
+async function removePetPhotosForDeletion(p){
+ if(!p?.id)throw new Error("No pudimos identificar la mascota.");
+ const s=await validSession();if(!s)throw new Error("Sesión vencida.");
+ const headers={"Content-Type":"application/json",apikey:PUBLISHABLE_KEY,Authorization:"Bearer "+s.access_token};
+ const prefix=`${p.id}/`;
+ const list=await fetch(`${SUPABASE_URL}/storage/v1/object/list/pet-photos`,{method:"POST",headers,body:JSON.stringify({prefix,limit:1000,offset:0,sortBy:{column:"name",order:"asc"}})});
+ const rows=await list.json().catch(()=>[]);
+ if(list.status===401){setSession(null);showAuth("Tu sesión venció. Volvé a ingresar.");throw new Error("Sesión vencida.")}
+ if(!list.ok)throw new Error("No pudimos revisar las fotos de la mascota.");
+ const paths=(Array.isArray(rows)?rows:[]).map(row=>{const name=String(row?.name||"");if(!name)return "";return name.startsWith(prefix)?name:`${prefix}${name.replace(/^\\/+/, "")}`}).filter(path=>path.startsWith(prefix));
+ if(!paths.length)return;
+ const del=await fetch(`${SUPABASE_URL}/storage/v1/object/pet-photos`,{method:"DELETE",headers,body:JSON.stringify({prefixes:paths})});
+ if(del.status===401){setSession(null);showAuth("Tu sesión venció. Volvé a ingresar.");throw new Error("Sesión vencida.")}
+ if(!del.ok)throw new Error("No pudimos eliminar las fotos de la mascota.");
+}
+async function deletePetFromAccount(p){
+ await removePetPhotosForDeletion(p);
+ const s=await validSession();if(!s)throw new Error("Sesión vencida.");
+ const r=await fetch(`${SUPABASE_URL}/rest/v1/rpc/delete_my_pet`,{method:"POST",headers:{"Content-Type":"application/json",apikey:PUBLISHABLE_KEY,Authorization:"Bearer "+s.access_token},body:JSON.stringify({p_public_code:p.public_code})});
+ const j=await r.json().catch(()=>null);
+ if(r.status===401){setSession(null);showAuth("Tu sesión venció. Volvé a ingresar.");throw new Error("Sesión vencida.")}
+ if(!r.ok)throw new Error(j?.message||j?.error||"No pudimos eliminar la mascota.");
+ if(j!==true)throw new Error("La mascota ya no está en tu cuenta o no pudo eliminarse.");
+}
+function openDeletePet(c){
+ const p=pets.find(x=>x.public_code===c);if(!p)return;
+ openModal(`<div class="sheethead"><div><div class="kicker">ELIMINAR MASCOTA</div><h2>¿Eliminar a ${esc(p.name)}?</h2></div><button class="x" onclick="closeModal()">×</button></div><div class="status err" style="margin:0 0 14px"><b>Esta acción es permanente.</b><br>Se eliminarán el perfil de ${esc(p.name)}, sus fotos y los avistamientos asociados. La chapita <b>${esc(p.public_code)}</b> quedará libre para poder activarla nuevamente.</div><div class="field"><label>Para confirmar, escribí ELIMINAR</label><input id="deletePetWord" type="text" autocomplete="off" autocapitalize="characters" placeholder="ELIMINAR"></div><button class="btn soft wide" type="button" onclick="editPet(\'${esc(p.public_code)}\')">Cancelar</button><button class="btn red wide" id="deletePetConfirm" type="button" style="margin-top:9px">Eliminar mascota</button>`);
+ document.getElementById("deletePetConfirm").addEventListener("click",async e=>{
+  const word=String(document.getElementById("deletePetWord")?.value||"").trim().toUpperCase();
+  if(word!=="ELIMINAR"){toast("Escribí ELIMINAR para confirmar.");return}
+  const b=e.currentTarget,bak=b.textContent;b.disabled=true;b.textContent="Eliminando…";
+  try{
+   await deletePetFromAccount(p);
+   closeModal();
+   await loadDashboard();
+   toast(`${p.name} fue eliminado. La chapita quedó libre ✅`);
+  }catch(err){toast(err.message);if(document.body.contains(b)){b.disabled=false;b.textContent=bak}}
+ });
+}
 function editPet(c){
  const p=pets.find(x=>x.public_code===c);if(!p)return;openModal(`<div class="sheethead"><div><div class="kicker">EDITAR</div><h2>${esc(p.name)}</h2></div><button class="x" onclick="closeModal()">×</button></div><form id="editForm" method="post">
  <div class="photo-pick"><div class="photo-prev" id="prev">${p.photo_url?`<img src="${esc(p.photo_url)}">`:(p.species==="Gato"?"🐱":"🐶")}</div><div class="photo-info"><b>Foto</b><div class="small muted">Se comprime antes de subir.</div><label class="file-btn">📷 Cambiar foto<input id="photo" type="file" accept="image/*"></label>${p.photo_url?`<label class="check"><input id="removePhoto" type="checkbox"> Quitar foto actual</label>`:""}</div></div>
@@ -920,7 +959,7 @@ function editPet(c){
  <div class="field"><label>Segundo contacto de emergencia</label><input name="alt_contact" value="${esc(p.alt_contact||"")}" placeholder="Nombre y teléfono"></div>
  <details><summary style="font-weight:900;margin-bottom:12px">Salud y cuidados</summary><div class="field"><label>Enfermedades</label><textarea name="diseases">${esc(p.diseases||"")}</textarea></div><div class="field"><label>Medicaciones</label><textarea name="medications">${esc(p.medications||"")}</textarea></div><div class="field"><label>Horario de medicación</label><textarea name="medication_schedule">${esc(p.medication_schedule||"")}</textarea></div><div class="field"><label>Alergias</label><textarea name="allergies">${esc(p.allergies||"")}</textarea></div><div class="field"><label>Cuidados especiales</label><textarea name="special_care">${esc(p.special_care||"")}</textarea></div><div class="field"><label>Veterinario / dato útil</label><textarea name="vet_info">${esc(p.vet_info||"")}</textarea></div></details>
  <label class="check"><input name="public_health" type="checkbox" ${p.public_health?"checked":""}> Mostrar salud importante en el perfil público</label><label class="check"><input name="public_contact" type="checkbox" ${p.public_contact?"checked":""}> Mostrar opciones de contacto</label>
- <button class="btn primary wide" type="submit">Guardar cambios</button></form>`);
+ <button class="btn primary wide" type="submit">Guardar cambios</button><div style="height:1px;background:var(--line);margin:20px 0"></div><button class="btn red wide" type="button" onclick="openDeletePet(\'${esc(p.public_code)}\')">Eliminar mascota</button><p class="small muted" style="text-align:center;margin:9px 8px 0">Elimina este perfil y libera la chapita para volver a usarla.</p></form>`);
  const input=document.getElementById("photo"),prev=document.getElementById("prev");input.onchange=()=>{const f=input.files?.[0];if(!f)return;const u=URL.createObjectURL(f);prev.innerHTML=`<img src="${u}">`};
  document.getElementById("editForm").addEventListener("submit",async e=>{e.preventDefault();const b=e.submitter,bak=b.textContent,f=new FormData(e.currentTarget),o=Object.fromEntries(f.entries());o.action="update_pet";o.public_code=c;o.contact_phone=o.contact_whatsapp;o.public_health=f.get("public_health")==="on";o.public_contact=f.get("public_contact")==="on";o.remove_photo=document.getElementById("removePhoto")?.checked||false;b.disabled=true;b.textContent="Guardando…";try{const photo=input.files?.[0];if(photo){b.textContent="Preparando foto…";o.photo_data=await compressPhoto(photo)}await accountPost(o);closeModal();await loadDashboard();toast("Perfil actualizado ✅")}catch(err){toast(err.message)}finally{b.disabled=false;b.textContent=bak}});
 }
