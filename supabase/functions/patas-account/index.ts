@@ -195,6 +195,66 @@ async function savePhoto(petId: string, photoData: unknown) {
   return `${SUPABASE_URL}/storage/v1/object/public/${PHOTO_BUCKET}/${objectPath}`;
 }
 
+async function removePetPhotos(petId: string) {
+  const prefix = `${petId}/`;
+  const list = await fetch(`${SUPABASE_URL}/storage/v1/object/list/${PHOTO_BUCKET}`, {
+    method: "POST",
+    headers: serviceHeaders,
+    body: JSON.stringify({ prefix, limit: 1000, offset: 0, sortBy: { column: "name", order: "asc" } }),
+  });
+  if (!list.ok) throw new Error("No pudimos revisar las fotos de la mascota.");
+  const rows = await list.json().catch(() => []);
+  const paths = (Array.isArray(rows) ? rows : []).map((row: any) => {
+    const name = String(row?.name || "");
+    if (!name) return "";
+    return name.startsWith(prefix) ? name : `${prefix}${name.replace(/^\\/+/, "")}`;
+  }).filter((p: string) => p.startsWith(prefix));
+  if (!paths.length) return;
+  const del = await fetch(`${SUPABASE_URL}/storage/v1/object/${PHOTO_BUCKET}`, {
+    method: "DELETE",
+    headers: serviceHeaders,
+    body: JSON.stringify({ prefixes: paths }),
+  });
+  if (!del.ok) throw new Error("No pudimos eliminar las fotos de la mascota.");
+}
+
+async function deletePetSightings(publicCode: string) {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/sightings?pet_public_code=eq.${encodeURIComponent(publicCode)}`, {
+    method: "DELETE",
+    headers: { ...serviceHeaders, Prefer: "return=minimal" },
+  });
+  if (!r.ok && r.status !== 404) throw new Error("No pudimos eliminar los avistamientos asociados.");
+}
+
+async function deletePetPendingClaims(petId: string) {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/pending_owner_claims?pet_id=eq.${encodeURIComponent(petId)}`, {
+    method: "DELETE",
+    headers: { ...serviceHeaders, Prefer: "return=minimal" },
+  });
+  if (!r.ok && r.status !== 404) throw new Error("No pudimos limpiar la activación asociada.");
+}
+
+async function releasePetTag(petId: string) {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/tags?pet_id=eq.${encodeURIComponent(petId)}`, {
+    method: "PATCH",
+    headers: { ...serviceHeaders, Prefer: "return=minimal" },
+    body: JSON.stringify({ pet_id: null, activated_at: null }),
+  });
+  if (!r.ok) throw new Error("No pudimos liberar la chapita.");
+}
+
+async function deleteOwnedPetRow(userId: string, petId: string) {
+  const r = await fetch(
+    `${SUPABASE_URL}/rest/v1/pets?id=eq.${encodeURIComponent(petId)}&owner_id=eq.${encodeURIComponent(userId)}`,
+    {
+      method: "DELETE",
+      headers: { ...serviceHeaders, Prefer: "return=representation" },
+    },
+  );
+  const rows = r.ok ? await r.json().catch(() => []) : [];
+  if (!r.ok || !Array.isArray(rows) || !rows.length) throw new Error("No pudimos eliminar la mascota.");
+}
+
 function profilePayload(b: any) {
   const out: Record<string, unknown> = {
     name: txt(b.name, 80) || "Mascota",
@@ -475,6 +535,21 @@ Deno.serve(async (req) => {
       const r = await fetch(`${SUPABASE_URL}/rest/v1/sightings?pet_public_code=eq.${encodeURIComponent(c)}&select=id,message,finder_phone,area_text,latitude,longitude,location_consent,contact_consent,created_at&order=created_at.desc&limit=50`, { headers: serviceHeaders });
       if (!r.ok) return json({ error: "No pudimos cargar los avistamientos." }, 500);
       return json({ ok: true, sightings: await r.json() });
+    }
+
+    if (b.action === "delete_pet") {
+      const c = code(b.public_code);
+      if (!c) return json({ error: "No pudimos identificar la mascota." }, 400);
+      const pet = await ownedPet(user.id, c);
+      if (!pet) return json({ error: "Mascota no encontrada en tu cuenta." }, 404);
+
+      await removePetPhotos(String(pet.id));
+      await deletePetSightings(c);
+      await deletePetPendingClaims(String(pet.id));
+      await releasePetTag(String(pet.id));
+      await deleteOwnedPetRow(user.id, String(pet.id));
+
+      return json({ ok: true, public_code: c });
     }
 
     if (b.action === "update_pet") {
