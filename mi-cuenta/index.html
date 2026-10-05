@@ -918,7 +918,7 @@ async function removePetPhotosForDeletion(p){
  const rows=await list.json().catch(()=>[]);
  if(list.status===401){setSession(null);showAuth("Tu sesión venció. Volvé a ingresar.");throw new Error("Sesión vencida.")}
  if(!list.ok)throw new Error("No pudimos revisar las fotos de la mascota.");
- const paths=(Array.isArray(rows)?rows:[]).map(row=>{const name=String(row?.name||"");if(!name)return "";return name.startsWith(prefix)?name:`${prefix}${name.replace(/^\\/+/, "")}`}).filter(path=>path.startsWith(prefix));
+ const paths=(Array.isArray(rows)?rows:[]).map(row=>{const name=String(row?.name||"");if(!name)return "";return name.startsWith(prefix)?name:`${prefix}${name.replace(/^\/+/, "")}`}).filter(path=>path.startsWith(prefix));
  if(!paths.length)return;
  const del=await fetch(`${SUPABASE_URL}/storage/v1/object/pet-photos`,{method:"DELETE",headers,body:JSON.stringify({prefixes:paths})});
  if(del.status===401){setSession(null);showAuth("Tu sesión venció. Volvé a ingresar.");throw new Error("Sesión vencida.")}
