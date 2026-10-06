@@ -910,16 +910,14 @@ async function shareFlyer(){
 function downloadFlyer(){if(!flyerBlob)return;const a=document.createElement("a"),url=URL.createObjectURL(flyerBlob);a.href=url;a.download=flyerFileName||"flyer-patas-a-casa.png";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500)}
 function compressPhoto(file){return new Promise((resolve,reject)=>{if(!file){resolve(null);return}if(!file.type.startsWith("image/")){reject(new Error("Elegí una imagen válida."));return}if(file.size>12*1024*1024){reject(new Error("La foto es demasiado grande."));return}const reader=new FileReader();reader.onerror=()=>reject(new Error("No pudimos leer la foto."));reader.onload=()=>{const img=new Image();img.onerror=()=>reject(new Error("No pudimos procesar la foto."));img.onload=()=>{const max=900,scale=Math.min(1,max/Math.max(img.naturalWidth||img.width,img.naturalHeight||img.height)),w=Math.max(1,Math.round((img.naturalWidth||img.width)*scale)),h=Math.max(1,Math.round((img.naturalHeight||img.height)*scale)),canvas=document.createElement("canvas");canvas.width=w;canvas.height=h;const ctx=canvas.getContext("2d");ctx.fillStyle="#fff";ctx.fillRect(0,0,w,h);ctx.drawImage(img,0,0,w,h);resolve(canvas.toDataURL("image/jpeg",.82))};img.src=String(reader.result)};reader.readAsDataURL(file)})}
 async function removePetPhotosForDeletion(p){
- if(!p?.id)throw new Error("No pudimos identificar la mascota.");
+ if(!p?.public_code)throw new Error("No pudimos identificar la mascota.");
  const s=await validSession();if(!s)throw new Error("Sesión vencida.");
  const headers={"Content-Type":"application/json",apikey:PUBLISHABLE_KEY,Authorization:"Bearer "+s.access_token};
- const prefix=`${p.id}/`;
- const list=await fetch(`${SUPABASE_URL}/storage/v1/object/list/pet-photos`,{method:"POST",headers,body:JSON.stringify({prefix,limit:1000,offset:0,sortBy:{column:"name",order:"asc"}})});
- const rows=await list.json().catch(()=>[]);
- if(list.status===401){setSession(null);showAuth("Tu sesión venció. Volvé a ingresar.");throw new Error("Sesión vencida.")}
- if(!list.ok)throw new Error("No pudimos revisar las fotos de la mascota.");
- const paths=(Array.isArray(rows)?rows:[]).map(row=>{const name=String(row?.name||"");if(!name)return "";return name.startsWith(prefix)?name:`${prefix}${name.replace(/^\/+/, "")}`}).filter(path=>path.startsWith(prefix));
- if(!paths.length)return;
+ const lookup=await fetch(`${SUPABASE_URL}/rest/v1/rpc/list_my_pet_photo_paths`,{method:"POST",headers,body:JSON.stringify({p_public_code:p.public_code})});
+ const paths=await lookup.json().catch(()=>[]);
+ if(lookup.status===401){setSession(null);showAuth("Tu sesión venció. Volvé a ingresar.");throw new Error("Sesión vencida.")}
+ if(!lookup.ok)throw new Error("No pudimos revisar las fotos de la mascota.");
+ if(!Array.isArray(paths)||!paths.length)return;
  const del=await fetch(`${SUPABASE_URL}/storage/v1/object/pet-photos`,{method:"DELETE",headers,body:JSON.stringify({prefixes:paths})});
  if(del.status===401){setSession(null);showAuth("Tu sesión venció. Volvé a ingresar.");throw new Error("Sesión vencida.")}
  if(!del.ok)throw new Error("No pudimos eliminar las fotos de la mascota.");
